@@ -44,42 +44,47 @@ static const std::unordered_map<std::string_view, OptKey> kStrRepToOptKey{
     {"cursor_start_holding_interval", kOptCursorStartHoldingInterval},
 };
 
+// throw OptionInfoInitException if option info init count is not correct.
 static void OptStaticInit(const OptInfo*& opt_info) {
     static const auto static_opt_info = [] {
         auto static_opt_info = new OptInfo[__kOptKeyCount];
+        size_t cnt = 0;
+        auto set_opt_info = [&cnt, static_opt_info](OptKey key,
+                                                    OptInfo info) mutable {
+            static_opt_info[key] = info;
+            cnt++;
+        };
         // buffer
-        static_opt_info[kOptAutoIndent] = {OptScope::kBuffer, Type::kBool};
-        static_opt_info[kOptAutoPair] = {OptScope::kBuffer, Type::kBool};
-        static_opt_info[kOptMaxEditHistory] = {OptScope::kBuffer,
-                                               Type::kInteger};
-        static_opt_info[kOptTabSpace] = {OptScope::kBuffer, Type::kBool};
-        static_opt_info[kOptTabStop] = {OptScope::kBuffer, Type::kInteger};
-        static_opt_info[kOptWrap] = {OptScope::kBuffer, Type::kBool};
+        set_opt_info(kOptAutoIndent, {OptScope::kBuffer, Type::kBool});
+        set_opt_info(kOptAutoPair, {OptScope::kBuffer, Type::kBool});
+        set_opt_info(kOptMaxEditHistory, {OptScope::kBuffer, Type::kInteger});
+        set_opt_info(kOptTabSpace, {OptScope::kBuffer, Type::kBool});
+        set_opt_info(kOptTabStop, {OptScope::kBuffer, Type::kInteger});
+        set_opt_info(kOptWrap, {OptScope::kBuffer, Type::kBool});
         // window
-        static_opt_info[kOptEndOfBufferMark] = {OptScope::kWindow, Type::kBool};
-        static_opt_info[kOptLineNumber] = {OptScope::kWindow, Type::kInteger};
-        static_opt_info[kOptTrailingWhite] = {OptScope::kWindow, Type::kBool};
+        set_opt_info(kOptEndOfBufferMark, {OptScope::kWindow, Type::kBool});
+        set_opt_info(kOptLineNumber, {OptScope::kWindow, Type::kInteger});
+        set_opt_info(kOptTrailingWhite, {OptScope::kWindow, Type::kBool});
         // global
-        static_opt_info[kOptBasicWordCompletion] = {OptScope::kGlobal,
-                                                    Type::kBool};
-        static_opt_info[kOptCmpMenuMaxWidth] = {OptScope::kGlobal,
-                                                Type::kInteger};
-        static_opt_info[kOptCmpMenuMaxHeight] = {OptScope::kGlobal,
-                                                 Type::kInteger};
-        static_opt_info[kOptColorScheme] = {OptScope::kGlobal, Type::kPtr};
-        static_opt_info[kOptHighlightOnSearch] = {OptScope::kGlobal,
-                                                  Type::kBool};
-        static_opt_info[kOptInputIdleTimeout] = {OptScope::kGlobal,
-                                                 Type::kInteger};
-        static_opt_info[kOptLogVerbose] = {OptScope::kGlobal, Type::kBool};
-        static_opt_info[kOptMaxJumpHistory] = {OptScope::kGlobal,
-                                               Type::kInteger};
-        static_opt_info[kOptScrollRows] = {OptScope::kGlobal, Type::kBool};
-        static_opt_info[kOptScrollRows] = {OptScope::kGlobal, Type::kInteger};
-        static_opt_info[kOptTrueColor] = {OptScope::kGlobal, Type::kBool};
+        set_opt_info(kOptBasicWordCompletion, {OptScope::kGlobal, Type::kBool});
+        set_opt_info(kOptCmpMenuMaxWidth, {OptScope::kGlobal, Type::kInteger});
+        set_opt_info(kOptCmpMenuMaxHeight, {OptScope::kGlobal, Type::kInteger});
+        set_opt_info(kOptColorScheme, {OptScope::kGlobal, Type::kPtr});
+        set_opt_info(kOptHighlightOnSearch, {OptScope::kGlobal, Type::kBool});
+        set_opt_info(kOptInputIdleTimeout, {OptScope::kGlobal, Type::kInteger});
+        set_opt_info(kOptLogVerbose, {OptScope::kGlobal, Type::kBool});
+        set_opt_info(kOptMaxJumpHistory, {OptScope::kGlobal, Type::kInteger});
+        set_opt_info(kOptSearchIgnoreCase, {OptScope::kGlobal, Type::kBool});
+        set_opt_info(kOptScrollRows, {OptScope::kGlobal, Type::kInteger});
+        set_opt_info(kOptTrueColor, {OptScope::kGlobal, Type::kBool});
         // private
-        static_opt_info[kOptCursorStartHoldingInterval] = {OptScope::kGlobal,
-                                                           Type::kInteger};
+        set_opt_info(kOptCursorStartHoldingInterval,
+                     {OptScope::kGlobal, Type::kInteger});
+        if (cnt != __kOptKeyCount) {
+            throw OptionInfoInitException("Option count: {}, but {} info init",
+                                          static_cast<size_t>(__kOptKeyCount),
+                                          cnt);
+        }
         return const_cast<OptInfo*>(static_opt_info);
     }();
     opt_info = static_opt_info;

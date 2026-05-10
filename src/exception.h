@@ -64,4 +64,5 @@ MGO_NORMAL_EXCEPTION(TypeMismatchException)
 MGO_NORMAL_EXCEPTION(OptionLoadException)
 MGO_NORMAL_EXCEPTION(ParseMsgException)
 MGO_NORMAL_EXCEPTION(CommandNameExistException)
+MGO_NORMAL_EXCEPTION(OptionInfoInitException)
 }  // namespace mango
