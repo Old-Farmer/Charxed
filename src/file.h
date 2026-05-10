@@ -1,5 +1,6 @@
 #pragma once
 
+#include "exception.h"
 #include "result.h"
 #include "utils.h"
 
@@ -31,6 +32,22 @@ class File {
     File& operator=(File&&) noexcept;
 
     FILE* file() { return file_; }
+
+    // Read a byte from file.
+    // return kEof for eof, kOk for ok.
+    // throws IOException.
+    // Implement here for inlining the method.
+    Result ReadByte(char& c) {
+        int res = fgetc(file_);
+        if (res == EOF) {
+            if (feof(file_) != 0) {
+                return kEof;
+            }
+            throw IOException("{}", strerror(errno));
+        }
+        c = res;
+        return kOk;
+    }
 
     // Read one line from file.
     // EOLSeq will be stored as the eol seq.

@@ -8,17 +8,23 @@
 #include "completer.h"
 #include "file.h"
 #include "fs.h"
+#include "gsl/span"
 #include "options.h"
 #include "pos.h"
 #include "result.h"
 #include "state.h"
-#include "text_tree.h"
 #include "tree_sitter/api.h"
 #include "utils.h"
 
 namespace mango {
 
 constexpr const char* kSwapSuffix = ".mango_swap";
+
+struct Line {
+    std::string line_str;
+    Line() {}
+    Line(std::string _line_str) : line_str(std::move(_line_str)) {}
+};
 
 struct Cursor;
 struct Options;
@@ -39,6 +45,10 @@ struct BufferEdit {
 // A file backup buffer can be read only, and a no file backup buffer can't be
 // read only.
 // Only support Posix now.
+
+// NOTE: For simplicity, we use an array of string to represent a buffer.
+// Maybe chage the internal data structure, So the api will not be stable
+// now.
 
 // TODO: Windows support
 class Buffer {
@@ -96,9 +106,16 @@ class Buffer {
 
     std::string_view GetLine(size_t line) const {
         MGO_ASSERT(LineCnt() > line);
-        auto line_view = tree_.GetLine(line);
-        auto line_str = line_view.ToStringView(line_buf_);
-        return line_str;
+        return lines_[line].line_str;
+    }
+
+    // Deprecated: No usage.
+    // This method is for some op to get a '\0' terminated sub_str but don't
+    // want to copy.
+    // They must modify a byte to '\0' and then modified back.
+    gsl::span<char> GetLineNonConst(size_t line) {
+        MGO_ASSERT(LineCnt() > line);
+        return {lines_[line].line_str.data(), lines_[line].line_str.size() + 1};
     }
 
     // GetConent will copy out a string in range.
@@ -120,6 +137,10 @@ class Buffer {
     bool TryRecordMerge(const BufferEditHistoryItem& item);
     // Caller should check whefher kMaxEditHistory <= 0
     void Record(BufferEditHistoryItem&& item);
+
+    // return an global offset of a pos
+    // TODO: optimize it.
+    size_t OffsetAndInvalidAfterPos(Pos pos);
 
     template <typename T>
     T GetOpt(OptKey key) {
@@ -160,7 +181,10 @@ class Buffer {
 
     int64_t id() const noexcept { return id_; }
     // Must always >= 1
-    size_t LineCnt() const noexcept { return tree_.LineCnt(); }
+    size_t LineCnt() const noexcept {
+        MGO_ASSERT(lines_.size() >= 1);
+        return lines_.size();
+    }
     BufferState& state() { return state_; };
     bool IsLoad() const noexcept {
         return state_ == BufferState::kModified ||
@@ -200,8 +224,7 @@ class Buffer {
     Buffer* prev_ = nullptr;
 
    private:
-    TextTree tree_;
-    mutable std::string line_buf_;
+    std::vector<Line> lines_;
 
     Path path_;
     struct NewFileInfo {
@@ -228,6 +251,9 @@ class Buffer {
     // Just for tree-sitter
     TSInputEdit ts_edit_;
     // bool after_get_edit_modified = false;
+
+    // A prefiex offset cache, for fast offset calculation.
+    std::vector<size_t> offset_per_line_ = {0};
 
     std::unique_ptr<BufferBasicWordCompleter> basic_word_completer_;
 

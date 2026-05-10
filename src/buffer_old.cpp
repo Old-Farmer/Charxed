@@ -1,4 +1,4 @@
-#include "buffer.h"
+#include "buffer_old.h"
 
 #include <cstdio>
 #include <cstring>
@@ -58,8 +58,10 @@ void Buffer::Load() {
     });
 
     try {
+        lines_.clear();
+
         if (path_.Empty()) {
-            tree_.BulkLoad("");
+            lines_.push_back({});
             state_ = BufferState::kNotModified;
             return;
         }
@@ -67,18 +69,36 @@ void Buffer::Load() {
         File f(path_.AbsolutePath(), "r", true);
         MGO_LOG_DEBUG("file path {}", path_.AbsolutePath());
 
-        tree_.BulkLoad(f, eol_seq_);
+        while (true) {
+            std::string buf;
+            Result ret = f.ReadLine(buf, eol_seq_);
+            if (!CheckUtf8Valid(buf)) {
+                lines_.clear();
+                lines_.push_back({});
+                state_ = BufferState::kCodingInvalid;
+                throw CodingException("{}", "utf8 encoding error");
+            }
+            lines_.emplace_back(std::move(buf));
+            if (ret == kEof) {
+                break;
+            }
+        }
+        if (lines_.empty()) {
+            lines_.push_back({});
+        }
 
         filetype_ = DecideFiletype(path_.FileName());
 
         state_ =
             read_only_ ? BufferState::kReadOnly : BufferState::kNotModified;
     } catch (FileCreateException& e) {
-        tree_.BulkLoad("");  // ensure init
+        lines_.clear();
+        lines_.push_back({});  // ensure one empty line
         state_ = BufferState::kCannotCreate;
         throw;
     } catch (IOException& e) {
-        tree_.BulkLoad("");  // ensure init
+        lines_.clear();
+        lines_.push_back({});  // ensure one empty line
         state_ = BufferState::kCannotRead;
         throw;
     }
@@ -86,7 +106,8 @@ void Buffer::Load() {
 
 void Buffer::Clear() {
     state_ = BufferState::kNotModified;
-    tree_.BulkLoad("");
+    lines_.clear();
+    lines_.push_back({});
     version_++;
 }
 
@@ -106,40 +127,22 @@ Result Buffer::Write() {
     std::string swap_file_path = path_.AbsolutePath() + kSwapSuffix;
     File swap_file = File(swap_file_path, "w", true);
 
-    if (eol_seq_ == EOLSeq::kLF) {
-        for (auto iter = tree_.BlockBegin(); iter != tree_.BlockEnd();
-             iter.Next()) {
-            auto str = iter.Data();
-            size_t s = fwrite(str.data(), 1, str.size(), swap_file.file());
-            if (s < str.size()) {
+    const char* eol_seq_str = eol_seq_ == EOLSeq::kLF ? kEOLSeqLF : kEOLSeqCRLF;
+    int eol_seq_str_size = strlen(eol_seq_str);
+
+    for (size_t i = 0; i < lines_.size(); i++) {
+        if (!lines_[i].line_str.empty()) {
+            size_t s = fwrite(lines_[i].line_str.c_str(), 1,
+                              lines_[i].line_str.size(), swap_file.file());
+            if (s < lines_[i].line_str.size()) {
                 throw IOException("fwrite error: {}", strerror(errno));
             }
         }
-    } else {
-        for (auto iter = tree_.BlockBegin(); iter != tree_.BlockEnd();
-             iter.Next()) {
-            auto str = iter.Data();
-            size_t last = 0;
-            for (size_t i = 0; i < str.size(); i++) {
-                if (str[i] == '\n') {
-                    size_t s = fwrite(str.data() + last, 1, i - last,
-                                      swap_file.file());
-                    if (s < i - last) {
-                        throw IOException("fwrite error: {}", strerror(errno));
-                    }
-                    s = fwrite("\r\n", 1, 2, swap_file.file());
-                    if (s < 2) {
-                        throw IOException("fwrite error: {}", strerror(errno));
-                    }
-                    last = i + 1;
-                }
-            }
-            if (last != str.size()) {
-                size_t s = fwrite(str.data() + last, 1, str.size() - last,
-                                  swap_file.file());
-                if (s < str.size() - last) {
-                    throw IOException("fwrite error: {}", strerror(errno));
-                }
+        if (i != lines_.size() - 1) {
+            size_t s =
+                fwrite(eol_seq_str, 1, eol_seq_str_size, swap_file.file());
+            if (s < 1) {
+                throw IOException("fwrite error: {}", strerror(errno));
             }
         }
     }
@@ -196,9 +199,32 @@ Result Buffer::SaveAs(const Path& path) {
 
 std::string Buffer::GetContent(const Range& range) const {
     MGO_ASSERT(LineCnt() > range.end.line);
+    Pos begin = range.begin;
+    size_t total_size = 0;
+    while (begin.line <= range.end.line) {
+        if (begin.line == range.end.line) {
+            total_size += range.end.byte_offset - begin.byte_offset;
+            break;
+        }
+        total_size += lines_[begin.line].line_str.size() - begin.byte_offset;
+        total_size += 1;  // '\n'
+        begin.line++;
+        begin.byte_offset = 0;
+    }
     std::string ret;
-    TextTree::TextView view = {tree_.Find(range.begin), tree_.Find(range.end)};
-    view.ToStringView(ret);
+    ret.reserve(total_size);
+    begin = range.begin;
+    while (begin.line <= range.end.line) {
+        if (begin.line == range.end.line) {
+            ret.append(lines_[begin.line].line_str, begin.byte_offset,
+                       range.end.byte_offset - begin.byte_offset);
+            break;
+        }
+        ret.append(lines_[begin.line].line_str);
+        ret.append(1, '\n');
+        begin.line++;
+        begin.byte_offset = 0;
+    }
     return ret;
 }
 
@@ -217,52 +243,152 @@ void Buffer::Edit(const BufferEdit& edit, Pos& cursor_pos_hint) {
 
 void Buffer::AddInner(Pos pos, std::string_view str, Pos& cursor_pos_hint,
                       bool record_ts_edit) {
-    auto iter = tree_.Find(pos);
-    size_t offset = iter.offset();
-    tree_.Add(iter, str);
+    auto _ = gsl::finally([this, record_ts_edit, &pos, &cursor_pos_hint, &str] {
+        Modified();
+        if (record_ts_edit) {
+            ts_edit_.start_point.row = pos.line;
+            ts_edit_.start_point.column = pos.byte_offset;
+            ts_edit_.old_end_point.row = pos.line;
+            ts_edit_.old_end_point.column = pos.byte_offset;
+            ts_edit_.new_end_point.row = cursor_pos_hint.line;
+            ts_edit_.new_end_point.column = cursor_pos_hint.byte_offset;
+            ts_edit_.start_byte = OffsetAndInvalidAfterPos(pos);
+            ts_edit_.old_end_byte = ts_edit_.start_byte;
+            ts_edit_.new_end_byte = ts_edit_.start_byte + str.size();
+        }
+    });
+
+    size_t i = 0;
     cursor_pos_hint = pos;
-    for (char c : str) {
-        if (c == '\n') {
-            cursor_pos_hint.line++;
-            cursor_pos_hint.byte_offset = 0;
-        } else {
-            cursor_pos_hint.byte_offset++;
+    std::vector<size_t> new_line_offset;
+    for (; i < str.size(); i++) {
+        if (str[i] == '\n') {
+            new_line_offset.push_back(i);
         }
     }
-    Modified();
-    if (record_ts_edit) {
-        ts_edit_.start_point.row = pos.line;
-        ts_edit_.start_point.column = pos.byte_offset;
-        ts_edit_.old_end_point.row = pos.line;
-        ts_edit_.old_end_point.column = pos.byte_offset;
-        ts_edit_.new_end_point.row = cursor_pos_hint.line;
-        ts_edit_.new_end_point.column = cursor_pos_hint.byte_offset;
-        ts_edit_.start_byte = offset;
-        ts_edit_.old_end_byte = offset;
-        ts_edit_.new_end_byte = offset + str.size();
+    // No newline, just insert
+    if (new_line_offset.empty()) {
+        MGO_ASSERT(lines_.size() > cursor_pos_hint.line);
+        MGO_ASSERT(lines_[cursor_pos_hint.line].line_str.size() >=
+                   cursor_pos_hint.byte_offset);
+
+        lines_[cursor_pos_hint.line].line_str.insert(
+            cursor_pos_hint.byte_offset, str);
+        cursor_pos_hint.byte_offset += str.size();
+        return;
     }
+
+    // Have newline
+    MGO_ASSERT(lines_.size() > cursor_pos_hint.line);
+    MGO_ASSERT(lines_[cursor_pos_hint.line].line_str.size() >=
+               cursor_pos_hint.byte_offset);
+
+    std::string line_after_pos = lines_[cursor_pos_hint.line].line_str.substr(
+        cursor_pos_hint.byte_offset);
+    lines_[cursor_pos_hint.line].line_str.erase(cursor_pos_hint.byte_offset);
+    i = 0;
+    for (size_t offset : new_line_offset) {
+        if (offset != i) {
+            MGO_ASSERT(lines_.size() > cursor_pos_hint.line);
+
+            lines_[cursor_pos_hint.line].line_str.append(str, i, offset - i);
+        }
+        cursor_pos_hint.line++;
+        cursor_pos_hint.byte_offset = 0;
+
+        MGO_ASSERT(lines_.size() >= cursor_pos_hint.line);
+
+        // Use Line() instead of {} to prevent c++ infer as init list
+        lines_.insert(lines_.begin() + cursor_pos_hint.line, Line());
+        i = offset + 1;
+    }
+    if (new_line_offset.back() != str.size() - 1) {
+        MGO_ASSERT(lines_.size() > cursor_pos_hint.line);
+
+        size_t left_size = str.size() - (new_line_offset.back() + 1);
+        lines_[cursor_pos_hint.line].line_str.append(
+            str, new_line_offset.back() + 1, left_size);
+        cursor_pos_hint.byte_offset =
+            lines_[cursor_pos_hint.line].line_str.size();
+    }
+    lines_[cursor_pos_hint.line].line_str.append(line_after_pos);
 }
 
 std::string Buffer::DeleteInner(const Range& range, Pos& cursor_pos_hint,
                                 bool record_reverse, bool record_ts_edit) {
-    MGO_ASSERT(LineCnt() > range.end.line);
-    MGO_ASSERT(range.begin.line < range.end.line ||
+    auto _ = gsl::finally([this] { Modified(); });
+
+    std::string old_str;
+    size_t old_str_size = 0;
+
+    std::string line_where_end_pos_locate;
+
+    Pos end = range.end;
+    MGO_ASSERT(lines_.size() > end.line);
+    MGO_ASSERT(range.begin.line < end.line ||
                (range.begin.line == range.end.line &&
                 range.begin.byte_offset <= range.end.byte_offset));
-    TextTree::TextView view;
-    view.begin = tree_.Find(range.begin);
-    view.end = tree_.Find(range.end);
-    size_t offset = view.begin.offset();
-    std::string old_str;
-    size_t old_str_size = view.end.offset() - offset;
-    if (record_reverse) {
-        old_str = view.ToString();
+    while (range.begin.line <= end.line) {
+        if (range.begin.line < end.line) {
+            if (end.byte_offset == lines_[end.line].line_str.size()) {
+                // whole line deleted
+                if (record_reverse) {
+                    old_str.insert(
+                        0, std::string("\n") + lines_[end.line].line_str);
+                }
+                old_str_size += 1 + lines_[end.line].line_str.size();
+
+                lines_.erase(lines_.begin() + end.line);
+
+                end.byte_offset = lines_[end.line - 1].line_str.size();
+            } else {
+                // Delete the part of the line before end.byte_offset
+                // and merge with the line where begin pos is located.
+                // But we don't do merge here, we just move away this line and
+                // merge after deletion
+                if (record_reverse) {
+                    MGO_ASSERT(end.byte_offset <
+                               lines_[end.line].line_str.size());
+                    old_str.insert(0, lines_[end.line].line_str, 0,
+                                   end.byte_offset);
+                    old_str.insert(0, "\n");
+                }
+                old_str_size += 1 + end.byte_offset;
+
+                line_where_end_pos_locate =
+                    std::move(lines_[end.line].line_str);
+
+                end.byte_offset = lines_[end.line - 1].line_str.size();
+                lines_.erase(lines_.begin() + end.line);
+            }
+        } else {
+            MGO_ASSERT(lines_[end.line].line_str.size() >= end.byte_offset);
+            if (record_reverse)
+                old_str.insert(0, lines_[end.line].line_str,
+                               range.begin.byte_offset,
+                               end.byte_offset - range.begin.byte_offset);
+            old_str_size += end.byte_offset - range.begin.byte_offset;
+
+            lines_[end.line].line_str.erase(
+                range.begin.byte_offset,
+                end.byte_offset - range.begin.byte_offset);
+        }
+
+        if (end.line == 0) {
+            break;
+        }
+        end.line--;
     }
-    tree_.Delete(view.begin, view.end);
+
+    // Maybe merge lines
+    if (!line_where_end_pos_locate.empty()) {
+        lines_[range.begin.line].line_str.append(
+            line_where_end_pos_locate, range.end.byte_offset,
+            line_where_end_pos_locate.size() - range.end.byte_offset);
+    }
 
     cursor_pos_hint = range.begin;
 
-    Modified();
     if (record_ts_edit) {
         ts_edit_.start_point.row = range.begin.line;
         ts_edit_.start_point.column = range.begin.byte_offset;
@@ -270,9 +396,9 @@ std::string Buffer::DeleteInner(const Range& range, Pos& cursor_pos_hint,
         ts_edit_.old_end_point.column = range.end.byte_offset;
         ts_edit_.new_end_point.row = cursor_pos_hint.line;
         ts_edit_.new_end_point.column = cursor_pos_hint.byte_offset;
-        ts_edit_.start_byte = offset;
-        ts_edit_.old_end_byte = offset + old_str_size;
-        ts_edit_.new_end_byte = offset;
+        ts_edit_.start_byte = OffsetAndInvalidAfterPos(range.begin);
+        ts_edit_.old_end_byte = ts_edit_.start_byte + old_str_size;
+        ts_edit_.new_end_byte = ts_edit_.start_byte;
     }
 
     return old_str;
@@ -460,6 +586,21 @@ Result Buffer::Undo(Pos& cursor_pos_hint) {
         state_ = BufferState::kNotModified;
     }
     return kOk;
+}
+
+size_t Buffer::OffsetAndInvalidAfterPos(Pos pos) {
+    if (offset_per_line_.size() > pos.line + 1) {
+        offset_per_line_.resize(pos.line + 1);
+    } else {
+        size_t offset = offset_per_line_.back();
+        size_t i = offset_per_line_.size();
+        offset_per_line_.resize(pos.line + 1);
+        while (i < pos.line + 1) {
+            offset += GetLine(i - 1).size() + 1;  // 1 for '\n'
+            offset_per_line_[i++] = offset;
+        }
+    }
+    return offset_per_line_.back() + pos.byte_offset;
 }
 
 TSInputEdit Buffer::GetEditForTreeSitter() { return ts_edit_; }

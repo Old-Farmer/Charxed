@@ -4,12 +4,10 @@
 
 #include "result.h"
 #include "termbox2.h"
-#include "utf8proc.h"
+#include "utf8.h"
 #include "utils.h"
 
 namespace mango {
-
-using Codepoint = utf8proc_int32_t;
 
 constexpr Codepoint kSpaceChar = ' ';           // Use this to avoid confusion
 constexpr Codepoint kReplacementChar = 0xFFFD;  // �
@@ -82,38 +80,14 @@ class Character {
 
    private:
     std::vector<Codepoint> codepoints_;
+    // single codepoint grapheme optimization(most case)
     Codepoint codepoint_;
     int codepoints_cnt_ = 0;
 };
 
-bool IsUtf8BeginByte(char b);
-
 inline bool IsAscii(char c) { return (c & 0b10000000) == 0; }
 
-// decode str to a codepoint
-// if success, kOk return and len will be set to the byte consumed, out will be
-// the codepoint.
-// otherwise, kInvalidCoding will return.
-inline Result Utf8ToUnicode(const char* in, size_t len, int& byte_eat,
-                            Codepoint& out) {
-    MGO_ASSERT(len != 0);
-    if ((byte_eat = utf8proc_iterate(
-             reinterpret_cast<const utf8proc_uint8_t*>(in), len, &out)) < 0) {
-        return kInvalidCoding;
-    }
-    return kOk;
-}
-
-// Encode a codepoint, out buf must longer than 4 bytes
-// On success, return encoded str len
-// otherwise, return 0;
-inline int UnicodeToUtf8(uint32_t in, char* out) {
-    return utf8proc_encode_char(in, reinterpret_cast<utf8proc_uint8_t*>(out));
-}
-
 int CharacterWidth(const Codepoint* codepoints, size_t cnt);
-
-bool CheckUtf8Valid(std::string_view str);
 
 // We assume that
 // 1. the str is pure utf-8 format, no error coding, because we check errors for

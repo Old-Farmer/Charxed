@@ -1,0 +1,123 @@
+Editor Test Sample
+=============================
+
+Purpose:
+A comprehensive, intentionally varied file for testing real-world editor behaviors:
+- line wrapping and horizontal scrolling
+- trailing whitespace visibility and trimming
+- tabs, spaces, and mixed indentation
+- Unicode normalization (NFC/NFD), combining characters
+- zero-width and other invisible characters
+- bidirectional text rendering (RTL mixing)
+- very long words/lines and performance
+- different encodings and line-ending considerations (notes only)
+
+Notes:
+- This file uses LF line endings.
+- Some lines include invisible characters (described inline). Be careful when copying.
+- Sections are labeled so you can jump to them by search or line numbers.
+
+1) Plain paragraph
+This is a simple paragraph with normal ASCII text. Use it to test basic typing,
+
+selection, movement commands, and undo/redo behavior. Insert, delete, and replace
+words to verify your editor preserves indentation and undo granularity.
+
+2) Long line (wrapping / horizontal scroll)
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vehicula, nisl at
+dapibus tincidunt, nisl nunc faucibus urna, eget posuere sapien justo non augue.
+Vivamus non lorem at sapien tincidunt volutpat a et justo. This sentence continues
+to create a very long logical line so you can test soft-wrap, hard-wrap, and
+horizontal scrolling behavior in different editors and settings. Repeat as needed.
+
+3) Very long single word (no spaces)
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+4) Trailing spaces (visible markers)
+Line with one trailing space.·
+Line with two trailing spaces.··
+Line with trailing tab.↹		[tab at end]		← (visualize tabs)
+Note: The characters '·' and '↹' are literal markers added to make trailing whitespace visible.
+If your editor renders invisible characters, you should still see the actual trailing spaces/tabs before the markers above.
+
+5) Tabs and mixed indentation
+[tab]This line starts with a tab.
+[tab][tab]This line starts with two tabs.
+[4spaces]This line uses four spaces indentation.
+[tab]+[4spaces]This line mixes a leading tab then four spaces.
+
+(Replace bracketed markers above with actual tabs/spaces when testing; the bracketed labels exist for readability.)
+
+6) Unicode: composed vs decomposed
+Composed (NFC): café (U+00E9)
+Decomposed (NFD): e + U+0301 -> é  (this is 'e' followed by combining acute accent)
+Compare: "café" vs "café" by using normalization-aware tools. Some editors display both identically but treat them differently for searches and diffs.
+
+7) More Unicode and combining sequences
+Normal: ñ ö ü
+Combined example: n + U+0303 -> ñ  (n followed by combining tilde)
+Greek: ελληνικά
+CJK: 中文／日本語／한국어
+Emoji cluster: man_technologist: 👨‍💻 (uses ZWJ sequences)
+Note: The emoji above may be rendered as a single glyph or multiple depending on font/terminal.
+
+8) Zero-width & invisible characters (deliberate)
+Visible label + actual invisible char after the colon:
+- ZWSP after colon: ZWSP:​(U+200B) end  <-- there is a U+200B (zero-width space) between colon and '('
+- ZWNJ after colon: ZWNJ:‌(U+200C) end  <-- U+200C (zero-width non-joiner)
+- ZWJ after colon: ZWJ:‍(U+200D) end   <-- U+200D (zero-width joiner)
+- Soft hyphen in the word: soft­hyphen (U+00AD) — may display as hyphen only when wrapping
+Tip: Use "show invisible characters" or perform hex dumps to detect these.
+
+9) Bidirectional text (RTL mixing)
+English then Hebrew: Hello שלום world
+Hebrew then English: שלום Hello עולם
+Arabic example: مرحبا Hello بالعالم
+Mixed lines test how the editor applies Unicode bidi algorithms; check cursor motion and selection across RTL runs.
+
+10) BiDi tricky line (embedding and overrides)
+LTR base with RLE (U+202B) and PDF (U+202C) markers example:
+Start ‹RLE›‮This should render RTL within LTR base‮‹PDF› End
+(Note: the actual U+202B and U+202C control characters are invisible; the angle-bracket labels are here to explain. Some editors let you insert and visualize these controls.)
+
+11) Code sample (JSON, with trailing spaces and tabs)
+{
+  "name": "editor-test",
+  "features": ["wrap", "tabs", "unicode", "zwsp", "bidi", "long-lines"],
+  "indent_with_tab": true,		// trailing tab after this comment	
+  "trailing_spaces_example": "ends-with-space·"  // visible marker '·' after a space
+}
+
+12) YAML sample (to test fold and indent behavior)
+
+project: editor-test
+settings:
+  - wrap: true
+  - show_invisibles: true
+  - indent: 4
+  - normalize_unicode: false
+
+13) Soft line break and paragraph joiners
+Line with soft break using U+2028 (LINE SEPARATOR) — visual behavior depends on editor.
+First part of paragraph.<LS>Second part of paragraph.
+(Replace <LS> with an actual U+2028 if testing editors that support it.)
+
+14) Mixed line endings suggestion (this file uses LF)
+- If you need to test CRLF behavior, create a copy with CRLF endings.
+- Editors that show per-line EOL markers will highlight differences.
+
+15) Binary-safe hint (non-text)
+If you need to test editor handling of invalid UTF-8 or non-UTF encodings, create separate files:
+- sample-utf16le.txt (UTF-16 LE with BOM)
+- sample-with-bom-utf8.txt (UTF-8 with BOM)
+
+16) Quick checklist for testing with this file
+- Toggle soft-wrap/hard-wrap and observe long-line behavior.
+- Show invisible characters and verify trailing tabs/spaces and zero-width chars.
+- Toggle Unicode normalization checks (NFC vs NFD).
+- Paste emoji and complex sequences; check grapheme cluster movement.
+- Open and validate bidi display and cursor motion across RTL segments.
+- Run a hex dump or use search-by-codepoint to find U+200B/U+200C/U+200D/U+0301.
+
+End marker:
+-- end of test_sample.txt --

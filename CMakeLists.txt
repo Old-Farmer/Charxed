@@ -245,10 +245,14 @@ target_sources(
   "${SRC_DIR}/status_line.cpp"
   "${SRC_DIR}/term.h"
   "${SRC_DIR}/term.cpp"
+  "${SRC_DIR}/text_tree.h"
+  "${SRC_DIR}/text_tree.cpp"
   "${SRC_DIR}/timer_manager.h"
   "${SRC_DIR}/timer_manager.cpp"
   "${SRC_DIR}/trie.h"
   "${SRC_DIR}/trie.cpp"
+  "${SRC_DIR}/utf8.h"
+  "${SRC_DIR}/utf8.cpp"
   "${SRC_DIR}/utils.h"
   "${SRC_DIR}/utils.cpp"
   "${SRC_DIR}/window.h"
@@ -305,12 +309,15 @@ set(TEST_DIR "${CMAKE_SOURCE_DIR}/test")
 add_executable(test)
 target_sources(
   test PUBLIC
+  "${TEST_DIR}/buffer_naive.h"
+  "${TEST_DIR}/buffer_naive.cpp"
   "${TEST_DIR}/data_structure_test.cpp"
   "${TEST_DIR}/json_test.cpp"
   "${TEST_DIR}/logging_test.cpp"
   "${TEST_DIR}/lsp_test.cpp"
   "${TEST_DIR}/subprocess_test.cpp"
   "${TEST_DIR}/term_test.cpp"
+  "${TEST_DIR}/text_tree_test.cpp"
   "${TEST_DIR}/unicode_test.cpp"
   "${TEST_DIR}/xxx_manager_test.cpp"
 )

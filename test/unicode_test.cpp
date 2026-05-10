@@ -1,5 +1,3 @@
-#include <inttypes.h>
-
 #include "catch2/catch_test_macros.hpp"
 #include "character.h"
 #include "fmt/core.h"
@@ -8,11 +6,13 @@ using namespace mango;
 
 TEST_CASE("test string display width") {
     CHECK(StringWidth("你好12") == 4 + 2);
-    CHECK(StringWidth(" a é न 🇺🇸 👩‍👩‍👧 🏳️‍🌈 👨‍⚕️ "
+    CHECK(StringWidth(" a é न 🇺🇸 👩‍👩‍👧 🏳️‍🌈 "
+                      "👨‍⚕️ "
                       "👩‍🚀 "
                       "💖 "
                       "z") == 26);
-    CHECK(StringWidth("A á ❤️ ☝︎ ✊🏿 👨‍👩‍👧‍👦 👩‍❤️‍💋‍👩 🇨🇳 "
+    CHECK(StringWidth("A á ❤️ ☝︎ ✊🏿 👨‍👩‍👧‍👦 👩‍❤️‍💋‍👩 "
+                      "🇨🇳 "
                       "1️⃣ "
                       "🏳️‍🌈 ❤︎‍🔥 🧑‍🍼 ǟ̋") ==
           33);

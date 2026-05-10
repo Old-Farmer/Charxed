@@ -46,11 +46,8 @@
 ## Performance
 
 - Big file support:
-    - Refactor buffer data structure (vector of lines -> line-oriented, balanced tree)
     - treesitter background thread parsing
     - File background thread saving
-
-- long line optimization(seems never)
 
 ## Code Quality
 

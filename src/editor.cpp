@@ -962,6 +962,7 @@ void Editor::ExitFromMode() {
         }
         case Mode::kPeelCommand:
         case Mode::kPeelSearch:
+            term_.SetCursorStyle(Terminal::CursorStyle::kBlock);
         case Mode::kPeelShow: {
             MGO_ASSERT(cursor_.restore_from_peel);
             cursor_.in_window = cursor_.restore_from_peel;
@@ -983,6 +984,8 @@ void Editor::GotoMode(Mode mode) {
     }
     switch (mode) {
         case Mode::kInsert:
+        case Mode::kPeelCommand:
+        case Mode::kPeelSearch:
             term_.SetCursorStyle(Terminal::CursorStyle::kLine);
             break;
         default:

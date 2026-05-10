@@ -58,7 +58,7 @@ static const std::unordered_map<zstring_view, zstring_view> kFileTypesToStrRep =
     {"yaml","YAML"},
     {"markdown","Markdown"},
     {"cmake","CMake"},
-    {"makefile","Makefil"}
+    {"makefile","Makefile"}
 };
 
 // file name is prior to suffix

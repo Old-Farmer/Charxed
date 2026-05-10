@@ -50,25 +50,6 @@ int CharacterWidth(const Codepoint* codepoints, size_t cnt) {
     return width;
 }
 
-bool IsUtf8BeginByte(char b) {
-    return (static_cast<std::byte>(b) >> 6) != static_cast<std::byte>(0b10);
-}
-
-bool CheckUtf8Valid(std::string_view str) {
-    size_t offset = 0;
-    size_t end_offset = str.size();
-    Codepoint codepoint;
-    while (offset < end_offset) {
-        int byte_len;
-        if (kInvalidCoding == Utf8ToUnicode(&str[offset], end_offset - offset,
-                                            byte_len, codepoint)) {
-            return false;
-        }
-        offset += byte_len;
-    }
-    return true;
-}
-
 static constexpr bool kIsWordSeparator[128] = {
     // 0x00-0x1F: control codes
     false,

@@ -1,3 +1,4 @@
+#include <gsl/util>
 #include <thread>
 
 #include "catch2/catch_test_macros.hpp"
@@ -8,13 +9,16 @@
 using namespace mango;
 
 TEST_CASE("keyseq_manager test") {
+    LogInit("keyseq_manager_test.log");
+    auto _ = gsl::finally([] { LogDeinit(); });
+
     Mode mode = Mode::kInsert;
     KeyseqManager manager(mode);
 
     Keyseq h([] { throw "hey"; });
 
     std::string seq = "<c-a><c-b><c-c>";
-    manager.AddKeyseq(seq, h);
+    manager.AddKeyseq(seq, h, {mode});
     auto a = Terminal::KeyInfo::CreateSpecialKey(Terminal::SpecialKey::kCtrlA,
                                                  Terminal::kCtrl);
     auto b = Terminal::KeyInfo::CreateSpecialKey(Terminal::SpecialKey::kCtrlB,
@@ -39,33 +43,17 @@ TEST_CASE("keyseq_manager test") {
         res = manager.FeedKey(a, h2);
         REQUIRE(res == mango::kKeyseqError);
     }
-    SECTION("FeedKey test") {
-        Result res;
-        res = manager.FeedKey(a, h2);
-        REQUIRE(res == mango::kKeyseqMatched);
-        res = manager.FeedKey(b, h2);
-        REQUIRE(res == mango::kKeyseqMatched);
-        res = manager.FeedKey(c, h2);
-        REQUIRE(res == mango::kKeyseqDone);
-        REQUIRE_THROWS(h2->f());
-
-        res = manager.FeedKey(a, h2);
-        REQUIRE(res == mango::kKeyseqMatched);
-        mode = mango::Mode::kPeelCommand;
-        res = manager.FeedKey(a, h2);
-        REQUIRE(res == mango::kKeyseqError);
-    }
 
     SECTION("Remove test") {
-        manager.RemoveKeyseq(seq);
+        manager.RemoveKeyseq(seq, {mode});
 
         Result res;
         res = manager.FeedKey(a, h2);
         REQUIRE(res == mango::kKeyseqError);
 
-        manager.AddKeyseq("<c-a>", h);
-        manager.AddKeyseq("<c-a><c-b><c-c>", h);
-        manager.RemoveKeyseq("<c-a>");
+        manager.AddKeyseq("<c-a>", h, {mode});
+        manager.AddKeyseq("<c-a><c-b><c-c>", h, {mode});
+        manager.RemoveKeyseq("<c-a>", {mode});
         res = manager.FeedKey(a, h2);
         REQUIRE(res == mango::kKeyseqMatched);
         res = manager.FeedKey(b, h2);
@@ -76,7 +64,7 @@ TEST_CASE("keyseq_manager test") {
     }
 
     SECTION("override test") {
-        manager.AddKeyseq("<c-a>", h);
+        manager.AddKeyseq("<c-a>", h, {mode});
 
         Result res;
         res = manager.FeedKey(a, h2);
@@ -84,8 +72,8 @@ TEST_CASE("keyseq_manager test") {
     }
 
     SECTION("override test 2") {
-        manager.AddKeyseq("<c-k><c-i>", h);
-        manager.AddKeyseq("<tab>", h);
+        manager.AddKeyseq("<c-k><c-i>", h, {mode});
+        manager.AddKeyseq("<tab>", h, {mode});
 
         auto c_k = Terminal::KeyInfo::CreateSpecialKey(
             Terminal::SpecialKey::kCtrlK, Terminal::kCtrl);

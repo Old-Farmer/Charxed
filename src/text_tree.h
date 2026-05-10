@@ -1,0 +1,337 @@
+#pragma once
+
+#include <vector>
+
+#include "file.h"
+#include "pos.h"
+#include "utf8.h"
+#include "utils.h"
+
+namespace mango {
+
+// A Rope & B+ tree like data structure which hold text.
+// It can find loc, modify text efficiently.
+class TextTree {
+   public:
+    TextTree();
+    ~TextTree();
+
+    // Should BulkLoad before using.
+
+    // throws CodingException
+    void BulkLoad(File& file, EOLSeq& eol_seq);
+
+    // BulkLoad an empty str just init the class.
+    void BulkLoad(std::string_view str);
+
+    // Clear the class, still need BulkLoad before using.
+    void Clear();
+
+   private:
+    struct ChildInfo {
+        size_t lines;
+        size_t bytes;
+    };
+
+    static constexpr size_t kDataSize = 1024;
+    static constexpr size_t kChildSize = 16;
+    static constexpr size_t kDataSizeMergeThreshold =
+        kDataSize / 2 -
+        4 * kMaxBytesUtf8Codepoint;  // a little bit smaller than a half because
+                                     // we must store codepoint contiously.
+
+    struct InternalNode;
+
+    struct Node {
+        bool is_leaf;
+        InternalNode* parent;
+        size_t bytes;  // byte count belonging to this node
+        size_t lines;  // line count belonging to this node
+
+        Node(bool _is_leaf) : is_leaf(_is_leaf) {}
+    };
+
+    struct InternalNode : Node {
+        size_t size;
+        ChildInfo infos[kChildSize + 1];  // leave on slot for convenient split
+        Node* children[kChildSize + 1];
+
+        InternalNode() : Node(false) {}
+    };
+
+    struct LeafNode : Node {
+        LeafNode* next;
+        LeafNode* prev;
+        char data[kDataSize];
+
+        LeafNode() : Node(true) {}
+    };
+
+   public:
+    // A codepoint / byte iterator
+    class Iterator {
+#ifndef NDEBUG
+        const TextTree* text_;
+#endif
+        LeafNode* node_;
+        size_t index_;
+        size_t offset_;  // A global offset
+
+        friend TextTree;
+
+       public:
+        // Implement here in order to inline them.
+        // Should Check Iterator validation before Next & Prev, otherwise
+        // behavior is undefined.
+        // Codepoint and byte ops shouldn't be mixed!!!
+        // Require that leaf nodes shouldn't be empty unless only one empty
+        // leaf in the tree.
+
+        // return cur codepoint and the iterator moving forward.
+        Codepoint NextCodepoint() {
+            MGO_ASSERT(*this != text_->End());
+            Codepoint cp;
+            int byte_len;
+            Utf8ToUnicode(&node_->data[index_], node_->bytes - index_, byte_len,
+                          cp);
+            index_ += byte_len;
+            if (index_ == node_->bytes) {
+                index_ = 0;
+                node_ = node_->next;
+            }
+            offset_ += byte_len;
+            return cp;
+        }
+
+        // the iterator moving backward and return the prev codepoint
+        Codepoint PrevCodepoint() {
+            MGO_ASSERT(*this != text_->Begin());
+            Codepoint cp;
+            if (index_ == 0) {
+                node_ = node_->prev;
+                index_ = node_->bytes - 1;
+            } else {
+                index_--;
+            }
+            for (; !IsUtf8BeginByte(node_->data[index_]); index_--);
+            int byte_len;
+            Utf8ToUnicode(&node_->data[index_], node_->bytes - index_, byte_len,
+                          cp);
+            offset_ -= byte_len;
+            return cp;
+        }
+
+        // return cur char and the iterator moving forward.
+        char NextByte() {
+            MGO_ASSERT(*this != text_->End());
+            char c = node_->data[index_];
+            index_++;
+            if (index_ == node_->bytes) {
+                index_ = 0;
+                node_ = node_->next;
+            }
+            offset_++;
+            return c;
+        }
+
+        // iterator moving backward and return prev char.
+        char PrevByte() {
+            MGO_ASSERT(*this != text_->Begin());
+            if (index_ == 0) {
+                node_ = node_->prev;
+                MGO_ASSERT(node_->bytes != 0);
+                index_ = node_->bytes - 1;
+            } else {
+                index_--;
+            }
+            offset_--;
+            return node_->data[index_];
+        }
+
+        size_t offset() const { return offset_; }
+
+        bool operator==(Iterator other) {
+            MGO_ASSERT(text_ == other.text_);
+            return node_ == other.node_ && index_ == other.index_;
+        }
+        bool operator!=(Iterator other) {
+            MGO_ASSERT(text_ == other.text_);
+            return node_ != other.node_ || index_ != other.index_;
+        }
+    };
+
+    // A Block iterator
+    class BlockIterator {
+#ifndef NDEBUG
+        const TextTree* text_;
+#endif
+        LeafNode* node_;
+
+        friend TextTree;
+
+       public:
+        void Next() {
+            MGO_ASSERT(*this != text_->BlockEnd());
+            node_ = node_->next;
+        }
+        std::string_view Data() { return {node_->data, node_->bytes}; }
+
+        bool operator==(BlockIterator other) {
+            MGO_ASSERT(text_ == other.text_);
+            return node_ == other.node_;
+        }
+        bool operator!=(BlockIterator other) {
+            MGO_ASSERT(text_ == other.text_);
+            return node_ != other.node_;
+        }
+    };
+
+    // if pos can't be found, return End()
+    Iterator Find(Pos pos) const;
+
+   private:
+    // if offset can't be found, return End()
+    Iterator Find(size_t offset) const;
+
+   public:
+    Iterator Begin() const {
+        Iterator iter;
+#ifndef NDEBUG
+        iter.text_ = this;
+#endif
+        iter.node_ = begin_leaf_;
+        iter.index_ = 0;
+        iter.offset_ = 0;
+        return iter;
+    }
+    Iterator End() const {
+        Iterator iter;
+#ifndef NDEBUG
+        iter.text_ = this;
+#endif
+        iter.node_ = end_leaf_;
+        iter.index_ = end_leaf_->bytes;
+        iter.offset_ = root_->bytes;
+        return iter;
+    }
+
+    BlockIterator BlockBegin() const {
+        BlockIterator iter;
+#ifndef NDEBUG
+        iter.text_ = this;
+#endif
+        iter.node_ = begin_leaf_;
+        return iter;
+    }
+    BlockIterator BlockEnd() const {
+        BlockIterator iter;
+#ifndef NDEBUG
+        iter.text_ = this;
+#endif
+        iter.node_ = nullptr;
+        return iter;
+    }
+
+    // A view of part of text
+    struct TextView {
+        Iterator begin;
+        Iterator end;
+
+        size_t Size() {
+            MGO_ASSERT(end.offset() >= begin.offset());
+            return end.offset() - begin.offset();
+        }
+        // To std::string_view.
+        // If data of TextView is stored contiously, no copy happend.
+        // Else buf will be used and data will copied to this buf.
+        std::string_view ToStringView(std::string& buf);
+
+        std::string ToString();
+    };
+
+    void Add(Iterator pos, std::string_view str);
+    void Delete(Iterator begin, Iterator end);
+
+    // GetLine will not include \n char
+    TextView GetLine(size_t line) const {
+        auto l_begin = Find({line, 0});
+        Iterator l_end;
+        if (root_->bytes != 0 && line != LineCnt() - 1) {
+            l_end = Find({line + 1, 0});
+            char c = l_end.PrevByte();  // skip '\n'
+            (void)c;
+        } else {
+            l_end = End();
+        }
+        return {l_begin, l_end};
+    }
+    size_t LineCnt() const {
+        MGO_ASSERT(root_);
+        return root_->lines + 1;
+    }
+
+    // For test
+    // TODO: maybe not compile it in release?
+
+    // Print the internal data structure.
+    void Print();
+    // Check all internal data structure invariants.
+    // return empty string if ok, else return a error string
+    std::string Check();
+
+   private:
+    void Init();
+
+    // Load leaf nodes, all leaf nodes bytes should be >=
+    // kDataSizeMergeThreshold.
+    // Begin_leaf_ and end_leaf_ will be set. All leaf nodes are unset.
+    // Return the the number of all leaf nodes.
+
+    // throws IOException
+    size_t LoadLeafNodes(File& file, EOLSeq& eol_seq);
+
+    size_t LoadLeafNodes(std::string_view str);
+
+    // Just used in LoadLeafNodes.
+    // sibling bytes >= node bytes
+    // and sibling is left to node
+    void RedistributeNodes(LeafNode* sibling, LeafNode* node);
+    // Fill a internal node during BulidIndex.
+    void FillInternalNode(InternalNode* node, const std::vector<Node*>& nodes,
+                          size_t nodes_begin_index, size_t size);
+    // Build index after leaf nodes loaded.
+    void BuildIndex(size_t leaf_cnt);
+
+    void DestoryNode(Node* node);
+
+    void UpdateInfoToRoot(Node* node);
+
+    void AddSplitUptoOneNode(Iterator pos, std::string_view str);
+    void DeleteInOneNode(LeafNode* node, size_t begin_index, size_t end_index);
+
+    // Split a leaf
+    // Return a new leaf, the orginal leaf will also be changed.
+    Node* SplitLeafNode(LeafNode* node, size_t insert_index,
+                        std::string_view str);
+    // Split an internal node
+    // return a new internal node, and the orginal internal node will also be
+    // changed.
+    Node* SplitInternalNode(InternalNode* node);
+
+    // Try redistribute leaf node data with its siblings
+    // return true if redistribution has done and the parent will also be
+    // changed to a corresponding state.
+    bool TryRedistributeLeafNode(LeafNode* node, size_t index);
+
+    // Merge leaf with sibling node, and the parent will also be
+    // changed to a corresponding state.
+    void MergeLeafNode(LeafNode* node, size_t index);
+
+    bool TryRedistributeIntenalNode(InternalNode* node, size_t index);
+    void MergeInternalNode(InternalNode* node, size_t index);
+
+    Node* root_;  // nullptr means the initial state.
+    LeafNode *begin_leaf_, *end_leaf_;
+};
+
+}  // namespace mango

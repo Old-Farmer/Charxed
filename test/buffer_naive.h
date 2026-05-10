@@ -5,34 +5,19 @@
 #include <string>
 #include <vector>
 
-#include "completer.h"
 #include "file.h"
 #include "fs.h"
-#include "options.h"
+#include "gsl/span"
 #include "pos.h"
 #include "result.h"
 #include "state.h"
-#include "text_tree.h"
 #include "tree_sitter/api.h"
 #include "utils.h"
 
 namespace mango {
 
-constexpr const char* kSwapSuffix = ".mango_swap";
-
 struct Cursor;
 struct Options;
-
-// This class reprensents edit operations to the buffer.
-// It can represent 3 OPs:
-// 1. insert: range.begin == range.end && str.empty(), '\n's in str represent
-// new lines.
-// 2. delete: str.empty() and range.begin < range.end.
-// 3. replace: !str.empty() and range.begin < range.end.
-struct BufferEdit {
-    Range range;
-    std::string str;
-};
 
 // A class which represents a file contents in memory.
 // The Buffer may not be backed by a file.
@@ -40,8 +25,32 @@ struct BufferEdit {
 // read only.
 // Only support Posix now.
 
+// NOTE: For simplicity, we use an array of string to represent a buffer.
+// Maybe chage the internal data structure, So the api will not be stable
+// now.
+
 // TODO: Windows support
-class Buffer {
+class BufferNaive {
+    static constexpr const char* kSwapSuffix = ".mango_swap";
+    static constexpr int64_t kMaxEditHistory = 50;
+
+    struct Line {
+        std::string line_str;
+        Line() {}
+        Line(std::string _line_str) : line_str(std::move(_line_str)) {}
+    };
+
+    // This class reprensents edit operations to the buffer.
+    // It can represent 3 OPs:
+    // 1. insert: range.begin == range.end && str.empty(), '\n's in str
+    // represent new lines.
+    // 2. delete: str.empty() and range.begin < range.end.
+    // 3. replace: !str.empty() and range.begin < range.end.
+    struct BufferEdit {
+        Range range;
+        std::string str;
+    };
+
     struct BufferEditHistoryItem {
         // For redo
         BufferEdit origin;
@@ -53,17 +62,13 @@ class Buffer {
     };
 
    public:
-    // if new_file == true, will alloc a new_file_id to this buffer, else just a
-    // no file-backup buffer.
-    Buffer(GlobalOpts* options, bool new_file = true);
     // A new file backup buffer
-    Buffer(GlobalOpts* options, const std::string& path,
-           bool read_only = false);
-    // A new file backup buffer
-    Buffer(GlobalOpts* options, const Path& path, bool read_only = false);
-    MGO_DELETE_COPY(Buffer);
-    MGO_DEFAULT_MOVE(Buffer);
-    ~Buffer();
+    BufferNaive(const std::string& path, bool read_only = false);
+    // A no file backup buffer
+    BufferNaive(bool read_only = false);
+    MGO_DELETE_COPY(BufferNaive);
+    MGO_DEFAULT_MOVE(BufferNaive);
+    ~BufferNaive();
 
     // throws IOException, FileCreateException, CodingException
     // if it is a no file backup buffer, any of above exceptions won't throw.
@@ -96,9 +101,16 @@ class Buffer {
 
     std::string_view GetLine(size_t line) const {
         MGO_ASSERT(LineCnt() > line);
-        auto line_view = tree_.GetLine(line);
-        auto line_str = line_view.ToStringView(line_buf_);
-        return line_str;
+        return lines_[line].line_str;
+    }
+
+    // Deprecated: No usage.
+    // This method is for some op to get a '\0' terminated sub_str but don't
+    // want to copy.
+    // They must modify a byte to '\0' and then modified back.
+    gsl::span<char> GetLineNonConst(size_t line) {
+        MGO_ASSERT(LineCnt() > line);
+        return {lines_[line].line_str.data(), lines_[line].line_str.size() + 1};
     }
 
     // GetConent will copy out a string in range.
@@ -121,13 +133,9 @@ class Buffer {
     // Caller should check whefher kMaxEditHistory <= 0
     void Record(BufferEditHistoryItem&& item);
 
-    template <typename T>
-    T GetOpt(OptKey key) {
-        if (opts_.GetScope(key) == OptScope::kGlobal) {
-            return opts_.global_opts_->GetOpt<T>(key);
-        }
-        return opts_.GetOpt<T>(key);
-    }
+    // return an global offset of a pos
+    // TODO: optimize it.
+    size_t OffsetAndInvalidAfterPos(Pos pos);
 
    public:
     // Make sure that Range or Pos is valid, otherwise behavir
@@ -160,7 +168,10 @@ class Buffer {
 
     int64_t id() const noexcept { return id_; }
     // Must always >= 1
-    size_t LineCnt() const noexcept { return tree_.LineCnt(); }
+    size_t LineCnt() const noexcept {
+        MGO_ASSERT(lines_.size() >= 1);
+        return lines_.size();
+    }
     BufferState& state() { return state_; };
     bool IsLoad() const noexcept {
         return state_ == BufferState::kModified ||
@@ -172,9 +183,6 @@ class Buffer {
     // -1 means not stored
     zstring_view filetype() const noexcept { return filetype_; }
     EOLSeq eol_seq() const noexcept { return eol_seq_; }
-    Opts& opts() { return opts_; }
-    const Opts& opts() const { return opts_; }
-    Completer* completer() { return basic_word_completer_.get(); }
     bool lsp_attached() { return lsp_attached_; }
 
     zstring_view Name() noexcept {
@@ -183,7 +191,7 @@ class Buffer {
     Path& path() noexcept { return path_; }
 
     // Buffer list op
-    void AppendToList(Buffer* tail) noexcept;
+    void AppendToList(BufferNaive* tail) noexcept;
     void RemoveFromList() noexcept;
     bool IsLastBuffer() const;
     bool IsFirstBuffer() const;
@@ -196,12 +204,11 @@ class Buffer {
     void Modified();
 
    public:
-    Buffer* next_ = nullptr;
-    Buffer* prev_ = nullptr;
+    BufferNaive* next_ = nullptr;
+    BufferNaive* prev_ = nullptr;
 
    private:
-    TextTree tree_;
-    mutable std::string line_buf_;
+    std::vector<Line> lines_;
 
     Path path_;
     struct NewFileInfo {
@@ -229,12 +236,11 @@ class Buffer {
     TSInputEdit ts_edit_;
     // bool after_get_edit_modified = false;
 
-    std::unique_ptr<BufferBasicWordCompleter> basic_word_completer_;
+    // A prefiex offset cache, for fast offset calculation.
+    std::vector<size_t> offset_per_line_ = {0};
 
     // lsp
     bool lsp_attached_ = false;
-
-    Opts opts_;
 
     int64_t id_ = AllocId();
 

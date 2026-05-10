@@ -190,9 +190,8 @@ void BufferBasicWordCompleter::Suggest(const Pos& cursor_pos,
 
     // TODO: Performance: line cache.
     // TODO: Maybe we should lock text before accpet or cancel?
-    // NOTE: The current implementation is optimized by the buffer line array
-    // model, so store string view is safe.
     std::unordered_set<std::string_view> s;
+    std::vector<std::string> matching_words;
     size_t lines = buffer_->LineCnt();
     for (size_t i = 0; i < lines; i++) {
         const auto& line = buffer_->GetLine(i);
@@ -207,7 +206,11 @@ void BufferBasicWordCompleter::Suggest(const Pos& cursor_pos,
                 continue;
             }
             if (StrFuzzyMatchInBytes(cur_word_prefix, word, true)) {
-                s.insert(word);
+                // Because GetLine may only cached str before the next GetLine,
+                // we first store it in vector.
+                // TODO: refactor to use TextView
+                matching_words.push_back(std::string(word));
+                s.insert(matching_words.back());
             }
         }
     }
@@ -217,7 +220,7 @@ void BufferBasicWordCompleter::Suggest(const Pos& cursor_pos,
     //     std::chrono::duration_cast<std::chrono::microseconds>(end - now)
     //         .count());
 
-    menu_entries = std::vector<std::string>(s.begin(), s.end());
+    menu_entries = std::move(matching_words);
     suggestions_ = menu_entries;
     bytes_of_word_before_cursor_ = cur_word_prefix.size();
 }
