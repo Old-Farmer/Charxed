@@ -35,7 +35,7 @@ void MangoPeel::MakeCursorVisible() {
 
 void MangoPeel::SetCursorPosToAppend() {
     size_t last_l = buffer_.LineCnt() - 1;
-    area_.cursor_->pos = {last_l, buffer_.GetLine(last_l).size()};
+    area_.cursor_->pos = {last_l, buffer_.GetLineView(last_l).Size()};
 };
 
 void MangoPeel::CursorGoUp(size_t count) { area_.CursorGoUp(count); }
@@ -121,20 +121,15 @@ Result MangoPeel::DeleteWordBeforeCursor() {
     }
 
     area_.b_view_->make_cursor_visible = true;
-    Pos deleted_until;
     MGO_ASSERT(area_.cursor_->pos.line == 0);
-    std::string_view line = area_.buffer_->GetLine(0);
     if (area_.cursor_->pos.byte_offset == prefix_len_) {
         return kFail;
-    } else {
-        deleted_until = area_.cursor_->pos;
-        Result res = PrevWordBegin(line, deleted_until.byte_offset,
-                                   deleted_until.byte_offset);
-        MGO_ASSERT(res == kOk || res == kNotExist);
-        (void)res;
-        deleted_until.byte_offset =
-            std::max(prefix_len_, deleted_until.byte_offset);
     }
+
+    auto iter = buffer_.Find(area_.cursor_->pos);
+    iter = PrevWordBegin(iter, buffer_.Begin());
+    Pos deleted_until = {0, std::max(prefix_len_, iter.offset())};
+
     Pos pos;
     if (Result res; (res = buffer_.Delete({deleted_until, area_.cursor_->pos},
                                           nullptr, pos)) != kOk) {
@@ -181,7 +176,7 @@ size_t MangoPeel::NeedHeight(size_t width) {
     size_t height = 0;
     auto tabstop = GetOpt<int64_t>(kOptTabStop);
     for (size_t i = 0; i < line_cnt; i++) {
-        height += ScreenRows(buffer_.GetLine(i), width, tabstop);
+        height += ScreenRows(buffer_.GetLineView(i), width, tabstop);
     }
     return std::max<size_t>(height, 1);
 }

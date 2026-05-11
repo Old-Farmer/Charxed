@@ -12,10 +12,10 @@
 
   "basic_word_completion": true,
   "cmp_menu_max_height": 15,
-  "cmp_menu_max_width": 40,
+  "cmp_menu_max_width": 100,
   "colorscheme": "default",
   "highlight_on_search": true,
-  "input_idle_timeout": 100,
+  "input_idle_timeout": 50,
   "logverbose": false,
   "max_jump_history": 100,
   "search_ignore_case": true,

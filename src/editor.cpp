@@ -296,13 +296,13 @@ void Editor::InitKeymaps() {
 
     // command & search
     MGO_KEYMAP("/", {[this] {
-                   GotoPeel(Mode::kPeelSearch);
                    search_foward_ = true;
+                   GotoPeel(Mode::kPeelSearch);
                }},
                {Mode::kNormal});
     MGO_KEYMAP("?", {[this] {
-                   GotoPeel(Mode::kPeelSearch);
                    search_foward_ = false;
+                   GotoPeel(Mode::kPeelSearch);
                }},
                {Mode::kNormal});
     MGO_KEYMAP("N",
@@ -937,7 +937,7 @@ void Editor::GotoPeel(Mode mode) {
     if (mode == Mode::kPeelCommand) {
         peel_->UserInputStart("");
     } else if (mode == Mode::kPeelSearch) {
-        peel_->UserInputStart("Search: ");
+        peel_->UserInputStart(search_foward_ ? "Forward: " : "Backward: ");
     } else if (mode == Mode::kPeelShow) {
         cursor_.pos = Pos{0, 0};
     }
@@ -1101,17 +1101,6 @@ void Editor::EditFile() {
 }
 
 void Editor::CommandHitEnter() {
-    if (CompletionTriggered()) {
-        if (completer_->Accept(cmp_menu_->Accept(), &cursor_) ==
-            kRetriggerCmp) {
-            completer_ = nullptr;
-            TriggerCompletion(true);
-        } else {
-            completer_ = nullptr;
-        }
-        return;
-    }
-
     CommandArgs args;
     Command* c;
     Result res = command_manager_.EvalCommand(peel_->GetUserInput(), args, c);

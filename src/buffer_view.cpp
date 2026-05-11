@@ -24,8 +24,9 @@ void BufferView::RestoreCursorState(Cursor* cursor, Buffer* buffer) {
 
     // We check and set the cursor to a valid pos
     cursor->pos.line = std::min(cursor_state.pos.line, buffer->LineCnt() - 1);
-    cursor->pos.byte_offset = std::min(
-        cursor_state.pos.byte_offset, buffer->GetLine(cursor->pos.line).size());
+    cursor->pos.byte_offset =
+        std::min(cursor_state.pos.byte_offset,
+                 buffer->GetLineView(cursor->pos.line).Size());
     cursor->b_view_col_want = cursor_state.b_view_col_want_;
     cursor_state_valid = false;
 }

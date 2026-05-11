@@ -101,8 +101,32 @@ class Buffer {
         return line_str;
     }
 
+    using TextView = TextTree::TextView;
+    TextView GetLineView(size_t line) const {
+        MGO_ASSERT(LineCnt() > line);
+        return tree_.GetLine(line);
+    }
+
     // GetConent will copy out a string in range.
     std::string GetContent(const Range& range) const;
+
+    // Please refer TextTree Find and Iterator
+    using Iterator = TextTree::Iterator;
+    Iterator Find(Pos pos) const { return tree_.Find(pos); }
+
+    Iterator LineEnd(size_t line) {
+        MGO_ASSERT(LineCnt() > line);
+        if (line == LineCnt() - 1) {
+            return tree_.End();
+        } else {
+            auto iter = Find({line + 1, 0});
+            iter.PrevByte();
+            return iter;
+        }
+    }
+
+    Iterator Begin() { return tree_.Begin(); }
+    Iterator End() { return tree_.End(); }
 
     // Edit operations
    private:

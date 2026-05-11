@@ -299,11 +299,11 @@ bool Buffer::TryRecordMerge(const BufferEditHistoryItem& item) {
         last_item.origin.range.begin == item.origin.range.end) {
         // adjacent deletes
         last_item.origin.range.begin = item.origin.range.begin;
+        last_item.origin_pos_hint = item.origin_pos_hint;
 
         last_item.reverse.range.begin = item.reverse.range.begin;
         last_item.reverse.range.end = item.reverse.range.end;
         last_item.reverse.str.insert(0, item.reverse.str);
-        last_item.reverse_pos_hint = item.reverse_pos_hint;
         return true;
     } else if (last_item.origin.range.begin == last_item.origin.range.end &&
                item.origin.range.begin == item.origin.range.end &&

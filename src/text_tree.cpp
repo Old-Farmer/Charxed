@@ -966,7 +966,7 @@ void TextTree::MergeInternalNode(InternalNode* node, size_t index) {
     p->size--;
 }
 
-std::string_view TextTree::TextView::ToStringView(std::string& buf) {
+std::string_view TextTree::TextView::ToStringView(std::string& buf) const {
     MGO_ASSERT(end.offset() >= begin.offset());
     if (begin.node_ == end.node_) {
         return {&begin.node_->data[begin.index_], end.index_ - begin.index_};
@@ -987,7 +987,7 @@ std::string_view TextTree::TextView::ToStringView(std::string& buf) {
     return {buf.c_str(), buf.size()};
 }
 
-std::string TextTree::TextView::ToString() {
+std::string TextTree::TextView::ToString() const {
     std::string str;
     auto sv = ToStringView(str);
     if (str.empty()) {

@@ -88,54 +88,60 @@ class TextTree {
         // leaf in the tree.
 
         // return cur codepoint and the iterator moving forward.
-        Codepoint NextCodepoint() {
+        Iterator NextCodepoint(Codepoint& codepoint) {
             MGO_ASSERT(*this != text_->End());
-            Codepoint cp;
             int byte_len;
             Utf8ToUnicode(&node_->data[index_], node_->bytes - index_, byte_len,
-                          cp);
-            index_ += byte_len;
-            if (index_ == node_->bytes) {
-                index_ = 0;
-                node_ = node_->next;
+                          codepoint);
+            Iterator iter = *this;
+            iter.index_ += byte_len;
+            if (iter.index_ == iter.node_->bytes) {
+                if (iter.node_->next) {
+                    iter.index_ = 0;
+                    iter.node_ = iter.node_->next;
+                }
             }
-            offset_ += byte_len;
-            return cp;
+            iter.offset_ += byte_len;
+            return iter;
         }
 
         // the iterator moving backward and return the prev codepoint
-        Codepoint PrevCodepoint() {
+        Iterator PrevCodepoint(Codepoint& codepoint) {
             MGO_ASSERT(*this != text_->Begin());
-            Codepoint cp;
-            if (index_ == 0) {
-                node_ = node_->prev;
-                index_ = node_->bytes - 1;
+            Iterator iter = *this;
+            if (iter.index_ == 0) {
+                iter.node_ = iter.node_->prev;
+                iter.index_ = iter.node_->bytes - 1;
             } else {
-                index_--;
+                iter.index_--;
             }
-            for (; !IsUtf8BeginByte(node_->data[index_]); index_--);
+            for (; !IsUtf8BeginByte(iter.node_->data[iter.index_]);
+                 iter.index_--);
             int byte_len;
-            Utf8ToUnicode(&node_->data[index_], node_->bytes - index_, byte_len,
-                          cp);
-            offset_ -= byte_len;
-            return cp;
+            Utf8ToUnicode(&iter.node_->data[iter.index_],
+                          iter.node_->bytes - iter.index_, byte_len, codepoint);
+            iter.offset_ -= byte_len;
+            return iter;
         }
 
-        // return cur char and the iterator moving forward.
-        char NextByte() {
+        char ThisByte() const {
             MGO_ASSERT(*this != text_->End());
-            char c = node_->data[index_];
+            return node_->data[index_];
+        }
+
+        // Moving forward one byte.
+        void NextByte() {
+            MGO_ASSERT(*this != text_->End());
             index_++;
             if (index_ == node_->bytes) {
                 index_ = 0;
                 node_ = node_->next;
             }
             offset_++;
-            return c;
         }
 
-        // iterator moving backward and return prev char.
-        char PrevByte() {
+        // Moving backward one byte.
+        void PrevByte() {
             MGO_ASSERT(*this != text_->Begin());
             if (index_ == 0) {
                 node_ = node_->prev;
@@ -145,19 +151,26 @@ class TextTree {
                 index_--;
             }
             offset_--;
-            return node_->data[index_];
         }
 
         size_t offset() const { return offset_; }
 
-        bool operator==(Iterator other) {
-            MGO_ASSERT(text_ == other.text_);
-            return node_ == other.node_ && index_ == other.index_;
+        std::string_view MaxContinuousData() {
+            return {&node_->data[index_], node_->bytes - index_};
         }
-        bool operator!=(Iterator other) {
+
+        bool operator==(Iterator other) const {
             MGO_ASSERT(text_ == other.text_);
-            return node_ != other.node_ || index_ != other.index_;
+            return offset_ == other.offset_;
         }
+        bool operator!=(Iterator other) const {
+            MGO_ASSERT(text_ == other.text_);
+            return offset_ != other.offset_;
+        }
+        bool operator<(Iterator other) const {
+            MGO_ASSERT(text_ == other.text_);
+            return offset_ < other.offset_;
+        };
     };
 
     // A Block iterator
@@ -237,16 +250,44 @@ class TextTree {
         Iterator begin;
         Iterator end;
 
-        size_t Size() {
+        size_t Size() const {
             MGO_ASSERT(end.offset() >= begin.offset());
             return end.offset() - begin.offset();
         }
         // To std::string_view.
         // If data of TextView is stored contiously, no copy happend.
         // Else buf will be used and data will copied to this buf.
-        std::string_view ToStringView(std::string& buf);
+        std::string_view ToStringView(std::string& buf) const;
 
-        std::string ToString();
+        std::string ToString() const;
+    };
+
+    struct TextViewHash {
+        size_t operator()(const TextTree::TextView& v) const noexcept {
+            // FNV-1a 64-bit
+            uint64_t h = 1469598103934665603ull;
+            auto it = v.begin;
+            while (it != v.end) {
+                h ^= static_cast<unsigned char>(it.ThisByte());
+                h *= 1099511628211ull;
+                it.NextByte();
+            }
+            return static_cast<size_t>(h);
+        }
+    };
+    struct TextViewEqual {
+        bool operator()(const TextTree::TextView& a,
+                        const TextTree::TextView& b) const noexcept {
+            if (a.Size() != b.Size()) return false;
+            auto ia = a.begin;
+            auto ib = b.begin;
+            while (ia != a.end) {
+                if (ia.ThisByte() != ib.ThisByte()) return false;
+                ia.NextByte();
+                ib.NextByte();
+            }
+            return true;
+        }
     };
 
     void Add(Iterator pos, std::string_view str);
@@ -258,8 +299,7 @@ class TextTree {
         Iterator l_end;
         if (root_->bytes != 0 && line != LineCnt() - 1) {
             l_end = Find({line + 1, 0});
-            char c = l_end.PrevByte();  // skip '\n'
-            (void)c;
+            l_end.PrevByte();  // skip '\n'
         } else {
             l_end = End();
         }

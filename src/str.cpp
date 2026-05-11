@@ -65,4 +65,34 @@ bool StrFuzzyMatchInBytes(const std::string_view sub,
     return i_sub == sub.size();
 }
 
+bool StrFuzzyMatchInBytes(const TextTree::TextView& sub,
+                          const TextTree::TextView& str,
+                          bool filter_same_size) {
+    if (sub.Size() == 0) {
+        return false;
+    }
+
+    if (filter_same_size ? str.Size() <= sub.Size() : str.Size() < sub.Size()) {
+        return false;
+    }
+
+    auto sub_iter = sub.begin;
+    auto str_iter = str.begin;
+    if (sub_iter.ThisByte() != str_iter.ThisByte()) {
+        return false;
+    }
+
+    sub_iter.NextByte();
+    str_iter.NextByte();
+    while (sub_iter != sub.end && str_iter != str.end) {
+        if (sub_iter.ThisByte() == str_iter.ThisByte()) {
+            sub_iter.NextByte();
+            str_iter.NextByte();
+        } else {
+            str_iter.NextByte();
+        }
+    }
+    return sub_iter == sub.end;
+}
+
 }  // namespace mango

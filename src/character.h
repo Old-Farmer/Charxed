@@ -4,6 +4,7 @@
 
 #include "result.h"
 #include "termbox2.h"
+#include "text_tree.h"
 #include "utf8.h"
 #include "utils.h"
 
@@ -119,6 +120,14 @@ inline Result ThisCharacter(std::string_view str, int64_t offset,
     return ThisCharacterInner(str, offset, character, byte_len);
 }
 
+// iter must be a character beginning pos, otherwise behavior is
+// undefined.
+// iter != end.
+// return a iter at the next character beginning pos, character will be set to
+// the current character.
+TextTree::Iterator NextCharacter(TextTree::Iterator iter,
+                                 TextTree::Iterator end, Character& character);
+
 // Make sure that str[offset] must be a character beginnig byte.
 // offset shouldn't <= 0.
 // Current only return kOk
@@ -138,6 +147,14 @@ inline Result PrevCharacter(std::string_view str, int64_t offset,
     }
     return PrevCharacterInner(str, offset, character, byte_len);
 }
+
+// Make sure that iter must be a character beginnig pos.
+// iter shouldn't == begin.
+// return a iter at the prev character begin pos, character will be set to the
+// prev character.
+TextTree::Iterator PrevCharacter(TextTree::Iterator iter,
+                                 TextTree::Iterator begin,
+                                 Character& character);
 
 // Check whether between byte_offset - 1 and byte_offset is a valid character
 // boundry. Only context is that byte_offset is a codepoint start.
@@ -162,21 +179,16 @@ inline bool CharacterBoundaryValid(std::string_view str, size_t byte_offset) {
 
 bool IsWordSeperator(char c);
 
-// next word offset will set to the next word begin
-// Current only return kOk
-Result NextWordBegin(std::string_view str, size_t offset,
-                     size_t& next_word_offset);
+// return a iter at the next word begin
+TextTree::Iterator NextWordBegin(TextTree::Iterator iter,
+                                 TextTree::Iterator end);
 
-// next word offset will set to the this/next word end.
-// Current only return kOk
-Result NextWordEnd(std::string_view str, size_t offset,
-                   size_t& next_word_end_offset);
+// return a iter at the this/next word end.
+TextTree::Iterator NextWordEnd(TextTree::Iterator iter, TextTree::Iterator end);
 
-// prev word offset will set to the this/prev word end
-// on success, return kOk;
-// if Not found, retrun kNotExist and set prev_word_offset to 0
-Result PrevWordBegin(std::string_view str, size_t offset,
-                     size_t& prev_word_offset);
+// return iter at the this/prev word end
+TextTree::Iterator PrevWordBegin(TextTree::Iterator iter,
+                                 TextTree::Iterator begin);
 
 // If c is the open part of a pair, return true and the close part.
 inline std::pair<bool, char> IsPairOpen(char c) {

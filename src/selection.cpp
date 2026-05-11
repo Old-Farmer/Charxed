@@ -17,10 +17,10 @@ Range LineSelection::ToSelectRange(const Buffer* buffer) const {
     Range r;
     if (anchor < head) {
         r.begin = {anchor.line, 0};
-        r.end = {head.line, buffer->GetLine(head.line).size()};
+        r.end = {head.line, buffer->GetLineView(head.line).Size()};
     } else {
         r.begin = {head.line, 0};
-        r.end = {anchor.line, buffer->GetLine(anchor.line).size()};
+        r.end = {anchor.line, buffer->GetLineView(anchor.line).Size()};
     }
     return r;
 }
@@ -33,7 +33,7 @@ Range LineSelection::ToDeleteRange(const Buffer* buffer) const {
         r.end.byte_offset = 0;
     } else if (r.begin.line != 0) {
         r.begin.line--;
-        r.begin.byte_offset = buffer->GetLine(r.begin.line).size();
+        r.begin.byte_offset = buffer->GetLineView(r.begin.line).Size();
     }
     return r;
 }

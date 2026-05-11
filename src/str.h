@@ -23,4 +23,7 @@ bool StrPrefixInBytes(const std::string_view sub, const std::string_view str,
 bool StrFuzzyMatchInBytes(const std::string_view sub,
                           const std::string_view str, bool filter_same_size);
 
+bool StrFuzzyMatchInBytes(const TextTree::TextView& sub,
+                          const TextTree::TextView& str, bool filter_same_size);
+
 }  // namespace mango

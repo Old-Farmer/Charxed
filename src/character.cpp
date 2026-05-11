@@ -226,6 +226,30 @@ Result ThisCharacterInner(std::string_view str, int64_t offset,
     return kOk;
 }
 
+TextTree::Iterator NextCharacter(TextTree::Iterator iter,
+                                 TextTree::Iterator end, Character& character) {
+    character.Clear();
+    Codepoint codepoint;
+    Codepoint last_codepoint;
+    utf8proc_int32_t state = 0;
+    while (iter != end) {
+        auto next = iter.NextCodepoint(codepoint);
+        if (character.CodePointCount() == 0) {
+            character.Push(codepoint);
+        } else {
+            utf8proc_bool is_break = utf8proc_grapheme_break_stateful(
+                last_codepoint, codepoint, &state);
+            if (is_break) {
+                break;
+            }
+            character.Push(codepoint);
+        }
+        last_codepoint = codepoint;
+        iter = next;
+    }
+    return iter;
+}
+
 Result PrevCharacterInner(std::string_view str, int64_t offset,
                           Character& character, int& byte_len) {
     MGO_ASSERT(offset > 0);
@@ -295,88 +319,128 @@ Result PrevCharacterInner(std::string_view str, int64_t offset,
     return kOk;
 }
 
-Result NextWordBegin(std::string_view str, size_t offset,
-                     size_t& next_word_offset) {
+TextTree::Iterator PrevCharacter(TextTree::Iterator iter,
+                                 TextTree::Iterator begin,
+                                 Character& character) {
+    MGO_ASSERT(iter != begin);
+
+    character.Clear();
+    std::vector<Codepoint> codepoints_reverse;
+    std::vector<TextTree::Iterator> iter_reverse;
+    utf8proc_int32_t state;
+    Codepoint cp;
+    while (iter != begin) {
+        iter = iter.PrevCodepoint(cp);
+        if (!codepoints_reverse.empty()) {
+            // Safe as a state 0 grapheme break check.
+            // See
+            // https://github.com/JuliaStrings/utf8proc/discussions/314#discussioncomment-14983853
+            // A lot of codepoint is other bound class, including ascii
+            // and chinese, so it will be likey to stop early.
+            if (utf8proc_get_property(cp)->boundclass ==
+                UTF8PROC_BOUNDCLASS_OTHER) {
+                state = 0;
+                if (utf8proc_grapheme_break_stateful(
+                        cp, codepoints_reverse.back(), &state)) {
+                    break;
+                }
+            }
+        }
+        codepoints_reverse.push_back(cp);
+        iter_reverse.push_back(iter);
+    }
+
+    // Impossible becasue we assume coding is correct.
+    MGO_ASSERT(!codepoints_reverse.empty());
+
+    // We have found a break or we touch the beginning of the str,
+    // we start find the last break before offset starting from the
+    // codepoint_reverse.back().
+
+    // Only one codepoint, fast return, most case.
+    if (codepoints_reverse.size() == 1) {
+        character.Push(codepoints_reverse.back());
+        return iter_reverse.back();
+    }
+
+    state = 0;
+    int last_break = -1;
+    for (int i = codepoints_reverse.size() - 2; i >= 0; i--) {
+        if (utf8proc_grapheme_break_stateful(codepoints_reverse[i + 1],
+                                             codepoints_reverse[i], &state)) {
+            last_break = i;
+            state = 0;
+        }
+    }
+    if (last_break == -1) {
+        last_break = codepoints_reverse.size() - 1;
+    }
+    for (int i = last_break; i >= 0; i--) {
+        character.Push(codepoints_reverse[i]);
+    }
+    return iter_reverse[last_break];
+}
+
+TextTree::Iterator NextWordBegin(TextTree::Iterator iter,
+                                 TextTree::Iterator end) {
     Character character;
-    int byte_len;
     bool found_non_word_character = false;
-    while (offset < str.size()) {
-        ThisCharacter(str, offset, character, byte_len);
+    while (iter != end) {
+        auto next = NextCharacter(iter, end, character);
         char c;
         if (character.Ascii(c) && IsWordSeperator(c)) {
             found_non_word_character = true;
         } else {
             if (found_non_word_character) {
-                next_word_offset = offset;
-                return kOk;
+                return iter;
             }
         }
-        offset += byte_len;
+        iter = next;
     }
-    next_word_offset = str.size();
-    return kOk;
+    return iter;
 }
 
-Result NextWordEnd(std::string_view str, size_t offset,
-                   size_t& next_word_end_offset) {
-    if (offset == str.size()) {
-        return kOk;
+TextTree::Iterator NextWordEnd(TextTree::Iterator iter,
+                               TextTree::Iterator end) {
+    if (iter == end) {
+        return iter;
     }
 
     Character character;
-    int byte_len;
     bool found_word_character = false;
-    ThisCharacter(str, offset, character, byte_len);
-    offset += byte_len;
-    while (offset < str.size()) {
-        ThisCharacter(str, offset, character, byte_len);
+    iter = NextCharacter(iter, end, character);
+    while (iter != end) {
+        auto next = NextCharacter(iter, end, character);
         char c;
         if (character.Ascii(c) && IsWordSeperator(c)) {
             if (found_word_character) {
-                next_word_end_offset = offset;
-                return kOk;
+                return iter;
             }
         } else {
             found_word_character = true;
         }
-        offset += byte_len;
+        iter = next;
     }
-    next_word_end_offset = str.size();
-    return kOk;
+    return iter;
 }
 
-Result PrevWordBegin(std::string_view str, size_t offset,
-                     size_t& prev_word_offset) {
-    if (offset == 0) {
-        prev_word_offset = 0;
-        return kOk;
-    }
-
-    int64_t inner_offset = offset;
+TextTree::Iterator PrevWordBegin(TextTree::Iterator iter,
+                                 TextTree::Iterator begin) {
     Character character;
-    int byte_len;
     bool found_word_character = false;
-    while (inner_offset > 0) {
-        PrevCharacter(str, inner_offset, character, byte_len);
+    while (iter != begin) {
+        auto prev = PrevCharacter(iter, begin, character);
         char c;
         if (character.Ascii(c) && IsWordSeperator(c)) {
             if (found_word_character) {
-                prev_word_offset = inner_offset;
-                return kOk;
+                return iter;
             }
         } else {
             found_word_character = true;
         }
-        inner_offset -= byte_len;
+        iter = prev;
     }
-    if (found_word_character) {
-        prev_word_offset = 0;
-        return kOk;
-    } else {
-        prev_word_offset = 0;
-        return kNotExist;
-    }
-    return kOk;
+    return iter;
 }
 
 size_t StringWidth(const std::string& str) {

@@ -18,9 +18,6 @@
 
 namespace mango {
 
-PeelCompleter::PeelCompleter(MangoPeel* peel, BufferManager* buffer_manager)
-    : peel_(peel), buffer_manager_(buffer_manager) {}
-
 // throw FSException
 static std::vector<std::string> SuggestFilePath(std::string_view hint) {
     int64_t sep_index = Path::LastPathSeperator(hint);
@@ -64,6 +61,64 @@ static std::vector<std::string> SuggestBuffers(std::string_view hint,
     return ret;
 }
 
+PeelCompleter::PeelCompleter(MangoPeel* peel, BufferManager* buffer_manager)
+    : peel_(peel), buffer_manager_(buffer_manager) {
+    // A little bit ugly
+    // TODO: refactor it.
+    {
+        auto handler = [this](int arg_index, std::string_view arg_hint) {
+            if (arg_index == 1) {
+                try {
+                    suggestions_ = SuggestFilePath(arg_hint);
+                } catch (FSException& e) {
+                    // TODO: maybe we can throw catch the outer?
+                    MGO_LOG_ERROR("{}", e.what());
+                }
+                type_ = SuggestType::kPath;
+            };
+        };
+        cmd_name_to_cmp_handler_["e"] = handler;
+        cmd_name_to_cmp_handler_["edit"] = handler;
+        cmd_name_to_cmp_handler_["w"] = handler;
+        cmd_name_to_cmp_handler_["write"] = handler;
+    }
+    {
+        auto handler = [this](int arg_index, std::string_view arg_hint) {
+            if (arg_index == 1) {
+                suggestions_ = SuggestBuffers(arg_hint, buffer_manager_);
+                type_ = SuggestType::kOther;
+            }
+        };
+        cmd_name_to_cmp_handler_["b"] = handler;
+        cmd_name_to_cmp_handler_["buffer"] = handler;
+    }
+    {
+        auto handler = [this](int arg_index, std::string_view arg_hint) {
+            if (arg_index == 1) {
+                try {
+                    suggestions_ =
+                        Path::ListUnderPath(Path::GetAppRoot() + kDocsPath);
+                    if (!arg_hint.empty()) {
+                        for (auto iter = suggestions_.begin();
+                             iter != suggestions_.end();) {
+                            if (!StrFuzzyMatchInBytes(arg_hint, *iter, true)) {
+                                iter = suggestions_.erase(iter);
+                            } else {
+                                iter++;
+                            }
+                        }
+                    }
+                    type_ = SuggestType::kOther;
+                } catch (FSException& e) {
+                    MGO_LOG_ERROR("{}", e.what());
+                }
+            }
+        };
+        cmd_name_to_cmp_handler_["h"] = handler;
+        cmd_name_to_cmp_handler_["help"] = handler;
+    }
+}
+
 void PeelCompleter::Suggest(const Pos& cursor_pos,
                             std::vector<std::string>& menu_entries) {
     const std::string_view content_before_cursor{peel_->GetUserInput().data(),
@@ -89,34 +144,9 @@ void PeelCompleter::Suggest(const Pos& cursor_pos,
     if (arg_index == 0) {
         // TODO: suggest commands
     } else {
-        if (args[0] == "e" || args[0] == "edit" || args[0] == "sa" ||
-            args[0] == "saveas") {
-            if (arg_index == 1) {
-                try {
-                    suggestions_ = SuggestFilePath(arg_hint);
-                } catch (FSException& e) {
-                    // TODO: maybe we can throw catch the outer?
-                    MGO_LOG_ERROR("{}", e.what());
-                }
-                type_ = SuggestType::kPath;
-            }
-        } else if (args[0] == "b" || args[0] == "buffer") {
-            if (arg_index == 1) {
-                suggestions_ = SuggestBuffers(arg_hint, buffer_manager_);
-                type_ = SuggestType::kOther;
-            }
-        } else if (args[0] == "h" || args[0] == "help") {
-            if (arg_index == 1) {
-                try {
-                    suggestions_ =
-                        Path::ListUnderPath(Path::GetAppRoot() + kDocsPath);
-                    type_ = SuggestType::kOther;
-                } catch (FSException& e) {
-                    MGO_LOG_ERROR("{}", e.what());
-                }
-            }
-        } else {
-            MGO_ASSERT("Shouldn't reach here");
+        auto iter = cmd_name_to_cmp_handler_.find(args[0]);
+        if (iter != cmd_name_to_cmp_handler_.end()) {
+            iter->second(arg_index, arg_hint);
         }
     }
     menu_entries = suggestions_;
@@ -165,39 +195,40 @@ BufferBasicWordCompleter::BufferBasicWordCompleter(const Buffer* buffer) {
 
 void BufferBasicWordCompleter::Suggest(const Pos& cursor_pos,
                                        std::vector<std::string>& menu_entries) {
-    int64_t byte_offset = cursor_pos.byte_offset;
-    const auto& cur_line = buffer_->GetLine(cursor_pos.line);
+    auto iter = buffer_->Find(cursor_pos);
+    auto cursor_iter = iter;
+    auto begin = buffer_->Find({cursor_pos.line, 0});
     Character character;
-    int byte_len;
-    while (byte_offset > 0) {
-        PrevCharacter(cur_line, byte_offset, character, byte_len);
+    while (iter != begin) {
+        auto prev = PrevCharacter(iter, begin, character);
         char c;
         if (character.Ascii(c) && IsWordSeperator(c)) {
             break;
         }
-        byte_offset -= byte_len;
+        iter = prev;
     }
     // We need at least one word character before cursor to trigger suggestion.
-    if (static_cast<size_t>(byte_offset) == cursor_pos.byte_offset) {
+    if (iter == cursor_iter) {
         menu_entries = {};
         return;
     }
 
-    std::string_view cur_word_prefix = {cur_line.data() + byte_offset,
-                                        cursor_pos.byte_offset - byte_offset};
+    TextTree::TextView cur_word_prefix = {iter, cursor_iter};
 
     // auto now = std::chrono::steady_clock::now();
 
     // TODO: Performance: line cache.
     // TODO: Maybe we should lock text before accpet or cancel?
-    std::unordered_set<std::string_view> s;
+    std::unordered_set<TextTree::TextView, TextTree::TextViewHash,
+                       TextTree::TextViewEqual>
+        s;
     std::vector<std::string> matching_words;
     size_t lines = buffer_->LineCnt();
     for (size_t i = 0; i < lines; i++) {
-        const auto& line = buffer_->GetLine(i);
+        auto line = buffer_->GetLineView(i);
         auto words = GetWords(line);
         for (auto word : words) {
-            if (cur_word_prefix.data() == word.data()) {
+            if (cur_word_prefix.begin == word.begin) {
                 // Filter the word under cursor
                 continue;
             }
@@ -206,11 +237,8 @@ void BufferBasicWordCompleter::Suggest(const Pos& cursor_pos,
                 continue;
             }
             if (StrFuzzyMatchInBytes(cur_word_prefix, word, true)) {
-                // Because GetLine may only cached str before the next GetLine,
-                // we first store it in vector.
-                // TODO: refactor to use TextView
-                matching_words.push_back(std::string(word));
-                s.insert(matching_words.back());
+                matching_words.push_back(word.ToString());
+                s.insert(word);
             }
         }
     }
@@ -222,7 +250,7 @@ void BufferBasicWordCompleter::Suggest(const Pos& cursor_pos,
 
     menu_entries = std::move(matching_words);
     suggestions_ = menu_entries;
-    bytes_of_word_before_cursor_ = cur_word_prefix.size();
+    bytes_of_word_before_cursor_ = cur_word_prefix.Size();
 }
 
 Result BufferBasicWordCompleter::Accept(size_t index, Cursor* cursor) {
@@ -245,35 +273,32 @@ void BufferBasicWordCompleter::Enable() { enabled_ = true; }
 void BufferBasicWordCompleter::Disable() { enabled_ = false; }
 
 // TODO: maybe we can scan codepoint instead of grapheme on big files?
-std::vector<std::string_view> BufferBasicWordCompleter::GetWords(
-    std::string_view str) {
-    std::vector<std::string_view> words;
+std::vector<TextTree::TextView> BufferBasicWordCompleter::GetWords(
+    const TextTree::TextView& line) {
+    std::vector<TextTree::TextView> words;
 
     Character character;
-    size_t byte_offset = 0;
-    size_t byte_offset_end = str.size();
     bool found_word_character = false;
-    size_t word_begin;
-    int byte_len;
+    TextTree::Iterator word_begin;
     char c;
-    while (byte_offset < byte_offset_end) {
-        ThisCharacter(str, byte_offset, character, byte_len);
+    auto iter = line.begin;
+    while (iter != line.end) {
+        auto next = NextCharacter(iter, line.end, character);
         if (character.Ascii(c) && IsWordSeperator(c)) {
             if (found_word_character) {
-                words.push_back(
-                    {str.data() + word_begin, byte_offset - word_begin});
+                words.push_back({word_begin, iter});
                 found_word_character = false;
             }
         } else {
             if (!found_word_character) {
-                word_begin = byte_offset;
+                word_begin = iter;
                 found_word_character = true;
             }
         }
-        byte_offset += byte_len;
+        iter = next;
     }
     if (found_word_character) {
-        words.push_back({str.data() + word_begin, byte_offset - word_begin});
+        words.push_back({word_begin, iter});
     }
     return words;
 }

@@ -56,8 +56,9 @@ size_t DrawLine(Terminal& term, std::string_view line, const Pos& begin_pos,
                 character_width = kReplacementCharWidth;
             }
         }
-        if (view_col >= begin_view_col &&
-            view_col + character_width <= width + begin_view_col) {
+        if (view_col < begin_view_col) {
+            ;
+        } else if (view_col + character_width <= width + begin_view_col) {
             // When wrap, we leave a cell for cursor.
             if (wrap && byte_offset + byte_len == line.size() &&
                 view_col + character_width == width) {
@@ -151,6 +152,137 @@ size_t DrawLine(Terminal& term, std::string_view line, const Pos& begin_pos,
     return byte_offset;
 }
 
+TextTree::Iterator DrawLine(
+    Terminal& term, size_t line, const TextTree::TextView& line_view,
+    TextTree::Iterator iter, size_t begin_view_col, size_t width,
+    size_t screen_row, size_t screen_col,
+    const std::vector<const std::vector<Highlight>*>* highlights,
+    ColorScheme scheme, ColorSchemeType fallback_type,
+    int64_t trailing_white_begin, int tabstop, bool wrap) {
+    std::vector<int64_t> highlights_i;
+    if (highlights) {
+        Pos begin_pos = {line, iter.offset() - line_view.begin.offset()};
+        highlights_i.resize(highlights->size());
+        for (size_t i = 0; i < highlights->size(); i++) {
+            highlights_i[i] = LocateInPos(*(*highlights)[i], begin_pos);
+        }
+    }
+
+    Character character;
+    size_t view_col = 0;
+    while (iter != line_view.end) {
+        int character_width;
+        bool is_tab = false;
+        size_t byte_offset = iter.offset() - line_view.begin.offset();
+        auto next = NextCharacter(iter, line_view.end, character);
+        character_width = character.Width();
+        if (character_width == 0) {
+            char c;
+            if (character.Ascii(c) && c == '\t') {
+                is_tab = true;
+                character_width = tabstop - view_col % tabstop;
+            } else {
+                character.Clear();
+                character.Push(kReplacementChar);
+                character_width = kReplacementCharWidth;
+            }
+        }
+        if (view_col < begin_view_col) {
+            ;
+        } else if (view_col + character_width <= width + begin_view_col) {
+            // When wrap, we leave a cell for cursor.
+            if (wrap && next == line_view.end &&
+                view_col + character_width == width) {
+                break;
+            }
+            // Decide attr
+            Terminal::AttrPair attr;
+            attr.fg_exist = false;
+            attr.bg_exist = false;
+            if (highlights) {
+                for (size_t i = 0; i < highlights->size(); i++) {
+                    int64_t highlight_i = highlights_i[i];
+                    const auto& highlight = *(*highlights)[i];
+                    if (highlight_i != static_cast<int64_t>(highlight.size()) &&
+                        highlight[highlight_i].range.PosInMe(
+                            {line, byte_offset})) {
+                        const Terminal::AttrPair& this_attr =
+                            scheme[highlight[highlight_i].hl_type];
+                        if (!attr.fg_exist && this_attr.fg_exist) {
+                            attr.fg = this_attr.fg;
+                            attr.fg_exist = true;
+                        }
+                        if (!attr.bg_exist && this_attr.bg_exist) {
+                            attr.bg = this_attr.bg;
+                            attr.bg_exist = true;
+                        }
+                        if (attr.bg_exist && attr.fg_exist) {
+                            break;
+                        }
+                    }
+                }
+            }
+            if (!attr.fg_exist) {
+                attr.fg = scheme[fallback_type].fg;
+                attr.fg_exist = true;
+            }
+            if (!attr.bg_exist) {
+                attr.bg = scheme[fallback_type].bg;
+                attr.bg_exist = true;
+            }
+
+            int cur_screen_col = view_col - begin_view_col + screen_col;
+            if (static_cast<int64_t>(byte_offset) >= trailing_white_begin) {
+                if (!is_tab) {
+                    term.SetCell(cur_screen_col, screen_row, &kTrailingSpace, 1,
+                                 attr);
+                } else {
+                    Codepoint space = kSpaceChar;
+                    term.SetCell(cur_screen_col, screen_row, &kTrailingTab, 1,
+                                 attr);
+                    cur_screen_col++;
+                    for (int i = 1; i < character_width; i++) {
+                        term.SetCell(cur_screen_col, screen_row, &space, 1,
+                                     attr);
+                        cur_screen_col++;
+                    }
+                }
+            } else {
+                if (!is_tab) {
+                    term.SetCell(cur_screen_col, screen_row,
+                                 character.Codepoints(),
+                                 character.CodePointCount(), attr);
+                } else {
+                    Codepoint space = kSpaceChar;
+                    for (int i = 0; i < character_width; i++) {
+                        term.SetCell(cur_screen_col, screen_row, &space, 1,
+                                     attr);
+                        cur_screen_col++;
+                    }
+                }
+            }
+        } else {
+            break;
+        }
+        view_col += character_width;
+        iter = next;
+
+        // Try goto next syntax highlight range
+        if (highlights) {
+            for (size_t i = 0; i < highlights->size(); i++) {
+                const auto& highlight = *(*highlights)[i];
+                while (highlights_i[i] <
+                           static_cast<int64_t>(highlight.size()) &&
+                       highlight[highlights_i[i]].range.PosAfterMe(
+                           {line, iter.offset() - line_view.begin.offset()})) {
+                    highlights_i[i]++;
+                }
+            }
+        }
+    }
+    return iter;
+}
+
 size_t ArrangeLine(std::string_view line, size_t begin_byte_offset,
                    size_t begin_view_col, size_t width, int tabstop, bool wrap,
                    size_t* end_view_col, size_t* target_byte_offset,
@@ -178,8 +310,9 @@ size_t ArrangeLine(std::string_view line, size_t begin_byte_offset,
                 character_width = kReplacementCharWidth;
             }
         }
-        if (view_col >= begin_view_col &&
-            view_col + character_width <= width + begin_view_col) {
+        if (view_col < begin_view_col) {
+            ;
+        } else if (view_col + character_width <= width + begin_view_col) {
             if (wrap && byte_offset + byte_len == line.size() &&
                 view_col + character_width == width) {
                 break;
@@ -213,6 +346,70 @@ size_t ArrangeLine(std::string_view line, size_t begin_byte_offset,
     return byte_offset;
 }
 
+TextTree::Iterator ArrangeLine(const TextTree::TextView& line,
+                               TextTree::Iterator iter, size_t begin_view_col,
+                               size_t width, int tabstop, bool wrap,
+                               size_t* end_view_col, size_t* target_byte_offset,
+                               bool* stop_at_target, size_t* character_cnt) {
+    if (stop_at_target) {
+        *stop_at_target = false;
+    }
+    if (character_cnt) {
+        *character_cnt = 0;
+    }
+
+    Character character;
+    size_t view_col = 0;
+    while (iter != line.end) {
+        int character_width;
+        auto next = NextCharacter(iter, line.end, character);
+        character_width = character.Width();
+        if (character_width == 0) {
+            char c;
+            if (character.Ascii(c) && c == '\t') {
+                character_width = tabstop - view_col % tabstop;
+            } else {
+                character_width = kReplacementCharWidth;
+            }
+        }
+        if (view_col < begin_view_col) {
+            ;
+        } else if (view_col + character_width <= width + begin_view_col) {
+            if (wrap && next == line.end &&
+                view_col + character_width == width) {
+                break;
+            }
+        } else {
+            break;
+        }
+        // character at target byte offset can be rendered.
+        if (target_byte_offset &&
+            *target_byte_offset == iter.offset() - line.begin.offset()) {
+            if (stop_at_target) {
+                *stop_at_target = true;
+            }
+            break;
+        }
+        if (character_cnt) {
+            (*character_cnt)++;
+        }
+        view_col += character_width;
+        iter = next;
+    }
+
+    if (target_byte_offset &&
+        *target_byte_offset == iter.offset() - line.begin.offset() &&
+        iter == line.end) {
+        if (stop_at_target) {
+            *stop_at_target = true;
+        }
+    }
+    if (end_view_col) {
+        *end_view_col = view_col;
+    }
+    return iter;
+}
+
 size_t ScreenRows(std::string_view line, size_t width, int tabstop) {
     size_t byte_offset = 0;
     size_t row_cnt = 0;
@@ -220,6 +417,16 @@ size_t ScreenRows(std::string_view line, size_t width, int tabstop) {
         byte_offset = ArrangeLine(line, byte_offset, 0, width, tabstop, true);
         row_cnt++;
     } while (byte_offset < line.size());
+    return row_cnt;
+}
+
+size_t ScreenRows(const TextTree::TextView& line, size_t width, int tabstop) {
+    size_t row_cnt = 0;
+    auto iter = line.begin;
+    do {
+        iter = ArrangeLine(line, iter, 0, width, tabstop, true);
+        row_cnt++;
+    } while (iter != line.end);
     return row_cnt;
 }
 

@@ -27,28 +27,11 @@ const char* my_ts_read(void* payload, uint32_t byte_offset, TSPoint position,
                        uint32_t* bytes_read) {
     (void)byte_offset;
     Buffer* buffer = reinterpret_cast<Buffer*>(payload);
-    if (position.row < buffer->LineCnt() - 1) {
-        if (position.column == buffer->GetLine(position.row).size()) {
-            *bytes_read = 1;
-            return kTSNewLine;
-        }
-        *bytes_read = buffer->GetLine(position.row).size() - position.column;
-        return buffer->GetLine(position.row).data() + position.column;
-    }
 
-    if (position.row == buffer->LineCnt() - 1) {
-        if (position.column == buffer->GetLine(position.row).size()) {
-            *bytes_read = 0;
-            return nullptr;
-        }
-        *bytes_read = buffer->GetLine(position.row).size() - position.column;
-        return buffer->GetLine(position.row).data() + position.column;
-    }
-
-    // >=
-    // shoudn't get here
-    *bytes_read = 0;
-    return nullptr;
+    auto iter = buffer->Find({position.row, position.column});
+    auto sv = iter.MaxContinuousData();
+    *bytes_read = sv.size();
+    return sv.data();
 }
 
 struct CharacterTypeCaptureNameMappingItem {
@@ -215,9 +198,9 @@ void SyntaxParser::GenerateHighlight(const Buffer* buffer, const Range& range) {
             Range range = {{start.row, start.column}, {end.row, end.column}};
             MGO_ASSERT(buffer->LineCnt() > range.end.line);
             MGO_ASSERT(range.begin.byte_offset <=
-                       buffer->GetLine(range.begin.line).size());
+                       buffer->GetLineView(range.begin.line).Size());
             MGO_ASSERT(range.end.byte_offset <=
-                       buffer->GetLine(range.end.line).size());
+                       buffer->GetLineView(range.end.line).Size());
             if (!QueryPredicate(query_context, &match.captures[i], buffer,
                                 range)) {
                 continue;

@@ -88,7 +88,7 @@ In `config.json`, Support options:
 
 - cmp_menu_max_width:  
     type: integer
-    default: 40
+    default: 100
     desc: Max width(rows) of a completion menu.
 
 - colorscheme:  
@@ -103,7 +103,7 @@ In `config.json`, Support options:
 
 - input_indle_timeout:  
     type: integer,
-    default: 100,
+    default: 50,
     desc: Timeout after the user stops typing before triggering deferred behaviors, etc. auto cmp or searching on typing.
 
 - logverbose:  

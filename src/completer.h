@@ -1,11 +1,13 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
 #include <string>
 #include <vector>
 
 #include "pos.h"
 #include "result.h"
+#include "text_tree.h"
 #include "utils.h"
 
 namespace mango {
@@ -47,6 +49,10 @@ class PeelCompleter : public Completer {
 
     enum class SuggestType { kPath, kOther };
     SuggestType type_;
+
+    std::unordered_map<std::string_view,
+                       std::function<void(int, std::string_view)>>
+        cmd_name_to_cmp_handler_;
 };
 
 class Buffer;
@@ -68,7 +74,7 @@ class BufferBasicWordCompleter : public Completer {
     void Disable();
 
    private:
-    std::vector<std::string_view> GetWords(std::string_view str);
+    std::vector<TextTree::TextView> GetWords(const TextTree::TextView& line);
 
     const Buffer* buffer_;
     bool enabled_;

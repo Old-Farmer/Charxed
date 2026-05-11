@@ -43,14 +43,15 @@ Result Window::DeleteAtCursor() {
             return kFail;
         }
         range = {{cursor_->pos.line - 1,
-                  buffer->GetLine(cursor_->pos.line - 1).size()},
+                  buffer->GetLineView(cursor_->pos.line - 1).Size()},
                  {cursor_->pos.line, 0}};
     } else if (GetOpt<bool>(kOptTabSpace)) {
         bool all_space = true;
-        const auto& line = buffer->GetLine(cursor_->pos.line);
-        for (size_t byte_offset = 0; byte_offset < cursor_->pos.byte_offset;
-             byte_offset++) {
-            if (line[byte_offset] != kSpaceChar) {
+        auto begin = buffer->Find({cursor_->pos.line, 0});
+        for (auto iter = begin;
+             iter.offset() - begin.offset() < cursor_->pos.byte_offset;
+             iter.NextByte()) {
+            if (iter.ThisByte() != kSpaceChar) {
                 all_space = false;
                 break;
             }
@@ -64,30 +65,29 @@ Result Window::DeleteAtCursor() {
         }
     } else {
     slow:
-        const auto& cur_line =
-            area_.buffer_->GetLine(cursor_->pos.line);
+        auto cur_line = area_.buffer_->GetLineView(cursor_->pos.line);
         Character character;
-        int len;
-        PrevCharacter(cur_line, cursor_->pos.byte_offset, character, len);
+        auto iter = area_.buffer_->Find(cursor_->pos);
+        auto prev = PrevCharacter(iter, cur_line.begin, character);
 
         char c = -1;
         character.Ascii(c);
 
-        if (cur_line.size() == cursor_->pos.byte_offset) {
-            range = {{cursor_->pos.line, cursor_->pos.byte_offset - len},
-                     cursor_->pos};
+        if (cur_line.Size() == cursor_->pos.byte_offset) {
+            range = {
+                {cursor_->pos.line, prev.offset() - cur_line.begin.offset()},
+                cursor_->pos};
         } else {
             // may delete pairs
-            int byte_len;
-            ThisCharacter(cur_line, cursor_->pos.byte_offset, character,
-                          byte_len);
+            NextCharacter(iter, cur_line.end, character);
             char this_char = -1;
             character.Ascii(this_char);
             bool need_delete_pairs =
                 c != -1 && this_char != -1 && IsPair(c, this_char);
-            range = {{cursor_->pos.line, cursor_->pos.byte_offset - len},
-                     {cursor_->pos.line,
-                      cursor_->pos.byte_offset + (need_delete_pairs ? 1 : 0)}};
+            range = {
+                {cursor_->pos.line, prev.offset() - cur_line.begin.offset()},
+                {cursor_->pos.line,
+                 cursor_->pos.byte_offset + (need_delete_pairs ? 1 : 0)}};
         }
     }
 
@@ -140,13 +140,14 @@ Result Window::NewLineAboveCursorline() {
     }
     return TryAutoIndent(
         {cursor_->pos.line - 1,
-         area_.buffer_->GetLine(cursor_->pos.line - 1).size()});
+         area_.buffer_->GetLineView(cursor_->pos.line - 1).Size()});
 }
 
 Result Window::NewLineUnderCursorline() {
     MGO_ASSERT(!area_.IsSelectionActive());
     return TryAutoIndent(
-        {cursor_->pos.line, area_.buffer_->GetLine(cursor_->pos.line).size()});
+        {cursor_->pos.line,
+         area_.buffer_->GetLineView(cursor_->pos.line).Size()});
 }
 
 Result Window::Replace(const Range& range, std::string_view str) {
@@ -156,21 +157,22 @@ Result Window::Replace(const Range& range, std::string_view str) {
 Result Window::TryAutoPair(std::string_view str) {
     MGO_ASSERT(str.size() == 1 && str[0] < CHAR_MAX && str[0] >= 0);
 
-    bool end_of_line = area_.buffer_->GetLine(cursor_->pos.line).size() ==
-                       cursor_->pos.byte_offset;
-    char cur_c =
-        end_of_line
-            ? -1
-            : area_.buffer_->GetLine(
-                  cursor_->pos
-                      .line)[cursor_->pos.byte_offset];  // -1 here just makes
-                                                         // compiler happy, not
-                                                         // used.
+    auto line = area_.buffer_->GetLineView(cursor_->pos.line);
+
+    auto iter = area_.buffer_->Find(cursor_->pos);
+    bool end_of_line = iter == line.end;
+    char cur_c = end_of_line ? -1 : iter.ThisByte();  // -1 here just makes
+                                                      // compiler happy, not
+                                                      // used.
     bool start_of_line = cursor_->pos.byte_offset == 0;
-    char prev_c = start_of_line
-                      ? -1
-                      : area_.buffer_->GetLine(
-                            cursor_->pos.line)[cursor_->pos.byte_offset - 1];
+    char prev_c;
+    if (start_of_line) {
+        iter.PrevByte();
+        prev_c = iter.ThisByte();
+    } else {
+        prev_c = -1;
+    }
+
     // Can we just move cursor next ?
     // e.g. (<cursor>) and input ')', we just move cursor right to ()<cursor>
     if (!start_of_line && !end_of_line) {
@@ -206,7 +208,9 @@ Result Window::TryAutoPair(std::string_view str) {
 Result Window::TryAutoIndent(Pos pos) {
     MGO_ASSERT(!area_.IsSelectionActive());
 
-    const auto& line = area_.buffer_->GetLine(pos.line);
+    // TODO: use regex patterns for autoindent
+
+    auto line = area_.buffer_->GetLine(pos.line);
     std::string indent = "";
     size_t cur_indent = 0;
     // Same as this line's indent

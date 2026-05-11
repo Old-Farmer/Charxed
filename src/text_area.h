@@ -141,6 +141,10 @@ class TextArea {
                                     size_t b_view_col_from_byte_offset,
                                     size_t byte_offset, size_t content_width,
                                     bool wrap);
+    // return byte_offset
+    TextTree::Iterator CalcByteOffsetByBViewCol(
+        const TextTree::TextView& line, size_t b_view_col_from_byte_offset,
+        TextTree::Iterator iter, size_t content_width, bool wrap);
 
     void SetCursorHintNoWrap(size_t s_row, size_t s_col, size_t sidebar_width);
     void SetCursorHintWrap(size_t s_row, size_t s_col, size_t sidebar_width);
