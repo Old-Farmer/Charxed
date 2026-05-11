@@ -12,7 +12,6 @@ class LayoutManager {
    public:
     LayoutManager(Window* window, StatusLine* status_line, MangoPeel* peel);
 
-    void EnsureLayout();
     void ArrangeLayout();
 
    private:

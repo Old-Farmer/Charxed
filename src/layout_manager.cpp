@@ -12,14 +12,6 @@ LayoutManager::LayoutManager(Window* window, StatusLine* status_line,
                              MangoPeel* peel)
     : window_(window), status_line_(status_line), peel_(peel) {}
 
-void LayoutManager::EnsureLayout() {
-    size_t h = peel_->NeedHeight(term_->Width());
-    if (peel_->buffer_.version() == peel_buffer_version_ || peel_height_ == h) {
-        return;
-    }
-    ArrangeLayoutInner(h);
-}
-
 void LayoutManager::ArrangeLayout() {
     size_t h = peel_->NeedHeight(term_->Width());
     ArrangeLayoutInner(h);

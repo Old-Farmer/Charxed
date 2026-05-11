@@ -174,6 +174,7 @@ void Editor::Loop() {
                     if (IsPeel(mode_)) {
                         peel_->AddStringAtCursor(
                             std::move(bracketed_paste_buffer));
+                        layout_manager_->ArrangeLayout();
                     } else {
                         cursor_.in_window->AddStringAtCursor(
                             std::move(bracketed_paste_buffer));
@@ -289,6 +290,7 @@ void Editor::InitKeymaps() {
     MGO_KEYMAP("<esc>", {[this] {
                    if (IsPeel(mode_)) {
                        peel_->ShowContent("");
+                       layout_manager_->ArrangeLayout();
                    }
                    ExitFromMode();
                }},
@@ -314,12 +316,16 @@ void Editor::InitKeymaps() {
     MGO_KEYMAP(":", {[this] { GotoPeel(); }}, {Mode::kNormal});
     MGO_KEYMAP("<enter>", {[this] { GotoPeel(Mode::kPeelShow); }},
                {Mode::kNormal});
-    MGO_KEYMAP("<c-r>\"", {[this] { peel_->Paste(); }},
+    MGO_KEYMAP("<c-r>\"", {[this] {
+                   peel_->Paste();
+                   layout_manager_->ArrangeLayout();
+               }},
                {Mode::kPeelCommand, Mode::kPeelSearch});
     MGO_KEYMAP("<bs>", {[this] {
                    if (peel_->DeleteCharacterBeforeCursor() == kOk) {
                        editor_event_manager_.EmitEvent(
                            EditorEvent::kCommandCharEdit, nullptr);
+                       layout_manager_->ArrangeLayout();
                    }
                }},
                {Mode::kPeelCommand});
@@ -327,14 +333,25 @@ void Editor::InitKeymaps() {
                    if (peel_->DeleteCharacterBeforeCursor() == kOk) {
                        editor_event_manager_.EmitEvent(
                            EditorEvent::kSearchCharEdit, nullptr);
+                       layout_manager_->ArrangeLayout();
                    }
                }},
                {Mode::kPeelSearch});
-    MGO_KEYMAP("<c-w>", {[this] { peel_->DeleteWordBeforeCursor(); }},
+    MGO_KEYMAP("<c-w>", {[this] {
+                   peel_->DeleteWordBeforeCursor();
+                   layout_manager_->ArrangeLayout();
+               }},
                {Mode::kPeelCommand, Mode::kPeelSearch});
-    MGO_KEYMAP("<enter>", {[this] { CommandHitEnter(); }},
+    MGO_KEYMAP("<enter>", {[this] {
+                   CommandHitEnter();
+                   layout_manager_->ArrangeLayout();
+               }},
                {Mode::kPeelCommand});
-    MGO_KEYMAP("<enter>", {[this] { SearchHitEnter(); }}, {Mode::kPeelSearch});
+    MGO_KEYMAP("<enter>", {[this] {
+                   SearchHitEnter();
+                   layout_manager_->ArrangeLayout();
+               }},
+               {Mode::kPeelSearch});
     MGO_KEYMAP("<left>", {[this] { peel_->CursorGoLeft(Count()); }},
                {Mode::kPeelCommand, Mode::kPeelSearch});
     MGO_KEYMAP("<right>", {[this] { peel_->CursorGoRight(Count()); }},
@@ -359,6 +376,7 @@ void Editor::InitKeymaps() {
                            kRetriggerCmp) {
                            completer_ = nullptr;
                            TriggerCompletion(true);
+                           layout_manager_->ArrangeLayout();
                        } else {
                            completer_ = nullptr;
                        }
@@ -676,6 +694,7 @@ void Editor::HandleKey() {
             Result res;
             if (IsPeel(mode_)) {
                 res = peel_->AddStringAtCursor(c);
+                layout_manager_->ArrangeLayout();
             } else {
                 res = cursor_.in_window->AddStringAtCursor(c);
             }
@@ -854,8 +873,6 @@ void Editor::PreProcess() {
             // TODO: Maybe Notify the user
         }
     }
-
-    layout_manager_->EnsureLayout();
 
     window_->area_.MakeSureViewValid();
     peel_->area_.MakeSureViewValid();

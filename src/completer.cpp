@@ -123,9 +123,6 @@ void PeelCompleter::Suggest(const Pos& cursor_pos,
                             std::vector<std::string>& menu_entries) {
     const std::string_view content_before_cursor{peel_->GetUserInput().data(),
                                                  cursor_pos.byte_offset};
-    // TODO: Refactor here!
-    // Don't add any shit code here before refactor here.
-
     auto args = StrSplit(content_before_cursor);
     std::string_view arg_hint;
     size_t arg_index;
