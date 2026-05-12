@@ -83,11 +83,12 @@ class TextTree {
         // Implement here in order to inline them.
         // Should Check Iterator validation before Next & Prev, otherwise
         // behavior is undefined.
-        // Codepoint and byte ops shouldn't be mixed!!!
-        // Require that leaf nodes shouldn't be empty unless only one empty
-        // leaf in the tree.
+        // Codepoint and byte ops shouldn't be mixed, unless you know what you
+        // are doing. Require that leaf nodes shouldn't be empty unless only one
+        // empty leaf in the tree.
 
-        // return cur codepoint and the iterator moving forward.
+        // return a iterator moving forward
+        // and codepoint is assigned to the cur codepoint
         Iterator NextCodepoint(Codepoint& codepoint) {
             MGO_ASSERT(*this != text_->End());
             int byte_len;
@@ -105,7 +106,8 @@ class TextTree {
             return iter;
         }
 
-        // the iterator moving backward and return the prev codepoint
+        // return a iterator moving backward
+        // and codepoint is assigned to the prev codepoint
         Iterator PrevCodepoint(Codepoint& codepoint) {
             MGO_ASSERT(*this != text_->Begin());
             Iterator iter = *this;

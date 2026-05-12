@@ -291,7 +291,7 @@ void Editor::InitKeymaps() {
         {MGO_DEFAULT_MODES});
     MGO_KEYMAP("<c-u>",
                {[this] { peel_->CursorGoUp(peel_->area_.height_ / 2); }},
-               {MGO_DEFAULT_MODES});
+               {Mode::kPeelShow});
     MGO_KEYMAP("<c-o>", {[this] { cursor_.in_window->JumpBackward(); }},
                {Mode::kNormal});
     MGO_KEYMAP("<c-i>", {[this] { cursor_.in_window->JumpForward(); }},
@@ -425,7 +425,7 @@ void Editor::InitKeymaps() {
                {Mode::kInsert, Mode::kPeelCommand});
     MGO_KEYMAP("<c-p>", {[this] {
                    if (CompletionTriggered()) {
-                       cmp_menu_->SelectNext(1);
+                       cmp_menu_->SelectPrev(1);
                        show_cmp_menu_ = true;
                    }
                }},

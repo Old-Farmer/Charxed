@@ -23,6 +23,7 @@
 
 ## Usability
 
+- Replace
 - Options need a range limitaion
 - Jump history should be adjusted when buffer changed.
 - File changing detection
