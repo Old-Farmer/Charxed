@@ -93,8 +93,10 @@ void TextArea::Draw(BufferSearchContext* search_context) {
             auto line = buffer_->GetLineView(l);
             int64_t i = static_cast<int64_t>(line.Size()) - 1;
             auto iter = line.end;
-            for (; i > 0; i--) {
+            if (i >= 0) {
                 iter.PrevByte();
+            }
+            for (; i >= 0; i--, iter.PrevByte()) {
                 // Backward codepoint scan is correct and enough.
                 // '\t' will break all, ' ' only may after a pretend codepoint,
                 // but we render from begin so we will skip it if it's wrong.
@@ -102,6 +104,7 @@ void TextArea::Draw(BufferSearchContext* search_context) {
                     break;
                 }
             }
+            i++;
             trailing_white_begin_pre_line.push_back(i);
             if (i != static_cast<int64_t>(line.Size())) {
                 trailing_white_hl.push_back(
