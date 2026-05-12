@@ -10,28 +10,34 @@ constexpr std::string_view kBoolTrue = "true";
 constexpr std::string_view kBoolFalse = "false";
 
 void CommandManager::AddCommand(const Command& command) {
-    if (commands_.count(command.name) == 1 ||
-        commands_.count(command.short_name)) {
+    if (name_to_commands_.count(command.name) == 1 ||
+        name_to_commands_.count(command.short_name)) {
         throw CommandNameExistException("name: {}, short name: {}",
                                         command.name, command.short_name);
     }
-    auto c = new Command(command);
-    commands_[c->name] = c;
+    auto c = std::make_unique<Command>(command);
+    name_to_commands_[c->name] = c.get();
     if (!c->short_name.empty()) {
-        commands_[c->short_name] = c;
+        name_to_commands_[c->short_name] = c.get();
     }
+    commands_.push_back(std::move(c));
 }
 void CommandManager::RemoveCommand(const std::string& name) {
-    auto iter = commands_.find(name);
-    if (iter == commands_.end()) {
+    auto iter = name_to_commands_.find(name);
+    if (iter == name_to_commands_.end()) {
         return;
     }
     auto c = iter->second;
     if (!c->short_name.empty()) {
-        commands_.erase(c->short_name);
+        name_to_commands_.erase(c->short_name);
     }
-    delete c;
-    commands_.erase(iter);
+    for (size_t i = 0; i < commands_.size(); i++) {
+        if (commands_[i].get() == c) {
+            commands_.erase(commands_.begin() + i);
+            break;
+        }
+    }
+    name_to_commands_.erase(iter);
 }
 Result CommandManager::EvalCommand(std::string_view str, CommandArgs args,
                                    Command*& command) {
@@ -40,8 +46,8 @@ Result CommandManager::EvalCommand(std::string_view str, CommandArgs args,
         return kCommandEmpty;
     }
     // TODO: maybe use cpp-20 heterogeneous lookups for better performance
-    auto iter = commands_.find(std::string(splitted_str[0]));
-    if (iter == commands_.end()) {
+    auto iter = name_to_commands_.find(std::string(splitted_str[0]));
+    if (iter == name_to_commands_.end()) {
         return kNotExist;
     }
 

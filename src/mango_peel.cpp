@@ -8,11 +8,12 @@
 namespace mango {
 
 MangoPeel::MangoPeel(Cursor* cursor, GlobalOpts* global_opts,
-                     ClipBoard* clipboard, BufferManager* buffer_manager)
+                     ClipBoard* clipboard, BufferManager* buffer_manager,
+                     CommandManager* command_manager)
     : opts_(global_opts),
       buffer_(global_opts, false),
       area_(cursor, &opts_, nullptr, clipboard),
-      completer_(this, buffer_manager) {
+      completer_(this, buffer_manager, command_manager) {
     buffer_.Load();
     buffer_.opts().SetOpt<int64_t>(kOptMaxEditHistory, 0);
     buffer_.opts().SetOpt(kOptAutoIndent, false);

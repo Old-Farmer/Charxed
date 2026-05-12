@@ -10,11 +10,11 @@
 
 namespace mango {
 
-constexpr int8_t kMaxCommandCnt = 6;
+constexpr int8_t kMaxCommandArgCnt = 6;
 
 using CommandArg = std::optional<std::variant<bool, int64_t, std::string>>;
-using CommandArgs = CommandArg[kMaxCommandCnt];
-using CommandArgTypes = Type[kMaxCommandCnt];
+using CommandArgs = CommandArg[kMaxCommandArgCnt];
+using CommandArgTypes = Type[kMaxCommandArgCnt];
 
 struct Command {
     std::string name;
@@ -33,7 +33,6 @@ class CommandManager {
     MGO_DELETE_COPY(CommandManager);
     MGO_DELETE_MOVE(CommandManager);
 
-
     // throw CommandNameExistException if command name conflict
     void AddCommand(const Command& command);
     // should only be command name not short name.
@@ -48,8 +47,16 @@ class CommandManager {
     Result EvalCommand(std::string_view str, CommandArgs args,
                        Command*& command);
 
+    const std::vector<std::unique_ptr<Command>>& commands() {
+        return commands_;
+    }
+
    private:
-    std::unordered_map<std::string, Command*> commands_;
+    std::unordered_map<std::string, Command*> name_to_commands_;
+    // Because remove is a very low-frequency op,
+    // we use a vector to store commands and expose it to the outside world,
+    // e.g. for command completion
+    std::vector<std::unique_ptr<Command>> commands_;
 };
 
 }  // namespace mango

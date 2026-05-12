@@ -47,5 +47,6 @@ int main(int argc, char* argv[]) {
     ParseCmdArgs(argc, argv, global_opts.get(), init_opts.get());
     Editor& editor = Editor::GetInstance();
     editor.Init(std::move(global_opts), std::move(init_opts));
+    editor.StartupScreen();
     editor.Loop();
 }

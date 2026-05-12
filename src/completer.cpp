@@ -10,6 +10,7 @@
 #include "buffer.h"
 #include "buffer_manager.h"
 #include "character.h"
+#include "command_manager.h"
 #include "constants.h"
 #include "cursor.h"
 #include "mango_peel.h"
@@ -61,8 +62,11 @@ static std::vector<std::string> SuggestBuffers(std::string_view hint,
     return ret;
 }
 
-PeelCompleter::PeelCompleter(MangoPeel* peel, BufferManager* buffer_manager)
-    : peel_(peel), buffer_manager_(buffer_manager) {
+PeelCompleter::PeelCompleter(MangoPeel* peel, BufferManager* buffer_manager,
+                             CommandManager* command_manager)
+    : peel_(peel),
+      buffer_manager_(buffer_manager),
+      command_manager_(command_manager) {
     // A little bit ugly
     // TODO: refactor it.
     {
@@ -139,7 +143,12 @@ void PeelCompleter::Suggest(const Pos& cursor_pos,
     }
 
     if (arg_index == 0) {
-        // TODO: suggest commands
+        const auto& commands = command_manager_->commands();
+        for (auto& command : commands) {
+            if (StrFuzzyMatchInBytes(arg_hint, command->name, false)) {
+                suggestions_.push_back(command->name);
+            }
+        }
     } else {
         auto iter = cmd_name_to_cmp_handler_.find(args[0]);
         if (iter != cmd_name_to_cmp_handler_.end()) {
@@ -220,23 +229,43 @@ void BufferBasicWordCompleter::Suggest(const Pos& cursor_pos,
                        TextTree::TextViewEqual>
         s;
     std::vector<std::string> matching_words;
-    size_t lines = buffer_->LineCnt();
-    for (size_t i = 0; i < lines; i++) {
-        auto line = buffer_->GetLineView(i);
-        auto words = GetWords(line);
-        for (auto word : words) {
-            if (cur_word_prefix.begin == word.begin) {
-                // Filter the word under cursor
-                continue;
-            }
 
-            if (s.count(word)) {
-                continue;
+    bool found_word_character = false;
+    TextTree::Iterator word_begin;
+    char c;
+    iter = buffer_->Begin();
+    auto end = buffer_->End();
+    // TODO: maybe we can scan codepoint instead of grapheme on big files?
+    while (iter != end) {
+        auto next = NextCharacter(iter, end, character);
+        if (character.Ascii(c) && IsWordSeperator(c)) {
+            if (found_word_character) {
+                TextTree::TextView word = {word_begin, iter};
+                // Filter the word under cursor,
+                // Filter the same word.
+                if (cur_word_prefix.begin != word.begin && s.count(word) == 0 &&
+                    StrFuzzyMatchInBytes(cur_word_prefix, word, true)) {
+                    matching_words.push_back(word.ToString());
+                    s.insert(word);
+                }
+                found_word_character = false;
             }
-            if (StrFuzzyMatchInBytes(cur_word_prefix, word, true)) {
-                matching_words.push_back(word.ToString());
-                s.insert(word);
+        } else {
+            if (!found_word_character) {
+                word_begin = iter;
+                found_word_character = true;
             }
+        }
+        iter = next;
+    }
+    if (found_word_character) {
+        TextTree::TextView word = {word_begin, iter};
+        // Filter the word under cursor,
+        // Filter the same word.
+        if (cur_word_prefix.begin != word.begin && s.count(word) == 0 &&
+            StrFuzzyMatchInBytes(cur_word_prefix, word, true)) {
+            matching_words.push_back(word.ToString());
+            s.insert(word);
         }
     }
     // auto end = std::chrono::steady_clock::now();
@@ -268,36 +297,5 @@ void BufferBasicWordCompleter::Cancel() { suggestions_.clear(); }
 void BufferBasicWordCompleter::Enable() { enabled_ = true; }
 
 void BufferBasicWordCompleter::Disable() { enabled_ = false; }
-
-// TODO: maybe we can scan codepoint instead of grapheme on big files?
-std::vector<TextTree::TextView> BufferBasicWordCompleter::GetWords(
-    const TextTree::TextView& line) {
-    std::vector<TextTree::TextView> words;
-
-    Character character;
-    bool found_word_character = false;
-    TextTree::Iterator word_begin;
-    char c;
-    auto iter = line.begin;
-    while (iter != line.end) {
-        auto next = NextCharacter(iter, line.end, character);
-        if (character.Ascii(c) && IsWordSeperator(c)) {
-            if (found_word_character) {
-                words.push_back({word_begin, iter});
-                found_word_character = false;
-            }
-        } else {
-            if (!found_word_character) {
-                word_begin = iter;
-                found_word_character = true;
-            }
-        }
-        iter = next;
-    }
-    if (found_word_character) {
-        words.push_back({word_begin, iter});
-    }
-    return words;
-}
 
 }  // namespace mango

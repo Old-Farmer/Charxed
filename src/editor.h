@@ -67,7 +67,7 @@ class Editor {
 
     void NotifyUser(std::string_view str);
 
-    void Startup();
+    void StartupScreen();
 
    private:
     // Editor Lifetime

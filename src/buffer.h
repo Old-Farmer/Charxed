@@ -125,8 +125,8 @@ class Buffer {
         }
     }
 
-    Iterator Begin() { return tree_.Begin(); }
-    Iterator End() { return tree_.End(); }
+    Iterator Begin() const { return tree_.Begin(); }
+    Iterator End() const { return tree_.End(); }
 
     // Edit operations
    private:

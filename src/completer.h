@@ -31,10 +31,12 @@ class Completer {
 
 class MangoPeel;
 class BufferManager;
+class CommandManager;
 
 class PeelCompleter : public Completer {
    public:
-    PeelCompleter(MangoPeel* peel, BufferManager* buffer_manager);
+    PeelCompleter(MangoPeel* peel, BufferManager* buffer_manager,
+                  CommandManager* command_manager);
 
     virtual void Suggest(const Pos& cursor_pos,
                          std::vector<std::string>& menu_entries);
@@ -44,6 +46,7 @@ class PeelCompleter : public Completer {
    private:
     MangoPeel* peel_;
     BufferManager* buffer_manager_;
+    CommandManager* command_manager_;
     std::vector<std::string> suggestions_;
     size_t this_arg_offset_;
 
@@ -74,8 +77,6 @@ class BufferBasicWordCompleter : public Completer {
     void Disable();
 
    private:
-    std::vector<TextTree::TextView> GetWords(const TextTree::TextView& line);
-
     const Buffer* buffer_;
     bool enabled_;
 

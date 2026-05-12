@@ -12,8 +12,40 @@
 
 namespace mango {
 
-static constexpr int kScreenMinWidth = 10;
-static constexpr int kScreenMinHeight = 3;
+namespace {
+constexpr std::string_view kSmile = R"(
+      _____
+   .-'     '-.
+  /  _   _    \
+ |  (o) (o)    |
+ |      ^      |
+ |   \_____/   |
+  \           /
+   '-._____.-'
+)";
+
+constexpr const char* kStartup[] = {
+    R"( __  __   ____   ___)",
+    R"(|  \/  | / ___| / _ \)",
+    R"(| |\/| || |  _ | | | |    MANGO EDITOR)",
+    R"(| |  | || |_| || |_| |)",
+    R"(|_|  |_| \____| \___/    BY SHIXIN CHAI)",
+    "",
+    "",
+    R"( tips:   :help [doc]<CR>   open docs)",
+    R"(         :edit <file><CR>  edit files)",
+    R"(         :quit<CR>         quit)",
+    R"(         :smile<CR>        :))",
+    "",
+    "",
+    R"(      Press any key to continue...)"};
+
+constexpr size_t kStartupWidth = 39;
+constexpr size_t kStartupHeight = std::size(kStartup);
+
+constexpr int kScreenMinWidth = 10;
+constexpr int kScreenMinHeight = 3;
+}  // namespace
 
 void Editor::Init(std::unique_ptr<GlobalOpts> global_opts,
                   std::unique_ptr<InitOpts> init_opts) {
@@ -29,8 +61,9 @@ void Editor::Init(std::unique_ptr<GlobalOpts> global_opts,
     // Component
     status_line_ =
         std::make_unique<StatusLine>(&cursor_, global_opts_.get(), &mode_);
-    peel_ = std::make_unique<MangoPeel>(
-        &cursor_, global_opts_.get(), clipboard_.get(), buffer_manager_.get());
+    peel_ = std::make_unique<MangoPeel>(&cursor_, global_opts_.get(),
+                                        clipboard_.get(), buffer_manager_.get(),
+                                        &command_manager_);
     cmp_menu_ = std::make_unique<CmpMenu>(&cursor_, global_opts_.get());
 
     syntax_parser_ = std::make_unique<SyntaxParser>(global_opts_.get());
@@ -103,8 +136,6 @@ void Editor::RegisterEditorEventHandlers() {
 }
 
 void Editor::Loop() {
-    Startup();
-
     bool in_bracketed_paste = false;
     std::string bracketed_paste_buffer;
 
@@ -1277,7 +1308,7 @@ void Editor::TrySearchOnType() {
     SearchCurrentBuffer(std::string(peel_->GetUserInput()));
 }
 
-void Editor::Startup() {
+void Editor::StartupScreen() {
     if (buffer_manager_->Begin()->next_ != buffer_manager_->End() ||
         !buffer_manager_->Begin()->path().Empty()) {
         return;
@@ -1302,6 +1333,10 @@ void Editor::Startup() {
     term_.Present();
 
     term_.Poll(-1);
+    // If this is a resize event, we should handle it.
+    if (term_.WhatEvent() == Terminal::EventType::kResize) {
+        HandleResize();
+    }
 }
 
 }  // namespace mango

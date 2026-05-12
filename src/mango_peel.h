@@ -5,6 +5,8 @@
 
 namespace mango {
 
+class CommandManager;
+
 // Mango peel is an user interaction area.
 // It fix at the bottome of the screan.
 // It usually shows in one row, when multiple row contents needed, it will
@@ -12,7 +14,7 @@ namespace mango {
 class MangoPeel {
    public:
     MangoPeel(Cursor* cursor, GlobalOpts* global_opts, ClipBoard* clipboard,
-              BufferManager* buffer_manager);
+              BufferManager* buffer_manager, CommandManager* command_manager);
     ~MangoPeel() = default;
     MGO_DELETE_COPY(MangoPeel);
     MGO_DEFAULT_MOVE(MangoPeel);
