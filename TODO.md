@@ -5,6 +5,7 @@
 - syntax highlight on more language(bash, go, java, markdown, markdown_inline, rust, etc.)
 - Soft line break
 - highlight line on cursor
+- scrolloff
 - Multi-window
 - File explorer
 - Bufferline(low priority)

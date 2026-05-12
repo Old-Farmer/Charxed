@@ -23,3 +23,19 @@ constexpr std::string_view kSmile = R"(
   \           /
    '-._____.-'
 )";
+
+constexpr const char* kStartup[] = {
+    R"( __  __   ____   ___)",
+    R"(|  \/  | / ___| / _ \)",
+    R"(| |\/| || |  _ | | | |    MANGO EDITOR)",
+    R"(| |  | || |_| || |_| |)",
+    R"(|_|  |_| \____| \___/    BY SHIXIN CHAI)",
+    "",
+    "",
+    R"(    tips:   :help<CR>   open docs)",
+    R"(            :smile<CR>  :))",
+    "",
+    R"(      Press any key to continue...)"};
+
+constexpr size_t kStartupWidth = 39;
+constexpr size_t kStartupHeight = 11;

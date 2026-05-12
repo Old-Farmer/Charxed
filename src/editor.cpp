@@ -103,6 +103,8 @@ void Editor::RegisterEditorEventHandlers() {
 }
 
 void Editor::Loop() {
+    Startup();
+
     bool in_bracketed_paste = false;
     std::string bracketed_paste_buffer;
 
@@ -201,6 +203,7 @@ void Editor::Loop() {
                 output_hidden_hint.resize(term_.Width());
             }
             NotifyUser(output_hidden_hint);
+            layout_manager_->ArrangeLayout();
         }
     };
 
@@ -225,44 +228,70 @@ void Editor::InitKeymaps() {
     // Navigation
     MGO_KEYMAP("h", {[this] { cursor_.in_window->CursorGoLeft(Count()); }},
                {MGO_DEFAULT_MODES});
+    MGO_KEYMAP("h", {[this] { peel_->CursorGoLeft(Count()); }},
+               {Mode::kPeelShow});
     MGO_KEYMAP("l", {[this] { cursor_.in_window->CursorGoRight(Count()); }},
                {MGO_DEFAULT_MODES});
+    MGO_KEYMAP("l", {[this] { peel_->CursorGoRight(Count()); }},
+               {Mode::kPeelShow});
     MGO_KEYMAP("b", {[this] { cursor_.in_window->CursorGoWordBegin(Count()); }},
                {MGO_DEFAULT_MODES});
+    MGO_KEYMAP("b", {[this] { peel_->CursorGoPrevWordBegin(Count()); }},
+               {Mode::kPeelShow});
     MGO_KEYMAP("e",
                {[this] { cursor_.in_window->CursorGoNextWordEnd(Count()); }},
                {MGO_DEFAULT_MODES});
+    MGO_KEYMAP("e", {[this] { peel_->CursorGoNextWordEnd(Count()); }},
+               {Mode::kPeelShow});
     MGO_KEYMAP("w",
                {[this] { cursor_.in_window->CursorGoNextWordBegin(Count()); }},
                {MGO_DEFAULT_MODES});
     MGO_KEYMAP("k", {[this] { cursor_.in_window->CursorGoUp(Count()); }},
                {MGO_DEFAULT_MODES});
+    MGO_KEYMAP("k", {[this] { peel_->CursorGoUp(Count()); }},
+               {Mode::kPeelShow});
     MGO_KEYMAP("j", {[this] { cursor_.in_window->CursorGoDown(Count()); }},
                {MGO_DEFAULT_MODES});
+    MGO_KEYMAP("j", {[this] { peel_->CursorGoDown(Count()); }},
+               {Mode::kPeelShow});
     MGO_KEYMAP("0", {[this] { cursor_.in_window->CursorGoHome(); }},
                {MGO_DEFAULT_MODES});
+    MGO_KEYMAP("0", {[this] { peel_->CursorGoHome(); }}, {Mode::kPeelShow});
     MGO_KEYMAP("$", {[this] { cursor_.in_window->CursorGoEnd(); }},
                {MGO_DEFAULT_MODES});
+    MGO_KEYMAP("$", {[this] { peel_->CursorGoEnd(); }}, {Mode::kPeelShow});
     MGO_KEYMAP(
         "<c-f>", {[this] {
             cursor_.in_window->CursorGoDown(cursor_.in_window->area_.height_);
         }},
         {MGO_DEFAULT_MODES});
+    MGO_KEYMAP("<c-f>", {[this] { peel_->CursorGoDown(peel_->area_.height_); }},
+               {Mode::kPeelShow});
     MGO_KEYMAP(
         "<c-b>", {[this] {
             cursor_.in_window->CursorGoUp(cursor_.in_window->area_.height_);
         }},
         {MGO_DEFAULT_MODES});
+    MGO_KEYMAP("<c-b>", {[this] {
+                   cursor_.in_window->CursorGoUp(peel_->area_.height_);
+               }},
+               {Mode::kPeelShow});
     MGO_KEYMAP("<c-d>", {[this] {
                    cursor_.in_window->CursorGoDown(
                        cursor_.in_window->area_.height_ / 2);
                }},
                {MGO_DEFAULT_MODES});
+    MGO_KEYMAP("<c-d>",
+               {[this] { peel_->CursorGoDown(peel_->area_.height_ / 2); }},
+               {Mode::kPeelShow});
     MGO_KEYMAP(
         "<c-u>", {[this] {
             cursor_.in_window->CursorGoUp(cursor_.in_window->area_.height_ / 2);
         }},
         {MGO_DEFAULT_MODES});
+    MGO_KEYMAP("<c-u>",
+               {[this] { peel_->CursorGoUp(peel_->area_.height_ / 2); }},
+               {MGO_DEFAULT_MODES});
     MGO_KEYMAP("<c-o>", {[this] { cursor_.in_window->JumpBackward(); }},
                {Mode::kNormal});
     MGO_KEYMAP("<c-i>", {[this] { cursor_.in_window->JumpForward(); }},
@@ -345,11 +374,13 @@ void Editor::InitKeymaps() {
     MGO_KEYMAP("<enter>", {[this] {
                    CommandHitEnter();
                    layout_manager_->ArrangeLayout();
+                   multirow_peel_keep_ = true;
                }},
                {Mode::kPeelCommand});
     MGO_KEYMAP("<enter>", {[this] {
                    SearchHitEnter();
                    layout_manager_->ArrangeLayout();
+                   multirow_peel_keep_ = true;
                }},
                {Mode::kPeelSearch});
     MGO_KEYMAP("<left>", {[this] { peel_->CursorGoLeft(Count()); }},
@@ -1244,6 +1275,33 @@ void Editor::TrySearchOnType() {
         return;
     }
     SearchCurrentBuffer(std::string(peel_->GetUserInput()));
+}
+
+void Editor::Startup() {
+    if (buffer_manager_->Begin()->next_ != buffer_manager_->End() ||
+        !buffer_manager_->Begin()->path().Empty()) {
+        return;
+    }
+
+    size_t h = term_.Height();
+    size_t w = term_.Width();
+
+    if (h < kStartupHeight || w < kStartupWidth) {
+        return;
+    }
+
+    size_t row0 = (h - kStartupHeight) / 2;
+    size_t col0 = (w - kStartupWidth) / 2;
+
+    term_.Clear();
+    term_.HideCursor();
+    auto scheme = global_opts_->GetOpt<ColorScheme>(kOptColorScheme);
+    for (size_t r = row0; r < row0 + kStartupHeight; r++) {
+        term_.Print(col0, r, scheme[kNormal], kStartup[r - row0]);
+    }
+    term_.Present();
+
+    term_.Poll(-1);
 }
 
 }  // namespace mango

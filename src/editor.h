@@ -67,6 +67,8 @@ class Editor {
 
     void NotifyUser(std::string_view str);
 
+    void Startup();
+
    private:
     // Editor Lifetime
     void InitKeymaps();
