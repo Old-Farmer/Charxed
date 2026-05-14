@@ -36,8 +36,8 @@ static const std::unordered_map<std::string_view, OptKey> kStrRepToOptKey{
     {"highlight_on_search", kOptHighlightOnSearch},
     {"input_idle_timeout", kOptInputIdleTimeout},
     {"logverbose", kOptLogVerbose},
-    {"max_cmd_history", kOptMaxCmdHistory},
     {"max_jump_history", kOptMaxJumpHistory},
+    {"max_peel_history", kOptMaxPeelHistory},
     {"search_ignore_case", kOptSearchIgnoreCase},
     {"scroll_rows", kOptScrollRows},
     {"truecolor", kOptTrueColor},
@@ -74,8 +74,8 @@ static void OptStaticInit(const OptInfo*& opt_info) {
         set_opt_info(kOptHighlightOnSearch, {OptScope::kGlobal, Type::kBool});
         set_opt_info(kOptInputIdleTimeout, {OptScope::kGlobal, Type::kInteger});
         set_opt_info(kOptLogVerbose, {OptScope::kGlobal, Type::kBool});
-        set_opt_info(kOptMaxCmdHistory, {OptScope::kGlobal, Type::kInteger});
         set_opt_info(kOptMaxJumpHistory, {OptScope::kGlobal, Type::kInteger});
+        set_opt_info(kOptMaxPeelHistory, {OptScope::kGlobal, Type::kInteger});
         set_opt_info(kOptSearchIgnoreCase, {OptScope::kGlobal, Type::kBool});
         set_opt_info(kOptScrollRows, {OptScope::kGlobal, Type::kInteger});
         set_opt_info(kOptTrueColor, {OptScope::kGlobal, Type::kBool});

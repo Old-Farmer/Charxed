@@ -17,7 +17,7 @@
   "highlight_on_search": true,
   "input_idle_timeout": 50,
   "logverbose": false,
-  "max_cmd_history": 100,
+  "max_peel_history": 100,
   "max_jump_history": 100,
   "search_ignore_case": true,
   "scroll_rows": 3,

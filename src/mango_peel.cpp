@@ -213,7 +213,7 @@ void MangoPeel::AppendHistoryItem(HistoryType history) {
     auto i = static_cast<size_t>(history);
     TextTree::TextView v = {buffer_.Find({0, prefix_len_}), buffer_.End()};
     history_[i].MoveCursorEnd();
-    history_[i].PushItem(v.ToString(), GetOpt<int64_t>(kOptMaxCmdHistory));
+    history_[i].PushItem(v.ToString(), GetOpt<int64_t>(kOptMaxPeelHistory));
 }
 
 void MangoPeel::ShowContent(std::string_view content) {

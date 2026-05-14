@@ -116,6 +116,11 @@ In `config.json`, Support options:
     default: 100,
     desc: The maximum number of edit history records kept for each window.
 
+- max_peel_history:  
+    type: integer,
+    default: 100,
+    desc: The maximum number of cmd/search history records kept for the mango peel.
+
 - search_ignore_case:  
     type: bool
     default: true
