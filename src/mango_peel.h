@@ -40,11 +40,28 @@ class MangoPeel {
     // Start Userinput, Prefix should be readable ascii, will clear content.
     // cursor will be set too.
     void UserInputStart(std::string_view prefix);
+    // Clear userinput, and set cursor to the input beginning.
+    void ClearUserInput();
     std::string_view GetUserInput();
     Result DeleteCharacterBeforeCursor();
     Result DeleteWordBeforeCursor();
     Result AddStringAtCursor(std::string str);
     Result Paste();
+
+    // History manipulate
+    enum class HistoryType {
+        kCmd,
+        kSearch,
+
+        __kCount,
+    };
+
+    // set peel to prev history item, stately
+    void PrevHistoryItem(HistoryType history);
+    // set peel to next history item, stately
+    void NextHistoryItem(HistoryType history);
+    void AppendHistoryItem(HistoryType history);
+    void SetHistoryCursorToEnd();
 
     // Non editable, but multiple line is ok.
     void ShowContent(std::string_view content);
@@ -70,6 +87,11 @@ class MangoPeel {
     size_t prefix_len_ = 0;  // because prefix is only ascii, so prefix len is
                              // its width.
     bool user_inputing_ = false;
+
+    History<std::string> history_[static_cast<size_t>(HistoryType::__kCount)];
+    std::string
+        current_input_;  // When users want to view the history, this field
+                         // records the parts that have been input.
 
    public:
     Buffer buffer_;  // Unlike window, Peel owns her nofilebacked buffer

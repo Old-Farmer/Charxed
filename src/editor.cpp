@@ -427,7 +427,7 @@ void Editor::InitKeymaps() {
     MGO_KEYMAP("<end>", {[this] { peel_->CursorGoEnd(); }},
                {Mode::kPeelCommand, Mode::kPeelSearch});
 
-    // cmp
+    // cmp & history
     MGO_KEYMAP("<c-space>", {[this] { TriggerCompletion(false); }},
                {Mode::kInsert, Mode::kPeelCommand});
     MGO_KEYMAP("<c-c>", {[this] { TriggerCompletion(false); }},
@@ -453,14 +453,40 @@ void Editor::InitKeymaps() {
                        show_cmp_menu_ = true;
                    }
                }},
-               {Mode::kInsert, Mode::kPeelCommand});
+               {Mode::kInsert});
+    MGO_KEYMAP("<c-n>", {[this] {
+                   if (CompletionTriggered()) {
+                       cmp_menu_->SelectNext(1);
+                       show_cmp_menu_ = true;
+                   } else {
+                       peel_->NextHistoryItem(MangoPeel::HistoryType::kCmd);
+                   }
+               }},
+               {Mode::kPeelCommand});
+    MGO_KEYMAP("<c-n>", {[this] {
+                   peel_->NextHistoryItem(MangoPeel::HistoryType::kSearch);
+               }},
+               {Mode::kPeelSearch});
     MGO_KEYMAP("<c-p>", {[this] {
                    if (CompletionTriggered()) {
                        cmp_menu_->SelectPrev(1);
                        show_cmp_menu_ = true;
                    }
                }},
-               {Mode::kInsert, Mode::kPeelCommand});
+               {Mode::kInsert});
+    MGO_KEYMAP("<c-p>", {[this] {
+                   if (CompletionTriggered()) {
+                       cmp_menu_->SelectPrev(1);
+                       show_cmp_menu_ = true;
+                   } else {
+                       peel_->PrevHistoryItem(MangoPeel::HistoryType::kCmd);
+                   }
+               }},
+               {Mode::kPeelCommand});
+    MGO_KEYMAP("<c-p>", {[this] {
+                   peel_->PrevHistoryItem(MangoPeel::HistoryType::kSearch);
+               }},
+               {Mode::kPeelSearch});
 
     // Edit
     MGO_KEYMAP("<bs>", {[this] {
@@ -1042,6 +1068,7 @@ void Editor::ExitFromMode() {
         case Mode::kPeelCommand:
         case Mode::kPeelSearch:
             term_.SetCursorStyle(Terminal::CursorStyle::kBlock);
+            peel_->SetHistoryCursorToEnd();
         case Mode::kPeelShow: {
             MGO_ASSERT(cursor_.restore_from_peel);
             cursor_.in_window = cursor_.restore_from_peel;
@@ -1188,6 +1215,10 @@ void Editor::CommandHitEnter() {
         return;
     }
 
+    peel_->AppendHistoryItem(mode_ == Mode::kPeelCommand
+                                 ? MangoPeel::HistoryType::kCmd
+                                 : MangoPeel::HistoryType::kSearch);
+
     if (res != kOk) {
         NotifyUser("Wrong Command");
         ExitFromMode();
@@ -1202,7 +1233,11 @@ void Editor::CommandHitEnter() {
 
 void Editor::SearchHitEnter() {
     ExitFromMode();
-    SearchCurrentBuffer(std::string(peel_->GetUserInput()));
+    auto input = peel_->GetUserInput();
+    if (!input.empty()) {
+        peel_->AppendHistoryItem(MangoPeel::HistoryType::kSearch);
+    }
+    SearchCurrentBuffer(std::string(input));
 }
 
 void Editor::CursorUp(size_t count) {

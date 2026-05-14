@@ -293,8 +293,12 @@ std::string Buffer::ReplaceInner(const Range& range, std::string_view str,
 }
 
 bool Buffer::TryRecordMerge(const BufferEditHistoryItem& item) {
-    MGO_ASSERT(edit_history_->size() > 0);
-    BufferEditHistoryItem& last_item = edit_history_->back();
+    MGO_ASSERT(edit_history_.Size() > 0);
+    auto last_item_optional = edit_history_.GetItemJustBeforeCursor();
+    if (!last_item_optional.has_value()) {
+        return false;
+    }
+    BufferEditHistoryItem& last_item = *last_item_optional;
     if (last_item.origin.str.empty() && item.origin.str.empty() &&
         last_item.origin.range.begin == item.origin.range.end) {
         // adjacent deletes
@@ -320,17 +324,11 @@ bool Buffer::TryRecordMerge(const BufferEditHistoryItem& item) {
 }
 
 void Buffer::Record(BufferEditHistoryItem&& item) {
-    // Delete all history iterms after cursor(include the item which cursor
-    // points to)
-    if (edit_history_cursor_ != edit_history_->end()) {
-        MGO_ASSERT(!edit_history_->empty());
-        edit_history_->erase(edit_history_cursor_, edit_history_->end());
-        edit_history_cursor_ = edit_history_->end();
-    }
-
     // No item in history, return fast
-    if (edit_history_->size() == 0) {
-        edit_history_->push_back(std::move(item));
+    if (edit_history_.Size() == 0) {
+        edit_history_.PushItem(
+            std::move(item),
+            static_cast<size_t>(GetOpt<int64_t>(kOptMaxEditHistory)));
         return;
     }
 
@@ -339,12 +337,11 @@ void Buffer::Record(BufferEditHistoryItem&& item) {
         return;
     }
 
-    if (edit_history_->size() ==
-        static_cast<size_t>(GetOpt<int64_t>(kOptMaxEditHistory))) {
-        edit_history_->pop_front();
-        never_wrap_history_ = false;
+    if (edit_history_.PushItem(std::move(item),
+                               static_cast<size_t>(GetOpt<int64_t>(
+                                   kOptMaxEditHistory))) == kWrapHistory) {
+        havent_wrap_history_ = true;
     }
-    edit_history_->push_back(std::move(item));
 }
 
 Result Buffer::Add(Pos pos, std::string_view str, const Pos* cursor_pos,
@@ -431,31 +428,27 @@ Result Buffer::Replace(const Range& range, std::string_view str,
 }
 
 Result Buffer::Redo(Pos& cursor_pos_hint) {
-    if (edit_history_->empty()) {
-        return kNoHistoryAvailable;
-    }
-    if (edit_history_cursor_ == edit_history_->end()) {
+    if (!edit_history_.MoveCursorForward()) {
         return kNoHistoryAvailable;
     }
 
-    Edit(edit_history_cursor_->origin, cursor_pos_hint);
-    cursor_pos_hint = edit_history_cursor_->origin_pos_hint;
-    edit_history_cursor_++;
+    MGO_ASSERT(edit_history_.GetItemJustBeforeCursor().has_value());
+    BufferEditHistoryItem& item = *edit_history_.GetItemJustBeforeCursor();
+    Edit(item.origin, cursor_pos_hint);
+    cursor_pos_hint = item.origin_pos_hint;
     return kOk;
 }
 
 Result Buffer::Undo(Pos& cursor_pos_hint) {
-    if (edit_history_->empty()) {
-        return kNoHistoryAvailable;
-    }
-    if (edit_history_cursor_ == edit_history_->begin()) {
+    if (!edit_history_.MoveCursorBackward()) {
         return kNoHistoryAvailable;
     }
 
-    edit_history_cursor_--;
-    Edit(edit_history_cursor_->reverse, cursor_pos_hint);
-    cursor_pos_hint = edit_history_cursor_->reverse_pos_hint;
-    if (edit_history_cursor_ == edit_history_->begin() && never_wrap_history_ &&
+    MGO_ASSERT(edit_history_.GetItemAtCursor().has_value());
+    BufferEditHistoryItem& item = *edit_history_.GetItemAtCursor();
+    Edit(item.reverse, cursor_pos_hint);
+    cursor_pos_hint = item.reverse_pos_hint;
+    if (edit_history_.IsCursorBegin() && havent_wrap_history_ &&
         state_ == BufferState::kModified) {
         state_ = BufferState::kNotModified;
     }

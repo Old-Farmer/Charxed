@@ -27,6 +27,7 @@ enum Result {
     kOuterCommandExecuteFail,  // outer command fail before or when execvp.
     kRetriggerCmp,
     kMsgNeedMore,  // Need recv more for parsing a complete msg
+    kWrapHistory,
 };
 
 constexpr const char* kResultString[] = {"Ok", "Error"};

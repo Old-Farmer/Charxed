@@ -6,8 +6,10 @@
 
 namespace mango {
 
+namespace {
 constexpr std::string_view kBoolTrue = "true";
 constexpr std::string_view kBoolFalse = "false";
+}  // namespace
 
 void CommandManager::AddCommand(const Command& command) {
     if (name_to_commands_.count(command.name) == 1 ||

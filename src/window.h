@@ -133,6 +133,9 @@ class Window {
         JumpPoint(const BufferView& _b_view, int64_t _buffer)
             : b_view(_b_view), buffer(_buffer) {}
     };
+    // TODO: use History facility
+    // currently implemantion of jump point history is more complicated than
+    // History, so we don't refactor to use History now.
     using JumpHistory = std::list<JumpPoint>;
     std::unique_ptr<JumpHistory> jump_history_ =
         std::make_unique<JumpHistory>();

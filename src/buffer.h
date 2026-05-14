@@ -1,6 +1,5 @@
 #pragma once
 #include <cstdint>
-#include <list>
 #include <memory>
 #include <string>
 #include <vector>
@@ -8,6 +7,7 @@
 #include "completer.h"
 #include "file.h"
 #include "fs.h"
+#include "history.h"
 #include "options.h"
 #include "pos.h"
 #include "result.h"
@@ -141,6 +141,7 @@ class Buffer {
     std::string ReplaceInner(const Range& range, std::string_view str,
                              Pos& cursor_pos_hint, bool record_reverse);
 
+    // Make sure that edit_history_ Size != 0
     bool TryRecordMerge(const BufferEditHistoryItem& item);
     // Caller should check whefher kMaxEditHistory <= 0
     void Record(BufferEditHistoryItem&& item);
@@ -240,14 +241,8 @@ class Buffer {
     // When a buffer is modified, version_ will be bumpped up.
     int64_t version_;
 
-    using HistoryList = std::list<BufferEditHistoryItem>;
-    using HistoryListIter = HistoryList::iterator;
-    // Use unique ptr to avoid a issue when std::list is moved, its iterator
-    // will be become invalid
-    std::unique_ptr<HistoryList> edit_history_ =
-        std::make_unique<HistoryList>();
-    HistoryListIter edit_history_cursor_ = edit_history_->end();
-    bool never_wrap_history_ = true;
+    History<BufferEditHistoryItem> edit_history_;
+    bool havent_wrap_history_ = true;
 
     // Just for tree-sitter
     TSInputEdit ts_edit_;

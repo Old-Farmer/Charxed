@@ -76,6 +76,7 @@ enum OptKey {
     kOptHighlightOnSearch,
     kOptInputIdleTimeout,
     kOptLogVerbose,
+    kOptMaxCmdHistory,
     kOptMaxJumpHistory,
     kOptScrollRows,
     kOptSearchIgnoreCase,

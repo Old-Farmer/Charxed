@@ -80,6 +80,7 @@ void MangoPeel::CursorGoPrevWordBegin(size_t count) {
 
 void MangoPeel::Copy() {
     if (user_inputing_) {
+        area_.b_view_->make_cursor_visible = true;
         area_.clipboard_->SetContent(std::string(GetUserInput()), true);
     } else {
         area_.Copy();
@@ -87,12 +88,21 @@ void MangoPeel::Copy() {
 }
 
 void MangoPeel::UserInputStart(std::string_view prefix) {
+    area_.b_view_->make_cursor_visible = true;
     user_inputing_ = true;
     buffer_.Clear();
     Pos pos;
     prefix_len_ = prefix.size();
     buffer_.Add({0, 0}, prefix, nullptr, false, pos);
     area_.cursor_->pos = Pos{0, prefix_len_};
+}
+
+void MangoPeel::ClearUserInput() {
+    MGO_ASSERT(user_inputing_);
+    area_.b_view_->make_cursor_visible = true;
+    auto end = buffer_.End();
+    buffer_.Delete({{0, prefix_len_}, {0, end.offset()}}, nullptr,
+                   area_.cursor_->pos);
 }
 
 std::string_view MangoPeel::GetUserInput() {
@@ -161,6 +171,49 @@ Result MangoPeel::Paste() {
         }
     }
     return area_.AddStringAtCursor(std::move(content));
+}
+
+void MangoPeel::PrevHistoryItem(HistoryType history) {
+    MGO_ASSERT(user_inputing_);
+    area_.b_view_->make_cursor_visible = true;
+    auto i = static_cast<size_t>(history);
+    // To record what users have already input.
+    if (history_[i].IsCursorEnd()) {
+        current_input_ = GetUserInput();
+    }
+    if (history_[i].MoveCursorBackward()) {
+        ClearUserInput();
+        AddStringAtCursor(*history_[i].GetItemAtCursor());
+    }
+}
+
+void MangoPeel::NextHistoryItem(HistoryType history) {
+    MGO_ASSERT(user_inputing_);
+    auto i = static_cast<size_t>(history);
+    area_.b_view_->make_cursor_visible = true;
+    if (history_[i].MoveCursorForward()) {
+        ClearUserInput();
+        auto item_optional = history_[i].GetItemAtCursor();
+        if (item_optional.has_value()) {
+            AddStringAtCursor(*item_optional);
+        } else {
+            AddStringAtCursor(current_input_);
+        }
+    }
+}
+
+void MangoPeel::SetHistoryCursorToEnd() {
+    for (size_t i = 0; i < static_cast<size_t>(HistoryType::__kCount); i++) {
+        history_[i].MoveCursorEnd();
+    }
+}
+
+void MangoPeel::AppendHistoryItem(HistoryType history) {
+    MGO_ASSERT(user_inputing_);
+    auto i = static_cast<size_t>(history);
+    TextTree::TextView v = {buffer_.Find({0, prefix_len_}), buffer_.End()};
+    history_[i].MoveCursorEnd();
+    history_[i].PushItem(v.ToString(), GetOpt<int64_t>(kOptMaxCmdHistory));
 }
 
 void MangoPeel::ShowContent(std::string_view content) {

@@ -14,6 +14,9 @@ namespace mango {
 class TextTree {
    public:
     TextTree();
+    MGO_DELETE_COPY(TextTree);
+    TextTree(TextTree&&) noexcept;
+    TextTree& operator=(TextTree&&) noexcept;
     ~TextTree();
 
     // Should BulkLoad before using.

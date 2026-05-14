@@ -10,6 +10,21 @@ namespace mango {
 
 TextTree::TextTree() : root_(nullptr) {}
 
+TextTree::TextTree(TextTree&& other) noexcept {
+    root_ = other.root_;
+    begin_leaf_ = other.begin_leaf_;
+    end_leaf_ = other.end_leaf_;
+    other.root_ = other.begin_leaf_ = other.end_leaf_ = nullptr;
+}
+
+TextTree& TextTree::operator=(TextTree&& other) noexcept {
+    root_ = other.root_;
+    begin_leaf_ = other.begin_leaf_;
+    end_leaf_ = other.end_leaf_;
+    other.root_ = other.begin_leaf_ = other.end_leaf_ = nullptr;
+    return *this;
+}
+
 TextTree::~TextTree() { Clear(); }
 
 void TextTree::Init() {
