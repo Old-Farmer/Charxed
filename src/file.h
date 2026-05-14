@@ -24,7 +24,8 @@ class File {
     // "w" for writeonly
     // create_if_not_exist only meaningful to read
     // throws IOException, FileCreateException
-    File(const std::string& path, const char* mode, bool create_if_not_exist);
+    File(const std::string& path, const char* mode,
+         bool create_if_not_exist = false);
     ~File();
 
     MGO_DELETE_COPY(File);

@@ -56,6 +56,65 @@ const std::string& Path::AbsolutePath() const noexcept {
     return absolute_path_;
 }
 
+std::string_view Path::Dir() const noexcept {
+    std::string::size_type pos = absolute_path_.find_last_of(kPathSeperator);
+    MGO_ASSERT(pos != std::string::npos);
+    return std::string_view(absolute_path_).substr(0, pos + 1);
+}
+
+void Path::Normalize() {
+    if (absolute_path_.empty()) {
+        return;
+    }
+
+    std::vector<std::string_view> sta;
+    int64_t last_sep = -1;
+    size_t i = 0;
+    for (; i < absolute_path_.size(); i++) {
+        if (absolute_path_[i] == kPathSeperator) {
+            if (last_sep == -1) {
+                last_sep = i;
+            } else {
+                std::string_view sub_path =
+                    std::string_view(absolute_path_)
+                        .substr(last_sep + 1, i - last_sep - 1);
+                if (sub_path.empty() || sub_path == ".") {
+                    ;
+                } else if (sub_path == "..") {
+                    if (!sta.empty()) sta.pop_back();
+                } else {
+                    sta.push_back(sub_path);
+                }
+                last_sep = i;
+            }
+        }
+    }
+    if (last_sep != static_cast<int64_t>(absolute_path_.size() - 1)) {
+        std::string_view sub_path = std::string_view(absolute_path_)
+                                        .substr(last_sep + 1, i - last_sep - 1);
+        if (sub_path.empty() || sub_path == ".") {
+            ;
+        } else if (sub_path == "..") {
+            if (!sta.empty()) sta.pop_back();
+        } else {
+            sta.push_back(sub_path);
+        }
+    }
+    std::string normalized_path;
+    for (auto& sub_path : sta) {
+        normalized_path += kPathSeperator;
+        normalized_path += sub_path;
+    }
+    if (absolute_path_.back() == kPathSeperator) {
+        normalized_path += kPathSeperator;
+    }
+    absolute_path_ = normalized_path;
+    std::string::size_type pos = absolute_path_.find_last_of(kPathSeperator);
+    MGO_ASSERT(pos != std::string::npos);
+    file_name_len_ = absolute_path_.size() - pos - 1;
+    last_cwd_version_ = cwd_version_;
+}
+
 const std::string& Path::GetCwd() noexcept { return cwd_; }
 
 const std::string& Path::GetAppRoot() noexcept { return app_root_; }
@@ -168,9 +227,31 @@ std::vector<std::string> Path::ListUnderPath(const std::string& path) {
     return ret;
 }
 
+bool Path::IsAbsolutePath(std::string_view path) {
+    MGO_ASSERT(!path.empty());
+    return path[0] == kPathSeperator;
+}
+
 std::string Path::cwd_ = "";
 int64_t Path::cwd_version_ = 0;
 
 std::string Path::app_root_ = "";
+
+Result GetFileStat(const std::string& path, FileStat& file_stat) {
+    MGO_ASSERT(!path.empty());
+    struct stat sta;
+    int res = stat(path.c_str(), &sta);
+    if (res == -1) {
+        if (errno == ENOENT) {
+            return kNotExist;
+        }
+        throw FSException("stat error: {}", strerror(errno));
+    }
+    if (sta.st_mode & S_IRUSR) file_stat.mode |= kFMRead;
+    if (sta.st_mode & S_IWUSR) file_stat.mode |= kFMWrite;
+    if (sta.st_mode & S_IXUSR) file_stat.mode |= kFMExec;
+    file_stat.size = sta.st_size;
+    return kOk;
+}
 
 }  // namespace mango

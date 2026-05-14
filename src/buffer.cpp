@@ -64,20 +64,55 @@ void Buffer::Load() {
             return;
         }
 
-        File f(path_.AbsolutePath(), "r", true);
+        const char* mode = "r";
+
+        path_.Normalize();
+
+        FileStat file_stat;
+        Result res = GetFileStat(path_.AbsolutePath(), file_stat);
+        if (res == kNotExist) {
+            mode = "w+";
+        }
+
+        File f(path_.AbsolutePath(), mode);
         MGO_LOG_DEBUG("file path {}", path_.AbsolutePath());
 
         tree_.BulkLoad(f, eol_seq_);
 
         filetype_ = DecideFiletype(path_.FileName());
 
+#ifndef NDEBUG
+        if (read_only_ || (file_stat.mode & kFMWrite) == 0) {
+            read_only_ = true;
+        }
+        // when debug, leave files under build dir not be read only
+        if (!read_only_ &&
+            (path_.AbsolutePath().find(Path::GetAppRoot()) !=
+                 std::string::npos &&
+             path_.AbsolutePath().find(Path::GetAppRoot() + "build" +
+                                       kPathSeperator) == std::string::npos)) {
+            read_only_ = true;
+        }
+#else
+        if (read_only_ || (file_stat.mode & kFMWrite) == 0 ||
+            path_.AbsolutePath().find(Path::GetAppRoot()) !=
+                std::string::npos) {
+            read_only_ = true;
+        }
+#endif
         state_ =
             read_only_ ? BufferState::kReadOnly : BufferState::kNotModified;
+
+        // TODO: check file stat for more op
     } catch (FileCreateException& e) {
         tree_.BulkLoad("");  // ensure init
         state_ = BufferState::kCannotCreate;
         throw;
     } catch (IOException& e) {
+        tree_.BulkLoad("");  // ensure init
+        state_ = BufferState::kCannotRead;
+        throw;
+    } catch (FSException& e) {
         tree_.BulkLoad("");  // ensure init
         state_ = BufferState::kCannotRead;
         throw;
@@ -192,14 +227,6 @@ Result Buffer::SaveAs(const Path& path) {
     filetype_ = DecideFiletype(path_.FileName());
     opts_.InitAfterBufferLoad(this);
     return kOk;
-}
-
-std::string Buffer::GetContent(const Range& range) const {
-    MGO_ASSERT(LineCnt() > range.end.line);
-    std::string ret;
-    TextTree::TextView view = {tree_.Find(range.begin), tree_.Find(range.end)};
-    view.ToStringView(ret);
-    return ret;
 }
 
 void Buffer::Edit(const BufferEdit& edit, Pos& cursor_pos_hint) {

@@ -11,6 +11,7 @@ namespace mango {
 // InCharacter work on grapheme.
 // Any others work on codepoint
 
+// work on byte.
 std::vector<std::string_view> StrSplit(std::string_view str,
                                        char delimiter = kSpaceChar);
 
@@ -27,5 +28,9 @@ bool StrFuzzyMatchInBytes(const std::string_view sub,
 
 bool StrFuzzyMatchInBytes(const TextTree::TextView& sub,
                           const TextTree::TextView& str, bool filter_same_size);
+
+// work on grapheme
+TextTree::TextView FindPath(const TextTree::TextView& line,
+                            TextTree::Iterator iter);
 
 }  // namespace mango

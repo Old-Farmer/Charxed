@@ -1,14 +1,17 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
+#include "result.h"
 #include "utils.h"
 
 namespace mango {
 
 constexpr char kPathSeperator = '/';
 
+// TODO: windows support
 class Path {
    public:
     Path();
@@ -27,6 +30,9 @@ class Path {
     zstring_view FileName() const noexcept;
     zstring_view ThisPath() noexcept;
     const std::string& AbsolutePath() const noexcept;
+    std::string_view Dir() const noexcept;
+
+    void Normalize();
 
     // Cwd and AppRoot all have a slash at the end
 
@@ -48,6 +54,8 @@ class Path {
     // if path is not a dir, return empty vector
     static std::vector<std::string> ListUnderPath(const std::string& path);
 
+    static bool IsAbsolutePath(std::string_view path);
+
    private:
     std::string absolute_path_;
     size_t file_name_len_;
@@ -65,5 +73,19 @@ class Path {
                                    // that executable is in <project-root>/xxx,
                                    // where xxx can build, build-debug whatever.
 };
+
+constexpr uint32_t kFMRead = 1 << 1;
+constexpr uint32_t kFMWrite = 1 << 1;
+constexpr uint32_t kFMExec = 1 << 1;
+
+struct FileStat {
+    uint32_t mode = 0;
+    size_t size = 0;
+};
+
+// path shouldn't be empty
+// throws FSException
+// return kOk for success, kNotExist for not exist.
+Result GetFileStat(const std::string& path, FileStat& file_stat);
 
 }  // namespace mango

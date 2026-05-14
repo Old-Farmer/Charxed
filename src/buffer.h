@@ -65,7 +65,7 @@ class Buffer {
     MGO_DEFAULT_MOVE(Buffer);
     ~Buffer();
 
-    // throws IOException, FileCreateException, CodingException
+    // throws IOException, FileCreateException, CodingException, FSException
     // if it is a no file backup buffer, any of above exceptions won't throw.
     void Load();
 
@@ -107,8 +107,15 @@ class Buffer {
         return tree_.GetLine(line);
     }
 
+    TextView GetContentView(const Range& range) const {
+        MGO_ASSERT(LineCnt() > range.end.line);
+        return {tree_.Find(range.begin), tree_.Find(range.end)};
+    }
+
     // GetConent will copy out a string in range.
-    std::string GetContent(const Range& range) const;
+    std::string GetContent(const Range& range) const {
+        return GetContentView(range).ToString();
+    }
 
     // Please refer TextTree Find and Iterator
     using Iterator = TextTree::Iterator;

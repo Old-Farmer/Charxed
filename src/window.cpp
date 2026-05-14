@@ -8,6 +8,7 @@
 #include "cursor.h"
 #include "options.h"
 #include "search.h"
+#include "str.h"
 #include "syntax.h"
 
 namespace mango {
@@ -276,6 +277,57 @@ Result Window::TryAutoIndent(Pos pos) {
     } else {
         return area_.AddStringAtPos(pos, str);
     }
+}
+
+Result Window::GotoFile() {
+    area_.b_view_->make_cursor_visible = true;
+
+    TextTree::TextView path_view;
+    std::string buf;
+    std::string_view path;
+    if (!area_.IsSelectionActive()) {
+        path_view = FindPath(area_.buffer_->GetLineView(cursor_->pos.line),
+                             area_.buffer_->Find(cursor_->pos));
+    } else {
+        path_view = area_.buffer_->GetContentView(
+            area_.selection_->ToSelectRange(area_.buffer_));
+    }
+    if (path_view.Size() == 0) {
+        return kError;
+    }
+    path = path_view.ToStringView(buf);
+
+    std::string real_path;
+    if (Path::IsAbsolutePath(path)) {
+        real_path = path;
+    } else {
+        if (area_.buffer_->path().Empty()) {
+            // cwd as fallback
+            real_path = Path::GetCwd();
+            // TODO: path normalization
+            real_path.append(path);
+        } else {
+            real_path = area_.buffer_->path().Dir();
+            // TODO: path normalization
+            real_path.append(path);
+        }
+    }
+    MGO_LOG_DEBUG("path: {}", real_path);
+    try {
+        // Check file stat to make sure that we don't create a buffer for
+        // a completely wrong path.
+        FileStat file_stat;
+        Result res = GetFileStat(real_path, file_stat);
+        if (res == kNotExist) {
+            return kNotExist;
+        }
+        Buffer* buffer =
+            buffer_manager_->AddBuffer(Buffer(opts_.global_opts_, real_path));
+        AttachBuffer(buffer);
+    } catch (FSException&) {
+        return kError;
+    }
+    return kOk;
 }
 
 void Window::NextBuffer() {

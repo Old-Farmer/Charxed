@@ -64,6 +64,9 @@ class Window {
     Result Redo() { return area_.Redo(); }
     Result Undo() { return area_.Undo(); }
 
+    // return kOk, kError and kNotExist
+    Result GotoFile();
+
     void Copy() { area_.Copy(); }
     Result Paste(size_t count) { return area_.Paste(count); }
     void Cut() { area_.Cut(); }

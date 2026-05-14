@@ -339,6 +339,8 @@ void Editor::InitKeymaps() {
                {MGO_DEFAULT_MODES});
     MGO_KEYMAP("gg", {[this] { cursor_.in_window->CursorGoLine(0); }},
                {MGO_DEFAULT_MODES});
+    MGO_KEYMAP("gf", {[this] { cursor_.in_window->GotoFile(); }},
+               {MGO_DEFAULT_MODES});
 
     // Buffer manangement
     MGO_KEYMAP("]b", {[this] { cursor_.in_window->NextBuffer(); }},

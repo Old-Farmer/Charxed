@@ -1,6 +1,14 @@
 #include "str.h"
 
+#include <unordered_set>
+
 namespace mango {
+
+namespace {
+const std::unordered_set<char> kPathStopCharacter = {
+    '[', ']', '(', ')', '{', '}', '\"', '`', ',',
+};
+}
 
 std::vector<std::string_view> StrSplit(std::string_view str, char delimiter) {
     std::vector<std::string_view> ret;
@@ -93,6 +101,31 @@ bool StrFuzzyMatchInBytes(const TextTree::TextView& sub,
         }
     }
     return sub_iter == sub.end;
+}
+
+TextTree::TextView FindPath(const TextTree::TextView& line,
+                            TextTree::Iterator iter) {
+    // expand to left and right
+    auto right = iter;
+    Character c;
+    while (right != line.end) {
+        auto next = NextCharacter(right, line.end, c);
+        char asc;
+        if (c.Ascii(asc) && kPathStopCharacter.count(asc)) {
+            break;
+        }
+        right = next;
+    }
+    auto left = iter;
+    while (left != line.begin) {
+        auto prev = PrevCharacter(left, line.begin, c);
+        char asc;
+        if (c.Ascii(asc) && kPathStopCharacter.count(asc)) {
+            break;
+        }
+        left = prev;
+    }
+    return {left, right};
 }
 
 }  // namespace mango
