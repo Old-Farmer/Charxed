@@ -32,10 +32,10 @@ constexpr const char* kStartup[] = {
     R"(|_|  |_| \____| \___/    BY SHIXIN CHAI)",
     "",
     "",
-    R"( tips:   :help [doc]<CR>   open docs)",
-    R"(         :edit <file><CR>  edit files)",
-    R"(         :quit<CR>         quit)",
-    R"(         :smile<CR>        :))",
+    R"(tips:   :help [doc]<ENTER>   open docs)",
+    R"(        :edit <file><ENTER>  edit files)",
+    R"(        :quit<ENTER>         quit)",
+    R"(        :smile<ENTER>        :))",
     "",
     "",
     R"(      Press any key to continue...)"};
@@ -537,7 +537,7 @@ void Editor::InitKeymaps() {
                    cursor_.in_window->Copy();
                    ExitFromMode();
                }},
-               {MGO_VISUAL_MODES});
+               {MGO_SELECT_MODES});
     MGO_KEYMAP("y", {[this] {
                    mode_ = Mode::kOperatorPending;
                    pending_operator_ = Operator::kYank;
@@ -553,7 +553,7 @@ void Editor::InitKeymaps() {
                    cursor_.in_window->Cut();
                    ExitFromMode();
                }},
-               {MGO_VISUAL_MODES});
+               {MGO_SELECT_MODES});
     MGO_KEYMAP("d", {[this] {
                    mode_ = Mode::kOperatorPending;
                    pending_operator_ = Operator::kDelete;
@@ -573,14 +573,14 @@ void Editor::InitKeymaps() {
                {Mode::kOperatorPending});
 
     // Selection
-    MGO_KEYMAP("v", {[this] {
-                   cursor_.in_window->area_.StartSelection(cursor_.pos);
-                   GotoMode(Mode::kVisual);
+    MGO_KEYMAP("s", {[this] {
+                   cursor_.in_window->area_.StartLineSelection(cursor_.pos);
+                   GotoMode(Mode::kSelectLine);
                }},
                {Mode::kNormal});
-    MGO_KEYMAP("V", {[this] {
-                   cursor_.in_window->area_.StartLineSelection(cursor_.pos);
-                   GotoMode(Mode::kVisualLine);
+    MGO_KEYMAP("S", {[this] {
+                   cursor_.in_window->area_.StartSelection(cursor_.pos);
+                   GotoMode(Mode::kSelect);
                }},
                {Mode::kNormal});
 #define MGO_CMD command_manager_.AddCommand
@@ -849,7 +849,7 @@ void Editor::HandleLeftClick(int s_row, int s_col) {
         if (win) {
             if (win == prev_win && !(prev_pos == cursor_.pos)) {
                 cursor_.in_window->area_.StartSelection(prev_pos);
-                GotoMode(Mode::kVisual);
+                GotoMode(Mode::kSelect);
             }
         }
     } else if (mouse_.state == MouseState::kLeftHolding) {
@@ -863,7 +863,7 @@ void Editor::HandleLeftClick(int s_row, int s_col) {
         if (win) {
             if (win == prev_win && !(prev_pos == cursor_.pos)) {
                 cursor_.in_window->area_.StartSelection(prev_pos);
-                GotoMode(Mode::kVisual);
+                GotoMode(Mode::kSelect);
             }
         }
     }
@@ -1059,8 +1059,8 @@ void Editor::ExitFromMode() {
             term_.SetCursorStyle(Terminal::CursorStyle::kBlock);
             break;
         }
-        case Mode::kVisual:
-        case Mode::kVisualLine: {
+        case Mode::kSelect:
+        case Mode::kSelectLine: {
             cursor_.in_window->area_.StopSelection();
             break;
         }

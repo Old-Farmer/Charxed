@@ -34,8 +34,8 @@ constexpr std::string_view kBufferStateString[] = {
 enum class Mode : int {
     kNormal = 0,
     kInsert,
-    kVisual,
-    kVisualLine,
+    kSelect,
+    kSelectLine,
     kOperatorPending,
     kPeelCommand,  // user is inputting sth
     kPeelSearch,   // user is searching
@@ -47,7 +47,7 @@ enum class Mode : int {
 };
 
 constexpr std::string_view kModeString[] = {
-    "NORMAL",  "INSERT", "VISUAL", "VISUAL-L", "OP-PEND",
+    "NORMAL",  "INSERT", "SELECT", "SELECT-L", "OP-PEND",
     "COMMAND", "SEARCH", "SHOW",   "",         "",
 };
 
@@ -58,10 +58,10 @@ inline bool IsPeel(Mode mode) {
            mode == Mode::kPeelSearch;
 }
 
-#define MGO_VISUAL_MODES Mode::kVisual, Mode::kVisualLine
-#define MGO_DEFAULT_MODES Mode::kNormal, MGO_VISUAL_MODES
+#define MGO_SELECT_MODES Mode::kSelect, Mode::kSelectLine
+#define MGO_DEFAULT_MODES Mode::kNormal, MGO_SELECT_MODES
 #define MGO_ALL_MODES                                                       \
-    Mode::kNormal, Mode::kInsert, MGO_VISUAL_MODES, Mode::kOperatorPending, \
+    Mode::kNormal, Mode::kInsert, MGO_SELECT_MODES, Mode::kOperatorPending, \
         Mode::kPeelShow, Mode::kPeelCommand, Mode::kPeelSearch
 
 }  // namespace mango
