@@ -85,6 +85,7 @@ NOTE: Don't support self-defined keymaps now.
 | `<enter>` | Add newline | Insert |
 | `<bs>` | Delete character before cursor | Insert |
 | `<c-w>` | Delete word before cursor | Insert |
+| `<c-r>` | Paste from clipboard | Insert |
 
 ## Completion & History
 
@@ -121,7 +122,7 @@ NOTE: Don't support self-defined keymaps now.
 | `<end>` | Move to end | Command, Search |
 | `<bs>` | Delete character before cursor | Command, Search |
 | `<c-w>` | Delete word before cursor | Command, Search |
-| `<c-r>"` | Paste from clipboard | Command, Search |
+| `<c-r>` | Paste from clipboard | Command, Search |
 | `<c-n>` | Next history item | Command, Search |
 | `<c-p>` | Previous history item | Command, Search |
 | `<enter>` | Execute command or search | Command, Search |

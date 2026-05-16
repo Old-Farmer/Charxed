@@ -378,7 +378,7 @@ void Editor::InitKeymaps() {
     MGO_KEYMAP(":", {[this] { GotoPeel(); }}, {Mode::kNormal});
     MGO_KEYMAP("<enter>", {[this] { GotoPeel(Mode::kPeelShow); }},
                {Mode::kNormal});
-    MGO_KEYMAP("<c-r>\"", {[this] {
+    MGO_KEYMAP("<c-r>", {[this] {
                    peel_->Paste();
                    layout_manager_->ArrangeLayout();
                }},
@@ -504,6 +504,8 @@ void Editor::InitKeymaps() {
     MGO_KEYMAP("<enter>",
                {[this] { cursor_.in_window->AddStringAtCursor("\n"); }},
                {Mode::kInsert});
+    MGO_KEYMAP("<c-r>", {[this] { cursor_.in_window->Paste(1); }},
+               {Mode::kInsert});
     MGO_KEYMAP("i", {[this] { GotoMode(Mode::kInsert); }}, {Mode::kNormal});
     MGO_KEYMAP("I", {[this] {
                    cursor_.in_window->CursorGoFirstNonBlank();
@@ -543,10 +545,7 @@ void Editor::InitKeymaps() {
                    pending_operator_ = Operator::kYank;
                }},
                {Mode::kNormal});
-    MGO_KEYMAP("p", {[this] {
-                   cursor_.in_window->Paste(Count());
-                   ExitFromMode();
-               }},
+    MGO_KEYMAP("p", {[this] { cursor_.in_window->Paste(Count()); }},
                {Mode::kNormal});
     // TODO: p in visual mode
     MGO_KEYMAP("d", {[this] {
