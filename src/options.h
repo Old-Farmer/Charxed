@@ -66,6 +66,7 @@ enum OptKey {
     // window
     kOptEndOfBufferMark,
     kOptLineNumber,
+    kOptScrollOff,
     kOptTrailingWhite,
 
     // global

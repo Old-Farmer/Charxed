@@ -69,6 +69,11 @@ In `config.json`, Support options:
     default: 1,
     desc: Show line number.
 
+- scroll_off  
+    type: int,
+    default: 8,
+    desc: Number of lines to keep visible around the cursor while scrolling.
+
 - trailing_white  
     type: bool
     default: true

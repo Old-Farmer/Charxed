@@ -8,6 +8,7 @@
 
   "end_of_buffer_mark": false,
   "line_number": 1,
+  "scroll_off": 8,
   "trailing_white": true,
 
   "basic_word_completion": true,
@@ -31,7 +32,7 @@
   "markdown": {
     "wrap": true
   },
-  "txt": {
+  "text": {
     "wrap": true
   }
 }

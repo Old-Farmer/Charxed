@@ -28,6 +28,7 @@ static const std::unordered_map<std::string_view, OptKey> kStrRepToOptKey{
     // window
     {"end_of_buffer_mark", kOptEndOfBufferMark},
     {"line_number", kOptLineNumber},
+    {"scroll_off", kOptScrollOff},
     {"trailing_white", kOptTrailingWhite},
     // global
     {"basic_word_completion", kOptBasicWordCompletion},
@@ -65,6 +66,7 @@ static void OptStaticInit(const OptInfo*& opt_info) {
         // window
         set_opt_info(kOptEndOfBufferMark, {OptScope::kWindow, Type::kBool});
         set_opt_info(kOptLineNumber, {OptScope::kWindow, Type::kInteger});
+        set_opt_info(kOptScrollOff, {OptScope::kWindow, Type::kInteger});
         set_opt_info(kOptTrailingWhite, {OptScope::kWindow, Type::kBool});
         // global
         set_opt_info(kOptBasicWordCompletion, {OptScope::kGlobal, Type::kBool});

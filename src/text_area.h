@@ -149,12 +149,19 @@ class TextArea {
     void SetCursorHintNoWrap(size_t s_row, size_t s_col, size_t sidebar_width);
     void SetCursorHintWrap(size_t s_row, size_t s_col, size_t sidebar_width);
 
-    void MakeCursorVisibleNotWrap();
-    void MakeCursorVisibleWrap();
+    void MakeCursorVisibleNotWrap(size_t top_scroll_off,
+                                  size_t bottom_scroll_off);
+    void MakeCursorVisibleWrap(size_t top_scroll_off, size_t bottom_scroll_off);
     void MakeCursorVisibleWrapInnerWhenCursorBeforeRenderRange(
+        size_t top_scroll_off, size_t content_width);
+    // Calculate how many screen lines b view should move when cursor is in the
+    // render range to satisfy the scroll off setting.
+    // return scroll line, < 0 means b_view go up, > 0 means b_view go down
+    int64_t CalcScrollLineForMakeCursorVisibleWrapWhenCursorInRenderRange(
+        size_t row, size_t top_scroll_off, size_t bottom_scroll_off,
         size_t content_width);
     void MakeCursorVisibleWrapInnerWhenCursorAfterRenderRange(
-        size_t content_width);
+        size_t bottom_scroll_off, size_t content_width);
 
     bool CursorGoUpStateWrap(size_t count, size_t content_width,
                              CursorState& state);

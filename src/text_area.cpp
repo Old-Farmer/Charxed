@@ -222,42 +222,67 @@ bool TextArea::In(size_t s_col, size_t s_row) {
 }
 
 // cursor is before the first row.
-// we just put that cursor on the first row of screen.
-// TODO: scrolloff?
 void TextArea::MakeCursorVisibleWrapInnerWhenCursorBeforeRenderRange(
-    size_t content_width) {
-    b_view_->line = cursor_->pos.line;
+    size_t top_scroll_off, size_t content_width) {
+    auto tabstop = GetOpt<int64_t>(kOptTabStop);
 
-    size_t subline = 0;
+    b_view_->line = cursor_->pos.line;
+    b_view_->subline = 0;
+
     size_t end_b_view_col;
     auto line = buffer_->GetLineView(b_view_->line);
     auto iter = line.begin;
     while (true) {
         bool stop_at_target;
         size_t character_cnt;
-        iter = ArrangeLine(line, iter, 0, content_width,
-                           GetOpt<int64_t>(kOptTabStop), true, &end_b_view_col,
-                           &cursor_->pos.byte_offset, &stop_at_target,
-                           &character_cnt);
+        iter = ArrangeLine(line, iter, 0, content_width, tabstop, true,
+                           &end_b_view_col, &cursor_->pos.byte_offset,
+                           &stop_at_target, &character_cnt);
         cursor_->character_in_line += character_cnt;
         if (stop_at_target) {
-            cursor_->SetScreenPos(end_b_view_col + width_ - content_width,
-                                  subline);
-            b_view_->subline = subline;
-            if (!cursor_->b_view_col_want.has_value()) {
-                cursor_->b_view_col_want = end_b_view_col;
-            }
-            return;
+            break;
         }
-        subline++;
+        b_view_->subline++;
+    }
+
+    // try to put top_scroll_off screen lines before cursor
+    size_t actual_scroll = 0;
+    if (top_scroll_off <= b_view_->subline) {
+        b_view_->subline -= top_scroll_off;
+        actual_scroll = top_scroll_off;
+    } else {
+        actual_scroll = b_view_->subline;
+        while (actual_scroll < top_scroll_off) {
+            if (b_view_->line == 0) {
+                break;
+            }
+            b_view_->line--;
+            size_t rows = ScreenRows(buffer_->GetLineView(b_view_->line),
+                                     content_width, tabstop);
+            if (rows >= top_scroll_off - actual_scroll) {
+                b_view_->subline = rows - (top_scroll_off - actual_scroll);
+                actual_scroll = top_scroll_off;
+            } else {
+                b_view_->subline = 0;
+                actual_scroll += rows;
+            }
+        }
+    }
+
+    cursor_->SetScreenPos(end_b_view_col + width_ - content_width,
+                          row_ + actual_scroll);
+    if (!cursor_->b_view_col_want.has_value()) {
+        cursor_->b_view_col_want = end_b_view_col;
     }
 }
 
 void TextArea::MakeCursorVisibleWrapInnerWhenCursorAfterRenderRange(
-    size_t content_width) {
-    int tabstop = GetOpt<int64_t>(kOptTabStop);
+    size_t bottom_scroll_off, size_t content_width) {
+    auto tabstop = GetOpt<int64_t>(kOptTabStop);
+
     // Which subline of the line the cursor in?
-    size_t subline = 0;
+    b_view_->line = cursor_->pos.line;
+    b_view_->subline = 0;
     size_t end_view_col;
     auto line_view = buffer_->GetLineView(cursor_->pos.line);
     auto iter = line_view.begin;
@@ -269,41 +294,104 @@ void TextArea::MakeCursorVisibleWrapInnerWhenCursorAfterRenderRange(
                            &stop_at_target, &character_cnt);
         cursor_->character_in_line += character_cnt;
         if (stop_at_target) {
-            cursor_->SetScreenPos(end_view_col + width_ - content_width,
-                                  row_ + height_ - 1);
-            if (!cursor_->b_view_col_want.has_value()) {
-                cursor_->b_view_col_want = end_view_col;
-            }
             break;
         }
-        subline++;
+        b_view_->subline++;
     }
 
-    if (cursor_->pos.line == 0) {
-        b_view_->line = cursor_->pos.line;
-        b_view_->subline = subline;
-        return;
-    }
+    // screen lines cnt from top to cursor
+    size_t top_lines = height_ - bottom_scroll_off - 1;
 
     // Search backward to set the start.
-    size_t row_cnt_before_cursor_line = height_ - (subline + 1);
-    size_t line = cursor_->pos.line - 1;
-    while (true) {
-        size_t row_cnt =
-            ScreenRows(buffer_->GetLineView(line), content_width, tabstop);
-        if (row_cnt < row_cnt_before_cursor_line) {
-            row_cnt_before_cursor_line -= row_cnt;
-            line--;
-            continue;
+    if (top_lines <= b_view_->subline) {
+        b_view_->subline -= top_lines;
+    } else {
+        size_t i = b_view_->subline;
+        while (i < top_lines) {
+            if (b_view_->line == 0) {
+                break;
+            }
+            b_view_->line--;
+            size_t rows = ScreenRows(buffer_->GetLineView(b_view_->line),
+                                     width_, tabstop);
+            if (rows >= top_lines - i) {
+                b_view_->subline = rows - (top_lines - i);
+                i = top_lines;
+            } else {
+                b_view_->subline = 0;
+                i += rows;
+            }
         }
+    }
 
-        b_view_->line = line;
-        b_view_->subline = row_cnt - row_cnt_before_cursor_line;
-        return;
+    cursor_->SetScreenPos(end_view_col + width_ - content_width,
+                          row_ + height_ - bottom_scroll_off - 1);
+    if (!cursor_->b_view_col_want.has_value()) {
+        cursor_->b_view_col_want = end_view_col;
     }
 }
 
-void TextArea::MakeCursorVisibleWrap() {
+int64_t TextArea::CalcScrollLineForMakeCursorVisibleWrapWhenCursorInRenderRange(
+    size_t row, size_t top_scroll_off, size_t bottom_scroll_off,
+    size_t content_width) {
+    int tabstop = GetOpt<int64_t>(kOptTabStop);
+
+    int64_t actual_scroll = 0;
+    if (row < top_scroll_off) {  // cursor is too close to the top.
+        size_t need_scroll = top_scroll_off - row;
+        if (need_scroll <= b_view_->subline) {
+            b_view_->subline -= need_scroll;
+            actual_scroll = need_scroll;
+        } else {
+            actual_scroll = b_view_->subline;
+            while (actual_scroll < static_cast<int64_t>(need_scroll)) {
+                if (b_view_->line == 0) {
+                    break;
+                }
+                b_view_->line--;
+                size_t rows = ScreenRows(buffer_->GetLineView(b_view_->line),
+                                         content_width, tabstop);
+                if (rows >= need_scroll - actual_scroll) {
+                    b_view_->subline = rows - (need_scroll - actual_scroll);
+                    actual_scroll = need_scroll;
+                } else {
+                    b_view_->subline = 0;
+                    actual_scroll += rows;
+                }
+            }
+        }
+        actual_scroll = -actual_scroll;
+    } else if (height_ - row <=
+               bottom_scroll_off) {  // cursor is too close to the bottom
+        size_t need_scroll = bottom_scroll_off - (height_ - row) + 1;
+        size_t rows = ScreenRows(buffer_->GetLineView(b_view_->line),
+                                 content_width, tabstop);
+        if (need_scroll < rows - b_view_->subline) {
+            actual_scroll = need_scroll;
+        } else {
+            actual_scroll = rows - b_view_->subline - 1;
+            while (actual_scroll < static_cast<int64_t>(need_scroll)) {
+                if (b_view_->line == buffer_->LineCnt() - 1) {
+                    break;
+                }
+                b_view_->line++;
+                rows = ScreenRows(buffer_->GetLineView(b_view_->line), width_,
+                                  tabstop);
+                if (rows >= need_scroll - actual_scroll) {
+                    b_view_->subline = need_scroll - actual_scroll - 1;
+                    actual_scroll = need_scroll;
+                } else {
+                    b_view_->subline = rows - 1;
+                    actual_scroll += rows;
+                }
+            }
+        }
+    }
+    return actual_scroll;
+}
+
+void TextArea::MakeCursorVisibleWrap(size_t top_scroll_off,
+                                     size_t bottom_scroll_off) {
     size_t sidebar_width = SidebarWidth();
     if (!SizeValid(sidebar_width)) {
         return;
@@ -327,7 +415,8 @@ void TextArea::MakeCursorVisibleWrap() {
             cursor_->SetScreenPos(-1, -1);
             return;
         }
-        MakeCursorVisibleWrapInnerWhenCursorBeforeRenderRange(content_width);
+        MakeCursorVisibleWrapInnerWhenCursorBeforeRenderRange(top_scroll_off,
+                                                              content_width);
         return;
     }
 
@@ -341,11 +430,13 @@ void TextArea::MakeCursorVisibleWrap() {
                                &end_view_col, &cursor_->pos.byte_offset,
                                &stop_at_cursor, &character_cnt);
             cursor_->character_in_line += character_cnt;
-            // We find the cursor's location.
+            // We find the cursor's location. It's in the screen.
             if (stop_at_cursor) {
-                // The cursor is in the screen, just return.
+                int64_t actual_scroll =
+                    CalcScrollLineForMakeCursorVisibleWrapWhenCursorInRenderRange(
+                        i, top_scroll_off, bottom_scroll_off, content_width);
                 cursor_->SetScreenPos(end_view_col + width_ - content_width,
-                                      row_ + i);
+                                      row_ + i - actual_scroll);
                 if (!cursor_->b_view_col_want.has_value()) {
                     cursor_->b_view_col_want = end_view_col;
                 }
@@ -371,10 +462,12 @@ void TextArea::MakeCursorVisibleWrap() {
     }
 
     // The cursor is after the render range.
-    MakeCursorVisibleWrapInnerWhenCursorAfterRenderRange(content_width);
+    MakeCursorVisibleWrapInnerWhenCursorAfterRenderRange(bottom_scroll_off,
+                                                         content_width);
 }
 
-void TextArea::MakeCursorVisibleNotWrap() {
+void TextArea::MakeCursorVisibleNotWrap(size_t top_scroll_off,
+                                        size_t bottom_scroll_off) {
     size_t sidebar_width = SidebarWidth();
     if (!SizeValid(sidebar_width)) {
         return;
@@ -429,18 +522,18 @@ void TextArea::MakeCursorVisibleNotWrap() {
     }
 
     // adjust row of view
-    if (row < b_view_->line) {
-        if (!b_view_->make_cursor_visible) {
+    if (row < b_view_->line + top_scroll_off) {
+        if (row < b_view_->line && !b_view_->make_cursor_visible) {
             cursor_->SetScreenPos(-1, -1);
             return;
         }
-        b_view_->line = row;
-    } else if (row - b_view_->line >= height_) {
-        if (!b_view_->make_cursor_visible) {
+        b_view_->line = row > top_scroll_off ? row - top_scroll_off : 0;
+    } else if (row - b_view_->line >= height_ - bottom_scroll_off) {
+        if (row - b_view_->line >= height_ && !b_view_->make_cursor_visible) {
             cursor_->SetScreenPos(-1, -1);
             return;
         }
-        b_view_->line = row + 1 - height_;
+        b_view_->line = row + 1 - height_ + bottom_scroll_off;
     }
 
     cursor_->SetScreenPos(cur_b_view_c - b_view_->col + content_s_col,
@@ -449,10 +542,21 @@ void TextArea::MakeCursorVisibleNotWrap() {
 
 void TextArea::MakeCursorVisible() {
     // MakeSureViewValid(); // call it outside
-    if (GetOpt<bool>(kOptWrap)) {
-        MakeCursorVisibleWrap();
+    size_t scroll_off = GetOpt<int64_t>(kOptScrollOff);
+    size_t top_scroll_off;
+    size_t bottom_scroll_off;
+    if (scroll_off * 2 + 1 <= height_) {
+        top_scroll_off = bottom_scroll_off = scroll_off;
     } else {
-        MakeCursorVisibleNotWrap();
+        MGO_ASSERT(height_ >= 1);
+        top_scroll_off = (height_ - 1) / 2;
+        bottom_scroll_off = (height_ - 1) - top_scroll_off;
+    }
+
+    if (GetOpt<bool>(kOptWrap)) {
+        MakeCursorVisibleWrap(top_scroll_off, bottom_scroll_off);
+    } else {
+        MakeCursorVisibleNotWrap(top_scroll_off, bottom_scroll_off);
     }
 }
 
