@@ -234,7 +234,6 @@ void Editor::Loop() {
                 output_hidden_hint.resize(term_.Width());
             }
             NotifyUser(output_hidden_hint);
-            layout_manager_->ArrangeLayout();
         }
     };
 
@@ -277,6 +276,8 @@ void Editor::InitKeymaps() {
     MGO_KEYMAP("w",
                {[this] { cursor_.in_window->CursorGoNextWordBegin(Count()); }},
                {MGO_DEFAULT_MODES});
+    MGO_KEYMAP("w", {[this] { peel_->CursorGoNextWordBegin(Count()); }},
+               {Mode::kPeelShow});
     MGO_KEYMAP("k", {[this] { cursor_.in_window->CursorGoUp(Count()); }},
                {MGO_DEFAULT_MODES});
     MGO_KEYMAP("k", {[this] { peel_->CursorGoUp(Count()); }},
@@ -351,8 +352,7 @@ void Editor::InitKeymaps() {
     // esc
     MGO_KEYMAP("<esc>", {[this] {
                    if (IsPeel(mode_)) {
-                       peel_->ShowContent("");
-                       layout_manager_->ArrangeLayout();
+                       NotifyUser("");
                    }
                    ExitFromMode();
                }},
@@ -406,13 +406,11 @@ void Editor::InitKeymaps() {
                {Mode::kPeelCommand, Mode::kPeelSearch});
     MGO_KEYMAP("<enter>", {[this] {
                    CommandHitEnter();
-                   layout_manager_->ArrangeLayout();
                    multirow_peel_keep_ = true;
                }},
                {Mode::kPeelCommand});
     MGO_KEYMAP("<enter>", {[this] {
                    SearchHitEnter();
-                   layout_manager_->ArrangeLayout();
                    multirow_peel_keep_ = true;
                }},
                {Mode::kPeelSearch});
@@ -1307,7 +1305,10 @@ void Editor::SaveCurrentBufferAs(const Path& path) {
     }
 }
 
-void Editor::NotifyUser(std::string_view str) { peel_->ShowContent(str); }
+void Editor::NotifyUser(std::string_view str) {
+    peel_->ShowContent(str);
+    layout_manager_->ArrangeLayout();
+}
 
 void Editor::StartAutoCompletionTimer() {
     // We start a timer, every terminal event will cancel it.

@@ -7,6 +7,7 @@
   "wrap": false,
 
   "end_of_buffer_mark": false,
+  "highlight_cursor_line": true,
   "line_number": 1,
   "scroll_off": 8,
   "trailing_white": true,

@@ -29,6 +29,7 @@ enum ColorSchemeType : int {
     kSearch,
     kSearchCurrent,
     kTrailingWhite,
+    kCursorLine,
 
     kKeyword,
     kTypeBuiltin,
@@ -65,6 +66,7 @@ enum OptKey {
 
     // window
     kOptEndOfBufferMark,
+    kOptHighlightCursorLine,
     kOptLineNumber,
     kOptScrollOff,
     kOptTrailingWhite,

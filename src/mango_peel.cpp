@@ -25,6 +25,7 @@ MangoPeel::MangoPeel(Cursor* cursor, GlobalOpts* global_opts,
 
     opts_.SetOpt(kOptLineNumber, static_cast<int64_t>(LineNumberType::kNone));
     opts_.SetOpt(kOptTrailingWhite, false);
+    opts_.SetOpt(kOptHighlightCursorLine, false);
 }
 
 void MangoPeel::Draw() { area_.Draw(nullptr); }
@@ -65,6 +66,9 @@ void MangoPeel::CursorGoHome() {
 void MangoPeel::CursorGoEnd() { area_.CursorGoEnd(); }
 void MangoPeel::CursorGoNextWordEnd(size_t count) {
     area_.CursorGoNextWordEnd(count);
+}
+void MangoPeel::CursorGoNextWordBegin(size_t count) {
+    area_.CursorGoNextWordBegin(count);
 }
 void MangoPeel::CursorGoPrevWordBegin(size_t count) {
     area_.b_view_->make_cursor_visible = true;

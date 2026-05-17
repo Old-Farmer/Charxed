@@ -9,6 +9,7 @@
     "search": { "fg": [ "black" ], "bg": [ "yellow", "bright" ] },
     "search_current": { "fg": [ "white" ], "bg": [ "blue", "bright" ] },
     "trailing_white": { "fg": [ "cyan" ] },
+    "cursor_line": { "bg": [ "default", "reverse" ] },
 
     "keyword": { "fg": [ "blue" ] },
     "typebuiltin": { "fg": [ "blue" ] },
@@ -34,6 +35,7 @@
     "search": { "fg": [ "#1e1e2e" ], "bg": [ "#f9e2af" ] },
     "search_current": { "fg": [ "#1e1e2e" ], "bg": [ "#89b4fa" ] },
     "trailing_white": { "fg": [ "#585b70" ] },
+    "cursor_line": { "bg": [ "#323247" ] },
 
     "keyword": { "fg": [ "#b4befe" ] },
     "typebuiltin": { "fg": [ "#f9e2af" ] },

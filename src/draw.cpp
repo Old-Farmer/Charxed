@@ -26,8 +26,9 @@ size_t DrawLine(Terminal& term, std::string_view line, const Pos& begin_pos,
                 size_t begin_view_col, size_t width, size_t screen_row,
                 size_t screen_col,
                 const std::vector<const std::vector<Highlight>*>* highlights,
-                ColorScheme scheme, ColorSchemeType fallback_type,
-                int64_t trailing_white_begin, int tabstop, bool wrap) {
+                ColorScheme scheme, const Terminal::AttrPair& fallback_attr,
+                int64_t trailing_white_begin, int tabstop, bool wrap,
+                bool full_line) {
     std::vector<int64_t> highlights_i;
     if (highlights) {
         highlights_i.resize(highlights->size());
@@ -35,6 +36,8 @@ size_t DrawLine(Terminal& term, std::string_view line, const Pos& begin_pos,
             highlights_i[i] = LocateInPos(*(*highlights)[i], begin_pos);
         }
     }
+
+    int64_t begin_render_view_col = -1;
 
     Character character;
     size_t view_col = 0;
@@ -64,6 +67,11 @@ size_t DrawLine(Terminal& term, std::string_view line, const Pos& begin_pos,
                 view_col + character_width == width) {
                 break;
             }
+
+            if (begin_render_view_col == -1) {
+                begin_render_view_col = view_col;
+            }
+
             // Decide attr
             Terminal::AttrPair attr;
             attr.fg_exist = false;
@@ -92,11 +100,11 @@ size_t DrawLine(Terminal& term, std::string_view line, const Pos& begin_pos,
                 }
             }
             if (!attr.fg_exist) {
-                attr.fg = scheme[fallback_type].fg;
+                attr.fg = fallback_attr.fg;
                 attr.fg_exist = true;
             }
             if (!attr.bg_exist) {
-                attr.bg = scheme[fallback_type].bg;
+                attr.bg = fallback_attr.bg;
                 attr.bg_exist = true;
             }
 
@@ -149,6 +157,18 @@ size_t DrawLine(Terminal& term, std::string_view line, const Pos& begin_pos,
             }
         }
     }
+    if (full_line) {
+        for (int64_t i = begin_view_col; i < begin_render_view_col; i++) {
+            size_t cur_screen_col = i - begin_view_col + screen_col;
+            term.SetCell(cur_screen_col, screen_row, &kSpaceChar, 1,
+                         fallback_attr);
+        }
+        for (size_t i = view_col; i < begin_view_col + width; i++) {
+            size_t cur_screen_col = i - begin_view_col + screen_col;
+            term.SetCell(cur_screen_col, screen_row, &kSpaceChar, 1,
+                         fallback_attr);
+        }
+    }
     return byte_offset;
 }
 
@@ -157,8 +177,8 @@ TextTree::Iterator DrawLine(
     TextTree::Iterator iter, size_t begin_view_col, size_t width,
     size_t screen_row, size_t screen_col,
     const std::vector<const std::vector<Highlight>*>* highlights,
-    ColorScheme scheme, ColorSchemeType fallback_type,
-    int64_t trailing_white_begin, int tabstop, bool wrap) {
+    ColorScheme scheme, const Terminal::AttrPair& fallback_attr,
+    int64_t trailing_white_begin, int tabstop, bool wrap, bool full_line) {
     std::vector<int64_t> highlights_i;
     if (highlights) {
         Pos begin_pos = {line, iter.offset() - line_view.begin.offset()};
@@ -167,6 +187,8 @@ TextTree::Iterator DrawLine(
             highlights_i[i] = LocateInPos(*(*highlights)[i], begin_pos);
         }
     }
+
+    int64_t begin_render_view_col = -1;
 
     Character character;
     size_t view_col = 0;
@@ -195,6 +217,11 @@ TextTree::Iterator DrawLine(
                 view_col + character_width == width) {
                 break;
             }
+
+            if (begin_render_view_col == -1) {
+                begin_render_view_col = view_col;
+            }
+
             // Decide attr
             Terminal::AttrPair attr;
             attr.fg_exist = false;
@@ -223,11 +250,11 @@ TextTree::Iterator DrawLine(
                 }
             }
             if (!attr.fg_exist) {
-                attr.fg = scheme[fallback_type].fg;
+                attr.fg = fallback_attr.fg;
                 attr.fg_exist = true;
             }
             if (!attr.bg_exist) {
-                attr.bg = scheme[fallback_type].bg;
+                attr.bg = fallback_attr.bg;
                 attr.bg_exist = true;
             }
 
@@ -278,6 +305,18 @@ TextTree::Iterator DrawLine(
                     highlights_i[i]++;
                 }
             }
+        }
+    }
+    if (full_line) {
+        for (int64_t i = begin_view_col; i < begin_render_view_col; i++) {
+            size_t cur_screen_col = i - begin_view_col + screen_col;
+            term.SetCell(cur_screen_col, screen_row, &kSpaceChar, 1,
+                         fallback_attr);
+        }
+        for (size_t i = view_col; i < begin_view_col + width; i++) {
+            size_t cur_screen_col = i - begin_view_col + screen_col;
+            term.SetCell(cur_screen_col, screen_row, &kSpaceChar, 1,
+                         fallback_attr);
         }
     }
     return iter;

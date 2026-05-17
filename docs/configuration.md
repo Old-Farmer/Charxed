@@ -63,6 +63,11 @@ In `config.json`, Support options:
     default: false,
     desc: Display markers after the end of the buffer.
 
+- highlight_cursor_line  
+    type: bool
+    default: true,
+    desc: Highlight the line where the cursor stays.
+
 - line_number  
     type: int,
     available: 0 = none, 1 = absolute, 2 = relative,

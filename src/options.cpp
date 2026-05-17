@@ -27,6 +27,7 @@ static const std::unordered_map<std::string_view, OptKey> kStrRepToOptKey{
     {"wrap", kOptWrap},
     // window
     {"end_of_buffer_mark", kOptEndOfBufferMark},
+    {"highlight_cursor_line", kOptHighlightCursorLine},
     {"line_number", kOptLineNumber},
     {"scroll_off", kOptScrollOff},
     {"trailing_white", kOptTrailingWhite},
@@ -65,6 +66,7 @@ static void OptStaticInit(const OptInfo*& opt_info) {
         set_opt_info(kOptWrap, {OptScope::kBuffer, Type::kBool});
         // window
         set_opt_info(kOptEndOfBufferMark, {OptScope::kWindow, Type::kBool});
+        set_opt_info(kOptHighlightCursorLine, {OptScope::kWindow, Type::kBool});
         set_opt_info(kOptLineNumber, {OptScope::kWindow, Type::kInteger});
         set_opt_info(kOptScrollOff, {OptScope::kWindow, Type::kInteger});
         set_opt_info(kOptTrailingWhite, {OptScope::kWindow, Type::kBool});
@@ -106,6 +108,7 @@ static std::unordered_map<std::string_view, ColorSchemeType>
     {"search", kSearch},
     {"search_current", kSearchCurrent},
     {"trailing_white", kTrailingWhite},
+    {"cursor_line", kCursorLine},
 
     {"keyword", kKeyword},
     {"typebuiltin", kTypeBuiltin},

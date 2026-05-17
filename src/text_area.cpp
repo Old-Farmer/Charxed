@@ -41,6 +41,11 @@ void TextArea::Draw(BufferSearchContext* search_context) {
     auto wrap = GetOpt<bool>(kOptWrap);
     auto eob_mark = GetOpt<bool>(kOptEndOfBufferMark);
     auto trailing_white = GetOpt<bool>(kOptTrailingWhite);
+    auto need_hl_cursor_line =
+        GetOpt<bool>(kOptHighlightCursorLine) && !IsSelectionActive();
+    size_t cursor_line = b_view_->cursor_state_valid
+                             ? b_view_->cursor_state.pos.line
+                             : cursor_->pos.line;
 
     // Prepare highlights, priority: index 0 -> n, high -> low
     std::vector<const std::vector<Highlight>*> highlights;
@@ -173,9 +178,21 @@ void TextArea::Draw(BufferSearchContext* search_context) {
                     term_->Print(0, row_ + i, scheme[kSidebar], empty_sidebar);
                 }
             }
+            bool hl_cur_line_for_cursor =
+                need_hl_cursor_line && cursor_line == line;
+            auto fallback_attr = scheme[kNormal];
+            if (hl_cur_line_for_cursor) {
+                if (scheme[kCursorLine].fg_exist) {
+                    fallback_attr.fg = scheme[kCursorLine].fg;
+                }
+                if (scheme[kCursorLine].bg_exist) {
+                    fallback_attr.bg = scheme[kCursorLine].bg;
+                }
+            }
             iter = DrawLine(*term_, line, line_view, iter, 0, content_width,
                             i + row_, content_s_col, &highlights, scheme,
-                            kNormal, trailing_white_begin, tabstop, true);
+                            fallback_attr, trailing_white_begin, tabstop, true,
+                            hl_cur_line_for_cursor);
             if (iter == line_view.end) {
                 line++;
                 if (line < buffer_->LineCnt()) {
@@ -209,9 +226,21 @@ void TextArea::Draw(BufferSearchContext* search_context) {
                     ? line_view.Size()
                     : trailing_white_begin_pre_line[line -
                                                     render_range.begin.line];
+            bool hl_cur_line_for_cursor =
+                need_hl_cursor_line && cursor_line == line;
+            auto fallback_attr = scheme[kNormal];
+            if (hl_cur_line_for_cursor) {
+                if (scheme[kCursorLine].fg_exist) {
+                    fallback_attr.fg = scheme[kCursorLine].fg;
+                }
+                if (scheme[kCursorLine].bg_exist) {
+                    fallback_attr.bg = scheme[kCursorLine].bg;
+                }
+            }
             DrawLine(*term_, line, line_view, line_view.begin, b_view_->col,
                      content_width, cur_s_row, content_s_col, &highlights,
-                     scheme, kNormal, trailing_white_begin, tabstop, false);
+                     scheme, fallback_attr, trailing_white_begin, tabstop,
+                     false, hl_cur_line_for_cursor);
         }
     }
 }

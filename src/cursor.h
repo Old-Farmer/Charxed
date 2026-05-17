@@ -31,11 +31,6 @@ struct Cursor {
     // NOTE: wrap, no wrap have different meanings.
     std::optional<size_t> b_view_col_want;
 
-    // The cursor must be visible, means we must adjust the view to make the
-    // cursor visible.
-    // Note: Seems not be used
-    bool must_visible = true;
-
     Window* in_window;  // nullptr means in MangoPeel
     Window* restore_from_peel = nullptr;
 
