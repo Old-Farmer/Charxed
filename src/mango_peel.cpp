@@ -5,7 +5,7 @@
 #include "draw.h"
 #include "options.h"
 
-namespace mango {
+namespace charxed {
 
 MangoPeel::MangoPeel(Cursor* cursor, GlobalOpts* global_opts,
                      ClipBoard* clipboard, BufferManager* buffer_manager,
@@ -31,7 +31,7 @@ MangoPeel::MangoPeel(Cursor* cursor, GlobalOpts* global_opts,
 void MangoPeel::Draw() { area_.Draw(nullptr); }
 
 void MangoPeel::MakeCursorVisible() {
-    MGO_ASSERT(area_.cursor_->in_window == nullptr);
+    CHX_ASSERT(area_.cursor_->in_window == nullptr);
     area_.MakeCursorVisible();
 }
 
@@ -102,7 +102,7 @@ void MangoPeel::UserInputStart(std::string_view prefix) {
 }
 
 void MangoPeel::ClearUserInput() {
-    MGO_ASSERT(user_inputing_);
+    CHX_ASSERT(user_inputing_);
     area_.b_view_->make_cursor_visible = true;
     auto end = buffer_.End();
     buffer_.Delete({{0, prefix_len_}, {0, end.offset()}}, nullptr,
@@ -120,7 +120,7 @@ Result MangoPeel::DeleteCharacterBeforeCursor() {
     if (!user_inputing_) {
         return kFail;
     }
-    MGO_ASSERT(area_.cursor_->pos.line == 0);
+    CHX_ASSERT(area_.cursor_->pos.line == 0);
     if (area_.cursor_->pos == Pos{0, prefix_len_}) {
         area_.b_view_->make_cursor_visible = true;
         area_.cursor_->DontHoldColWant();
@@ -136,7 +136,7 @@ Result MangoPeel::DeleteWordBeforeCursor() {
     }
 
     area_.b_view_->make_cursor_visible = true;
-    MGO_ASSERT(area_.cursor_->pos.line == 0);
+    CHX_ASSERT(area_.cursor_->pos.line == 0);
     if (area_.cursor_->pos.byte_offset == prefix_len_) {
         return kFail;
     }
@@ -158,12 +158,12 @@ Result MangoPeel::AddStringAtCursor(std::string str) {
     if (!user_inputing_) {
         return kFail;
     }
-    MGO_ASSERT(area_.cursor_->pos.line == 0);
+    CHX_ASSERT(area_.cursor_->pos.line == 0);
     return area_.AddStringAtCursor(std::move(str));
 }
 
 Result MangoPeel::Paste() {
-    MGO_ASSERT(!area_.IsSelectionActive());
+    CHX_ASSERT(!area_.IsSelectionActive());
     bool lines;
     std::string content = area_.clipboard_->GetContent(lines);
     if (content.empty()) {
@@ -178,7 +178,7 @@ Result MangoPeel::Paste() {
 }
 
 void MangoPeel::PrevHistoryItem(HistoryType history) {
-    MGO_ASSERT(user_inputing_);
+    CHX_ASSERT(user_inputing_);
     area_.b_view_->make_cursor_visible = true;
     auto i = static_cast<size_t>(history);
     // To record what users have already input.
@@ -192,7 +192,7 @@ void MangoPeel::PrevHistoryItem(HistoryType history) {
 }
 
 void MangoPeel::NextHistoryItem(HistoryType history) {
-    MGO_ASSERT(user_inputing_);
+    CHX_ASSERT(user_inputing_);
     auto i = static_cast<size_t>(history);
     area_.b_view_->make_cursor_visible = true;
     if (history_[i].MoveCursorForward()) {
@@ -213,7 +213,7 @@ void MangoPeel::SetHistoryCursorToEnd() {
 }
 
 void MangoPeel::AppendHistoryItem(HistoryType history) {
-    MGO_ASSERT(user_inputing_);
+    CHX_ASSERT(user_inputing_);
     auto i = static_cast<size_t>(history);
     TextTree::TextView v = {buffer_.Find({0, prefix_len_}), buffer_.End()};
     history_[i].MoveCursorEnd();
@@ -239,4 +239,4 @@ size_t MangoPeel::NeedHeight(size_t width) {
     return std::max<size_t>(height, 1);
 }
 
-}  // namespace mango
+}  // namespace charxed

@@ -4,7 +4,7 @@
 #include <string>
 
 #include "utils.h"
-namespace mango {
+namespace charxed {
 
 // An ClipBoard Interface
 class ClipBoard {
@@ -23,9 +23,9 @@ class ClipBoard {
 // process and will not communicates with outside world.
 class DefaultClipBoard : public ClipBoard {
    public:
-    MGO_DEFAULT_CONSTRUCT_DESTRUCT(DefaultClipBoard);
-    MGO_DELETE_COPY(DefaultClipBoard);
-    MGO_DELETE_MOVE(DefaultClipBoard);
+    CHX_DEFAULT_CONSTRUCT_DESTRUCT(DefaultClipBoard);
+    CHX_DELETE_COPY(DefaultClipBoard);
+    CHX_DELETE_MOVE(DefaultClipBoard);
     virtual std::string GetContent(bool& lines) const override;
     virtual void SetContent(const std::string& content, bool lines) override;
     virtual void SetContent(std::string&& content, bool lines) override;
@@ -39,8 +39,8 @@ class DefaultClipBoard : public ClipBoard {
 class XClipBoard : public ClipBoard {
    public:
     XClipBoard();
-    MGO_DELETE_COPY(XClipBoard);
-    MGO_DELETE_MOVE(XClipBoard);
+    CHX_DELETE_COPY(XClipBoard);
+    CHX_DELETE_MOVE(XClipBoard);
     virtual std::string GetContent(bool& lines) const override;
     virtual void SetContent(const std::string& content, bool lines) override;
     virtual void SetContent(std::string&& content, bool lines) override;
@@ -55,4 +55,4 @@ class XClipBoard : public ClipBoard {
     bool in_wsl;
 };
 
-}  // namespace mango
+}  // namespace charxed

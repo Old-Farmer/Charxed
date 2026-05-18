@@ -2,7 +2,7 @@
 
 #include "term.h"
 
-namespace mango {
+namespace charxed {
 
 class Window;
 class StatusLine;
@@ -27,4 +27,4 @@ class LayoutManager {
     int64_t peel_buffer_version_;
 };
 
-}  // namespace mango
+}  // namespace charxed

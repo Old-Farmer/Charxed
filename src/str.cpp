@@ -2,7 +2,7 @@
 
 #include <unordered_set>
 
-namespace mango {
+namespace charxed {
 
 namespace {
 const std::unordered_set<char> kPathStopCharacter = {
@@ -128,4 +128,4 @@ TextTree::TextView FindPath(const TextTree::TextView& line,
     return {left, right};
 }
 
-}  // namespace mango
+}  // namespace charxed

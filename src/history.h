@@ -6,7 +6,7 @@
 
 #include "result.h"
 #include "utils.h"
-namespace mango {
+namespace charxed {
 
 // A class that can store linear history.
 /*
@@ -47,9 +47,9 @@ class History {
     };
 
    public:
-    MGO_DEFAULT_CONSTRUCT_DESTRUCT(History);
-    MGO_DELETE_COPY(History);
-    MGO_DEFAULT_MOVE(History);
+    CHX_DEFAULT_CONSTRUCT_DESTRUCT(History);
+    CHX_DELETE_COPY(History);
+    CHX_DEFAULT_MOVE(History);
 
     // return kWrapHistory if history is wrapped,
     // otherwise return kOk.
@@ -57,7 +57,7 @@ class History {
         // Delete all history iterms after cursor(include the item which cursor
         // points to)
         if (cursor_ != list_->end()) {
-            MGO_ASSERT(!list_->empty());
+            CHX_ASSERT(!list_->empty());
             list_->erase(cursor_, list_->end());
             cursor_ = list_->end();
         }
@@ -77,7 +77,7 @@ class History {
         // Delete all history iterms after cursor(include the item which cursor
         // points to)
         if (cursor_ != list_->end()) {
-            MGO_ASSERT(!list_->empty());
+            CHX_ASSERT(!list_->empty());
             list_->erase(cursor_, list_->end());
             cursor_ = list_->end();
         }
@@ -101,7 +101,7 @@ class History {
     // Make sure Size > 0, otherwise behavior is undefined.
     // cursor can be after the latest item, at this situation return null
     std::optional<std::reference_wrapper<T>> GetItemAtCursor() {
-        MGO_ASSERT(Size() != 0);
+        CHX_ASSERT(Size() != 0);
         if (cursor_ == list_->end()) {
             return {};
         }
@@ -110,7 +110,7 @@ class History {
     // Make sure Size > 0, otherwise behavior is undefined.
     // cursor can be the first item, at this situation return null
     std::optional<std::reference_wrapper<T>> GetItemJustBeforeCursor() {
-        MGO_ASSERT(Size() != 0);
+        CHX_ASSERT(Size() != 0);
         if (cursor_ == list_->begin()) {
             return {};
         }
@@ -173,4 +173,4 @@ class History {
     ListIter cursor_ = list_->end();
 };
 
-}  // namespace mango
+}  // namespace charxed

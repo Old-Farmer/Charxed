@@ -2,7 +2,7 @@
 #include "character.h"
 #include "fmt/core.h"
 
-using namespace mango;
+using namespace charxed;
 
 TEST_CASE("test string display width") {
     CHECK(StringWidth("你好12") == 4 + 2);

@@ -1,3 +1,3 @@
 #include "state.h"
 
-namespace mango {}  // namespace mango
+namespace charxed {}  // namespace charxed

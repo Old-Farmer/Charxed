@@ -9,7 +9,7 @@
 #include "logging.h"
 #include "utf8.h"
 
-namespace mango {
+namespace charxed {
 
 int64_t BufferNaive::cur_buffer_id_ = 0;
 std::vector<bool> BufferNaive::new_file_alloced_ids_ = {};
@@ -36,7 +36,7 @@ void BufferNaive::Load() {
         }
 
         File f(path_.AbsolutePath(), "r", true);
-        MGO_LOG_DEBUG("file path {}", path_.AbsolutePath());
+        CHX_LOG_DEBUG("file path {}", path_.AbsolutePath());
 
         while (true) {
             std::string buf;
@@ -130,7 +130,7 @@ Result BufferNaive::Write() {
 }
 
 Result BufferNaive::SaveAs(const Path& path) {
-    MGO_ASSERT(!path.Empty());
+    CHX_ASSERT(!path.Empty());
     Path old_p = path_;
     path_ = path;
 
@@ -167,7 +167,7 @@ Result BufferNaive::SaveAs(const Path& path) {
 }
 
 std::string BufferNaive::GetContent(const Range& range) const {
-    MGO_ASSERT(LineCnt() > range.end.line);
+    CHX_ASSERT(LineCnt() > range.end.line);
     Pos begin = range.begin;
     size_t total_size = 0;
     while (begin.line <= range.end.line) {
@@ -237,8 +237,8 @@ void BufferNaive::AddInner(Pos pos, std::string_view str, Pos& cursor_pos_hint,
     }
     // No newline, just insert
     if (new_line_offset.empty()) {
-        MGO_ASSERT(lines_.size() > cursor_pos_hint.line);
-        MGO_ASSERT(lines_[cursor_pos_hint.line].line_str.size() >=
+        CHX_ASSERT(lines_.size() > cursor_pos_hint.line);
+        CHX_ASSERT(lines_[cursor_pos_hint.line].line_str.size() >=
                    cursor_pos_hint.byte_offset);
 
         lines_[cursor_pos_hint.line].line_str.insert(
@@ -248,8 +248,8 @@ void BufferNaive::AddInner(Pos pos, std::string_view str, Pos& cursor_pos_hint,
     }
 
     // Have newline
-    MGO_ASSERT(lines_.size() > cursor_pos_hint.line);
-    MGO_ASSERT(lines_[cursor_pos_hint.line].line_str.size() >=
+    CHX_ASSERT(lines_.size() > cursor_pos_hint.line);
+    CHX_ASSERT(lines_[cursor_pos_hint.line].line_str.size() >=
                cursor_pos_hint.byte_offset);
 
     std::string line_after_pos = lines_[cursor_pos_hint.line].line_str.substr(
@@ -258,21 +258,21 @@ void BufferNaive::AddInner(Pos pos, std::string_view str, Pos& cursor_pos_hint,
     i = 0;
     for (size_t offset : new_line_offset) {
         if (offset != i) {
-            MGO_ASSERT(lines_.size() > cursor_pos_hint.line);
+            CHX_ASSERT(lines_.size() > cursor_pos_hint.line);
 
             lines_[cursor_pos_hint.line].line_str.append(str, i, offset - i);
         }
         cursor_pos_hint.line++;
         cursor_pos_hint.byte_offset = 0;
 
-        MGO_ASSERT(lines_.size() >= cursor_pos_hint.line);
+        CHX_ASSERT(lines_.size() >= cursor_pos_hint.line);
 
         // Use Line() instead of {} to prevent c++ infer as init list
         lines_.insert(lines_.begin() + cursor_pos_hint.line, Line());
         i = offset + 1;
     }
     if (new_line_offset.back() != str.size() - 1) {
-        MGO_ASSERT(lines_.size() > cursor_pos_hint.line);
+        CHX_ASSERT(lines_.size() > cursor_pos_hint.line);
 
         size_t left_size = str.size() - (new_line_offset.back() + 1);
         lines_[cursor_pos_hint.line].line_str.append(
@@ -293,8 +293,8 @@ std::string BufferNaive::DeleteInner(const Range& range, Pos& cursor_pos_hint,
     std::string line_where_end_pos_locate;
 
     Pos end = range.end;
-    MGO_ASSERT(lines_.size() > end.line);
-    MGO_ASSERT(range.begin.line < end.line ||
+    CHX_ASSERT(lines_.size() > end.line);
+    CHX_ASSERT(range.begin.line < end.line ||
                (range.begin.line == range.end.line &&
                 range.begin.byte_offset <= range.end.byte_offset));
     while (range.begin.line <= end.line) {
@@ -316,7 +316,7 @@ std::string BufferNaive::DeleteInner(const Range& range, Pos& cursor_pos_hint,
                 // But we don't do merge here, we just move away this line and
                 // merge after deletion
                 if (record_reverse) {
-                    MGO_ASSERT(end.byte_offset <
+                    CHX_ASSERT(end.byte_offset <
                                lines_[end.line].line_str.size());
                     old_str.insert(0, lines_[end.line].line_str, 0,
                                    end.byte_offset);
@@ -331,7 +331,7 @@ std::string BufferNaive::DeleteInner(const Range& range, Pos& cursor_pos_hint,
                 lines_.erase(lines_.begin() + end.line);
             }
         } else {
-            MGO_ASSERT(lines_[end.line].line_str.size() >= end.byte_offset);
+            CHX_ASSERT(lines_[end.line].line_str.size() >= end.byte_offset);
             if (record_reverse)
                 old_str.insert(0, lines_[end.line].line_str,
                                range.begin.byte_offset,
@@ -389,7 +389,7 @@ std::string BufferNaive::ReplaceInner(const Range& range, std::string_view str,
 }
 
 bool BufferNaive::TryRecordMerge(const BufferEditHistoryItem& item) {
-    MGO_ASSERT(edit_history_->size() > 0);
+    CHX_ASSERT(edit_history_->size() > 0);
     BufferEditHistoryItem& last_item = edit_history_->back();
     if (last_item.origin.str.empty() && item.origin.str.empty() &&
         last_item.origin.range.begin == item.origin.range.end) {
@@ -419,7 +419,7 @@ void BufferNaive::Record(BufferEditHistoryItem&& item) {
     // Delete all history iterms after cursor(include the item which cursor
     // points to)
     if (edit_history_cursor_ != edit_history_->end()) {
-        MGO_ASSERT(!edit_history_->empty());
+        CHX_ASSERT(!edit_history_->empty());
         edit_history_->erase(edit_history_cursor_, edit_history_->end());
         edit_history_cursor_ = edit_history_->end();
     }
@@ -593,9 +593,9 @@ bool BufferNaive::IsLastBuffer() const { return next_->next_ == nullptr; }
 bool BufferNaive::IsFirstBuffer() const { return prev_->prev_ == nullptr; }
 
 void BufferNaive::Modified() {
-    MGO_ASSERT(IsLoad() && !read_only());
+    CHX_ASSERT(IsLoad() && !read_only());
     state_ = BufferState::kModified;
     version_++;
 }
 
-}  // namespace mango
+}  // namespace charxed

@@ -12,7 +12,7 @@ const TSLanguage* tree_sitter_cpp(void);
 const TSLanguage* tree_sitter_json(void);
 }
 
-namespace mango {
+namespace charxed {
 
 constexpr const char* kTSNewLine = "\n";
 
@@ -112,7 +112,7 @@ bool SyntaxParser::QueryPredicate(const TSQueryContext& query_context,
     }
     for (uint32_t i = 0; i < predicates_steps;) {
         uint32_t str_size;
-        MGO_ASSERT(predicates[i].type == TSQueryPredicateStepTypeString);
+        CHX_ASSERT(predicates[i].type == TSQueryPredicateStepTypeString);
 
         const char* predicate = ts_query_string_value_for_id(
             query_context.query, predicates[i].value_id, &str_size);
@@ -150,9 +150,9 @@ bool SyntaxParser::QueryPredicate(const TSQueryContext& query_context,
 }
 
 void SyntaxParser::GenerateHighlight(const Buffer* buffer, const Range& range) {
-    MGO_ASSERT(filetype_to_query_.count(buffer->filetype()) == 1);
+    CHX_ASSERT(filetype_to_query_.count(buffer->filetype()) == 1);
     TSQueryContext& query_context = filetype_to_query_[buffer->filetype()];
-    MGO_ASSERT(buffer_context_.count(buffer->id()) == 1);
+    CHX_ASSERT(buffer_context_.count(buffer->id()) == 1);
     SyntaxContext& context = buffer_context_[buffer->id()];
 
     TSNode root = ts_tree_root_node(context.tree);
@@ -164,7 +164,7 @@ void SyntaxParser::GenerateHighlight(const Buffer* buffer, const Range& range) {
     bool set_range_ret =
         ts_query_cursor_set_point_range(query_cursor_, query_start, query_end);
     if (!set_range_ret) {
-        MGO_LOG_INFO(
+        CHX_LOG_INFO(
             "ts_query_cursor_set_point_range error: start row {}, start col "
             "{}, end row {}, end col {}",
             query_start.row, query_start.column, query_end.row,
@@ -183,23 +183,23 @@ void SyntaxParser::GenerateHighlight(const Buffer* buffer, const Range& range) {
             break;
         }
 
-        // MGO_LOG_DEBUG("One Match");
+        // CHX_LOG_DEBUG("One Match");
         for (size_t i = 0; i < match.capture_count; i++) {
             uint32_t len;
             const char* name = ts_query_capture_name_for_id(
                 query_context.query, match.captures[i].index, &len);
             TSPoint start = ts_node_start_point(match.captures[i].node);
             TSPoint end = ts_node_end_point(match.captures[i].node);
-            // MGO_LOG_DEBUG(
+            // CHX_LOG_DEBUG(
             //     "capture name: {}, index: {}, range: [({}, {}), ({}, {}))",
             //     name, match.captures[i].index, start.row, start.column,
             //     end.row, end.column);
 
             Range range = {{start.row, start.column}, {end.row, end.column}};
-            MGO_ASSERT(buffer->LineCnt() > range.end.line);
-            MGO_ASSERT(range.begin.byte_offset <=
+            CHX_ASSERT(buffer->LineCnt() > range.end.line);
+            CHX_ASSERT(range.begin.byte_offset <=
                        buffer->GetLineView(range.begin.line).Size());
-            MGO_ASSERT(range.end.byte_offset <=
+            CHX_ASSERT(range.end.byte_offset <=
                        buffer->GetLineView(range.end.line).Size());
             if (!QueryPredicate(query_context, &match.captures[i], buffer,
                                 range)) {
@@ -259,7 +259,7 @@ void SyntaxParser::SyntaxInit(const Buffer* buffer) {
 
     if (!ts_parser_set_language(parser_,
                                 filetype_to_language_.at(buffer->filetype()))) {
-        MGO_LOG_ERROR("ts_parser_set_language error: filetype {}",
+        CHX_LOG_ERROR("ts_parser_set_language error: filetype {}",
                       buffer->filetype());
         return;
     }
@@ -268,7 +268,7 @@ void SyntaxParser::SyntaxInit(const Buffer* buffer) {
                      TSInputEncodingUTF8, nullptr};
     TSTree* tree = ts_parser_parse(parser_, nullptr, input);
     if (tree == nullptr) {
-        MGO_LOG_ERROR("ts_parser_parse error: filetype {}", buffer->filetype());
+        CHX_LOG_ERROR("ts_parser_parse error: filetype {}", buffer->filetype());
         return;
     }
     buffer_context_[buffer->id()].tree = tree;
@@ -286,7 +286,7 @@ void SyntaxParser::ParseSyntaxAfterEdit(Buffer* buffer) {
                      TSInputEncodingUTF8, nullptr};
     context.tree = ts_parser_parse(parser_, context.tree, input);
     if (context.tree == nullptr) {
-        MGO_LOG_ERROR("ts_parser_parse error: filetype {}", buffer->filetype());
+        CHX_LOG_ERROR("ts_parser_parse error: filetype {}", buffer->filetype());
     }
 }
 
@@ -325,16 +325,16 @@ void SyntaxParser::InitQueryContex(TSQueryContext& query_context) {
         }
         for (uint32_t j = 0; j < predicates_steps;) {
             uint32_t str_size;
-            MGO_ASSERT(predicates[j].type == TSQueryPredicateStepTypeString);
+            CHX_ASSERT(predicates[j].type == TSQueryPredicateStepTypeString);
 
             const char* predicate = ts_query_string_value_for_id(
                 query_context.query, predicates[j].value_id, &str_size);
             if (strcmp(predicate, "match?") == 0) {
-                MGO_ASSERT(predicates[j + 1].type ==
+                CHX_ASSERT(predicates[j + 1].type ==
                            TSQueryPredicateStepTypeCapture);
-                MGO_ASSERT(predicates[j + 2].type ==
+                CHX_ASSERT(predicates[j + 2].type ==
                            TSQueryPredicateStepTypeString);
-                MGO_ASSERT(predicates[j + 3].type ==
+                CHX_ASSERT(predicates[j + 3].type ==
                            TSQueryPredicateStepTypeDone);
 
                 const char* regex_pattern = ts_query_string_value_for_id(
@@ -350,7 +350,7 @@ void SyntaxParser::InitQueryContex(TSQueryContext& query_context) {
                     query_context.pattern_context[i].reset();
                     throw RegexCompileException("regex compile error {}", buf);
                 }
-                MGO_ASSERT(j + 4 == predicates_steps);
+                CHX_ASSERT(j + 4 == predicates_steps);
                 j += 4;
             } else {
                 throw TSQueryPredicateDirectiveNotSupportException(
@@ -387,7 +387,7 @@ const SyntaxParser::TSQueryContext* SyntaxParser::GetQueryContext(
                                           query_str.c_str(), query_str.size(),
                                           &error_offset, &error_type);
             if (query == nullptr) {
-                MGO_LOG_ERROR("ts query create error: offset {}, error {}",
+                CHX_LOG_ERROR("ts query create error: offset {}, error {}",
                               error_offset, static_cast<int>(error_type));
                 return nullptr;
             }
@@ -397,12 +397,12 @@ const SyntaxParser::TSQueryContext* SyntaxParser::GetQueryContext(
             filetype_to_query_[filetype] = std::move(query_context);
             return &filetype_to_query_[filetype];
         } catch (IOException& e) {
-            MGO_LOG_ERROR("TS query file {} cannot read: {}", query_file_path,
+            CHX_LOG_ERROR("TS query file {} cannot read: {}", query_file_path,
                           e.what());
             filetype_to_query_[filetype] = {nullptr, {}};
             return nullptr;
         } catch (std::out_of_range& e) {
-            MGO_LOG_ERROR("tree-sitter TSLanguage create function not defined");
+            CHX_LOG_ERROR("tree-sitter TSLanguage create function not defined");
             filetype_to_query_[filetype] = {nullptr, {}};
             return nullptr;
         }
@@ -414,4 +414,4 @@ const SyntaxParser::TSQueryContext* SyntaxParser::GetQueryContext(
     }
 }
 
-}  // namespace mango
+}  // namespace charxed

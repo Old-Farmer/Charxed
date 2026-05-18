@@ -5,7 +5,7 @@
 #include "keyseq_manager.h"
 #include "options.h"
 
-namespace mango {
+namespace charxed {
 
 Terminal::~Terminal() { Shutdown(); }
 
@@ -35,7 +35,7 @@ void Terminal::Init(GlobalOpts* global_opts) {
 
     int ret = tb_init();
     if (ret != TB_OK) {
-        MGO_LOG_ERROR("{}", tb_strerror(ret));
+        CHX_LOG_ERROR("{}", tb_strerror(ret));
         throw TermException("{}", tb_strerror(ret));
     }
     init_ = true;
@@ -44,7 +44,7 @@ void Terminal::Init(GlobalOpts* global_opts) {
     // And enable mouse.
     ret = tb_set_input_mode(TB_INPUT_ESC | TB_INPUT_MOUSE);
     if (ret != TB_OK) {
-        MGO_LOG_ERROR("{}", tb_strerror(ret));
+        CHX_LOG_ERROR("{}", tb_strerror(ret));
         throw TermException("{}", tb_strerror(ret));
     }
 
@@ -56,7 +56,7 @@ void Terminal::Init(GlobalOpts* global_opts) {
         ret = tb_set_output_mode(TB_OUTPUT_NORMAL);
     }
     if (ret != TB_OK) {
-        MGO_LOG_ERROR("{}", tb_strerror(ret));
+        CHX_LOG_ERROR("{}", tb_strerror(ret));
         throw TermException("{}", tb_strerror(ret));
     }
     SetClearAttr(global_opts->GetOpt<ColorScheme>(kOptColorScheme)[kNormal]);
@@ -90,7 +90,7 @@ void Terminal::Shutdown() {
 void Terminal::SetCursorStyle(CursorStyle style) {
     int ret = tb_sendf("\e[%d q", static_cast<int>(style));
     if (ret != TB_OK) {
-        MGO_LOG_ERROR("{}", tb_strerror(ret));
+        CHX_LOG_ERROR("{}", tb_strerror(ret));
         throw TermException("{}", tb_strerror(ret));
     }
 }
@@ -112,7 +112,7 @@ bool Terminal::PollInner(int timeout_ms) {
         } else if (ret == TB_ERR_POLL && tb_last_errno() == EINTR) {
             continue;
         } else if (ret != TB_OK) {
-            MGO_LOG_ERROR("{}", tb_strerror(ret));
+            CHX_LOG_ERROR("{}", tb_strerror(ret));
             throw TermException("{}", tb_strerror(ret));
         }
         return true;
@@ -220,4 +220,4 @@ Terminal& Terminal::GetInstance() {
     return term;
 }
 
-}  // namespace mango
+}  // namespace charxed

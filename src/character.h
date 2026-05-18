@@ -8,7 +8,7 @@
 #include "utf8.h"
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 constexpr Codepoint kSpaceChar = ' ';           // Use this to avoid confusion
 constexpr Codepoint kReplacementChar = 0xFFFD;  // �
@@ -68,7 +68,7 @@ class Character {
     }
 
     const Codepoint* Codepoints() const {
-        MGO_ASSERT(codepoints_cnt_ != 0);
+        CHX_ASSERT(codepoints_cnt_ != 0);
         if (codepoints_cnt_ == 1) {
             return &codepoint_;
         }
@@ -106,7 +106,7 @@ Result ThisCharacterInner(std::string_view str, int64_t offset,
 // Wrap of ThisCharacterInner, and ascii friendly
 inline Result ThisCharacter(std::string_view str, int64_t offset,
                             Character& character, int& byte_len) {
-    MGO_ASSERT(static_cast<size_t>(offset) < str.size());
+    CHX_ASSERT(static_cast<size_t>(offset) < str.size());
     int64_t cur_offset = offset;
     int64_t end_offset = str.size();
     // ascii happy path
@@ -137,7 +137,7 @@ Result PrevCharacterInner(std::string_view str, int64_t offset,
 // Wrap of PrevCharacterInner, and ascii friendly
 inline Result PrevCharacter(std::string_view str, int64_t offset,
                             Character& character, int& byte_len) {
-    MGO_ASSERT(offset > 0);
+    CHX_ASSERT(offset > 0);
     // ascii happy path
     if ((offset > 1 && IsAscii(str[offset - 2]) && IsAscii(str[offset + 1])) ||
         offset == 1) {
@@ -230,4 +230,4 @@ inline bool IsPair(char open, char close) {
 
 size_t StringWidth(const std::string& str);
 
-}  // namespace mango
+}  // namespace charxed

@@ -45,7 +45,7 @@ NOTE: Don't support self-defined keymaps now.
 | `j` | Move cursor down | Normal, Select, Select-L, Show |
 | `b` | Move to beginning of word | Normal, Select, Select-L, Show |
 | `e` | Move to end of word | Normal, Select, Select-L, Show |
-| `w` | Move to beginning of next word | Normal, Select, Select-L |
+| `w` | Move to beginning of next word | Normal, Select, Select-L, Show |
 | `0` | Move to beginning of line | Normal, Select, Select-L, Show |
 | `$` | Move to end of line | Normal, Select, Select-L, Show |
 | `<c-f>` | Move down one page | Normal, Select, Select-L, Show |

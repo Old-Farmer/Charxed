@@ -8,7 +8,7 @@
 #include "term.h"
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 struct Keyseq {
     std::string name;
@@ -24,8 +24,8 @@ class KeyseqManager {
    public:
     KeyseqManager(Mode& mode);
     ~KeyseqManager() = default;
-    MGO_DELETE_COPY(KeyseqManager);
-    MGO_DELETE_MOVE(KeyseqManager);
+    CHX_DELETE_COPY(KeyseqManager);
+    CHX_DELETE_MOVE(KeyseqManager);
 
     // Add/Remove a keyseq, a keyseq is a key sequence for triggering a defined
     // handler. a keyseq prefixed with another keyseq will be hidden.
@@ -35,9 +35,9 @@ class KeyseqManager {
     // this is always considered a bug and should fixed emidiately
     // return kError if keymap is not well formed
     Result AddKeyseq(const std::string& seq, const Keyseq& handler,
-                     const std::vector<Mode>& modes = {MGO_DEFAULT_MODES});
+                     const std::vector<Mode>& modes = {CHX_DEFAULT_MODES});
     Result RemoveKeyseq(const std::string& seq,
-                        const std::vector<Mode>& modes = {MGO_DEFAULT_MODES});
+                        const std::vector<Mode>& modes = {CHX_DEFAULT_MODES});
 
     // return kKeyseqError, kKeyseqDone, kKeyseqMatched
     // if kKeyseqDone return, handler will be set to the related handler
@@ -74,4 +74,4 @@ class KeyseqManager {
     Mode& mode_;
 };
 
-}  // namespace mango
+}  // namespace charxed

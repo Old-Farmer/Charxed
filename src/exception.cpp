@@ -5,7 +5,7 @@
 
 #include <cstdarg>
 
-namespace mango {
+namespace charxed {
 
 void PrintException(const std::exception* e) {
     if (e) {
@@ -35,4 +35,4 @@ void PrintException(const std::exception* e) {
     }
 }
 
-}  // namespace mango
+}  // namespace charxed

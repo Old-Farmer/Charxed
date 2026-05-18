@@ -6,7 +6,7 @@
 #include "exception.h"
 #include "logging.h"
 
-namespace mango {
+namespace charxed {
 
 TextTree::TextTree() : root_(nullptr) {}
 
@@ -47,7 +47,7 @@ void TextTree::BulkLoad(File& file, EOLSeq& eol_seq) {
         return;
     }
     bool coding_valid = true;
-    MGO_ASSERT(begin_leaf_);
+    CHX_ASSERT(begin_leaf_);
     for (LeafNode* n = begin_leaf_; n != nullptr; n = n->next) {
         if (!CheckUtf8Valid({n->data, n->bytes})) {
             coding_valid = false;
@@ -64,7 +64,7 @@ void TextTree::BulkLoad(File& file, EOLSeq& eol_seq) {
         throw CodingException("{}", "utf8 encoding error");
     }
     BuildIndex(cnt);
-    MGO_LOG_DEBUG("loading file: leaf_cnt: {}, bytes: {}, lines: {}", cnt,
+    CHX_LOG_DEBUG("loading file: leaf_cnt: {}, bytes: {}, lines: {}", cnt,
                   root_->bytes, LineCnt());
 }
 
@@ -76,7 +76,7 @@ void TextTree::BulkLoad(std::string_view str) {
         return;
     }
     BuildIndex(cnt);
-    MGO_LOG_DEBUG("loading str: leaf_cnt: {}, bytes: {}, lines: {}", cnt,
+    CHX_LOG_DEBUG("loading str: leaf_cnt: {}, bytes: {}, lines: {}", cnt,
                   root_->bytes, root_->lines);
 }
 
@@ -345,13 +345,13 @@ TextTree::Iterator TextTree::Find(Pos pos) const {
             acc_lines += internal->infos[i].lines;
             acc_bytes += internal->infos[i].bytes;
         }
-        MGO_ASSERT(i < internal->size);
+        CHX_ASSERT(i < internal->size);
         node = internal->children[i];
     }
 
     auto leaf = static_cast<LeafNode*>(node);
 
-    MGO_ASSERT(acc_lines <= pos.line);
+    CHX_ASSERT(acc_lines <= pos.line);
     // Find line
     size_t i = 0;
     while (acc_lines != pos.line) {
@@ -370,7 +370,7 @@ TextTree::Iterator TextTree::Find(Pos pos) const {
     while (true) {
         if (leaf == nullptr) {
             // return end only when after the last byte of the file
-            // MGO_ASSERT(acc_byte_offset == pos.byte_offset);
+            // CHX_ASSERT(acc_byte_offset == pos.byte_offset);
             return End();
         }
         if (leaf->bytes - i > pos.byte_offset - acc_byte_offset) {
@@ -512,7 +512,7 @@ void TextTree::UpdateInfoToRoot(Node* node) {
         size_t i = std::find(internal->children,
                              internal->children + internal->size, node) -
                    internal->children;
-        MGO_ASSERT(i < kChildSize);
+        CHX_ASSERT(i < kChildSize);
         internal->lines += static_cast<int64_t>(node->lines) -
                            static_cast<int64_t>(internal->infos[i].lines);
         internal->bytes += static_cast<int64_t>(node->bytes) -
@@ -541,7 +541,7 @@ void TextTree::AddSplitUptoOneNode(Iterator pos, std::string_view str) {
         size_t i = std::find(internal->children,
                              internal->children + internal->size, node) -
                    internal->children;
-        MGO_ASSERT(i < kChildSize);
+        CHX_ASSERT(i < kChildSize);
         internal->lines += static_cast<int64_t>(node->lines + new_node->lines) -
                            static_cast<int64_t>(internal->infos[i].lines);
         internal->bytes += static_cast<int64_t>(node->bytes + new_node->bytes) -
@@ -666,7 +666,7 @@ TextTree::Node* TextTree::SplitLeafNode(LeafNode* node, size_t insert_index,
 #endif
 
     if (insert_index >= bytes / 2) {  // split before the str
-        // MGO_LOG_DEBUG("before");
+        // CHX_LOG_DEBUG("before");
         size_t split_i = bytes / 2;
         for (; split_i < insert_index; split_i++) {
             if (IsUtf8BeginByte(node->data[split_i])) break;
@@ -683,7 +683,7 @@ TextTree::Node* TextTree::SplitLeafNode(LeafNode* node, size_t insert_index,
         node->bytes = split_i;
         node->lines = old_leaf_lines;
     } else if (insert_index + str.size() < bytes / 2) {  // split after the str
-        // MGO_LOG_DEBUG("after");
+        // CHX_LOG_DEBUG("after");
         size_t split_pos =
             insert_index + (bytes / 2 - str.size() - insert_index);
         for (; split_pos < node->bytes; split_pos++) {
@@ -700,7 +700,7 @@ TextTree::Node* TextTree::SplitLeafNode(LeafNode* node, size_t insert_index,
         node->lines = node->lines + std::count(str.begin(), str.end(), '\n') -
                       new_leaf->lines;
     } else {  // split the str
-        // MGO_LOG_DEBUG("in");
+        // CHX_LOG_DEBUG("in");
         size_t split_pos = bytes / 2 - insert_index;
         for (; split_pos < str.size(); split_pos++) {
             if (IsUtf8BeginByte(str[split_pos])) break;
@@ -721,11 +721,11 @@ TextTree::Node* TextTree::SplitLeafNode(LeafNode* node, size_t insert_index,
                       node->lines - line_cnt;
     }
 
-    MGO_ASSERT(_total_lines == node->lines + new_leaf->lines);
-    MGO_ASSERT(_total_bytes == node->bytes + new_leaf->bytes);
-    MGO_ASSERT(node->bytes <= kDataSize &&
+    CHX_ASSERT(_total_lines == node->lines + new_leaf->lines);
+    CHX_ASSERT(_total_bytes == node->bytes + new_leaf->bytes);
+    CHX_ASSERT(node->bytes <= kDataSize &&
                node->bytes >= kDataSizeMergeThreshold);
-    MGO_ASSERT(new_leaf->bytes <= kDataSize &&
+    CHX_ASSERT(new_leaf->bytes <= kDataSize &&
                new_leaf->bytes >= kDataSizeMergeThreshold);
 
     return new_leaf;
@@ -751,15 +751,15 @@ TextTree::Node* TextTree::SplitInternalNode(InternalNode* node) {
     for (size_t i = 0; i < new_node->size; i++) {
         new_node->children[i]->parent = new_node;
     }
-    MGO_ASSERT(new_node->size + node->size == kChildSize + 1);
-    MGO_ASSERT(new_node->size >= kChildSize / 2 &&
+    CHX_ASSERT(new_node->size + node->size == kChildSize + 1);
+    CHX_ASSERT(new_node->size >= kChildSize / 2 &&
                new_node->size <= kChildSize);
-    MGO_ASSERT(node->size >= kChildSize / 2 && node->size <= kChildSize);
+    CHX_ASSERT(node->size >= kChildSize / 2 && node->size <= kChildSize);
     return new_node;
 }
 
 bool TextTree::TryRedistributeLeafNode(LeafNode* node, size_t index) {
-    // MGO_LOG_DEBUG("redistribute");
+    // CHX_LOG_DEBUG("redistribute");
     // First try left sibling
     auto p = node->parent;
     if (index != 0) {
@@ -787,12 +787,12 @@ bool TextTree::TryRedistributeLeafNode(LeafNode* node, size_t index) {
             p->infos[index] = {node->lines, node->bytes};
             p->infos[index - 1] = {sibling->lines, sibling->bytes};
 
-            MGO_ASSERT(node->bytes >= kDataSizeMergeThreshold &&
+            CHX_ASSERT(node->bytes >= kDataSizeMergeThreshold &&
                        node->bytes <= kDataSize);
-            MGO_ASSERT(sibling->bytes >= kDataSizeMergeThreshold &&
+            CHX_ASSERT(sibling->bytes >= kDataSizeMergeThreshold &&
                        sibling->bytes <= kDataSize);
-            MGO_ASSERT(_total_bytes == node->bytes + sibling->bytes);
-            MGO_ASSERT(_total_lines == node->lines + sibling->lines);
+            CHX_ASSERT(_total_bytes == node->bytes + sibling->bytes);
+            CHX_ASSERT(_total_lines == node->lines + sibling->lines);
             return true;
         }
     }
@@ -821,12 +821,12 @@ bool TextTree::TryRedistributeLeafNode(LeafNode* node, size_t index) {
             p->infos[index] = {node->lines, node->bytes};
             p->infos[index + 1] = {sibling->lines, sibling->bytes};
 
-            MGO_ASSERT(node->bytes >= kDataSizeMergeThreshold &&
+            CHX_ASSERT(node->bytes >= kDataSizeMergeThreshold &&
                        node->bytes <= kDataSize);
-            MGO_ASSERT(sibling->bytes >= kDataSizeMergeThreshold &&
+            CHX_ASSERT(sibling->bytes >= kDataSizeMergeThreshold &&
                        sibling->bytes <= kDataSize);
-            MGO_ASSERT(_total_bytes == node->bytes + sibling->bytes);
-            MGO_ASSERT(_total_lines == node->lines + sibling->lines);
+            CHX_ASSERT(_total_bytes == node->bytes + sibling->bytes);
+            CHX_ASSERT(_total_lines == node->lines + sibling->lines);
             return true;
         }
     }
@@ -834,7 +834,7 @@ bool TextTree::TryRedistributeLeafNode(LeafNode* node, size_t index) {
 }
 
 void TextTree::MergeLeafNode(LeafNode* node, size_t index) {
-    // MGO_LOG_DEBUG("merge");
+    // CHX_LOG_DEBUG("merge");
     int64_t merged_i = -1;
     auto p = node->parent;
     // First try left sibling
@@ -846,7 +846,7 @@ void TextTree::MergeLeafNode(LeafNode* node, size_t index) {
         p->infos[index + 1].bytes + node->bytes <= kDataSize) {
         merged_i = index;
     }
-    MGO_ASSERT(merged_i != -1);
+    CHX_ASSERT(merged_i != -1);
 
     // Merge them
     auto merged_leaf = static_cast<LeafNode*>(p->children[merged_i]);
@@ -869,10 +869,10 @@ void TextTree::MergeLeafNode(LeafNode* node, size_t index) {
     }
     delete another_leaf;
 
-    MGO_ASSERT(merged_leaf->bytes >= kDataSizeMergeThreshold &&
+    CHX_ASSERT(merged_leaf->bytes >= kDataSizeMergeThreshold &&
                merged_leaf->bytes <= kDataSize);
-    MGO_ASSERT(merged_leaf->bytes == _total_bytes);
-    MGO_ASSERT(merged_leaf->lines == _total_lines);
+    CHX_ASSERT(merged_leaf->bytes == _total_bytes);
+    CHX_ASSERT(merged_leaf->lines == _total_lines);
 
     // tweak the parent
     p->infos[merged_i] = {merged_leaf->lines, merged_leaf->bytes};
@@ -959,7 +959,7 @@ void TextTree::MergeInternalNode(InternalNode* node, size_t index) {
             kChildSize) {
         merged_i = index;
     }
-    MGO_ASSERT(merged_i != -1);
+    CHX_ASSERT(merged_i != -1);
     // Merge them
     auto merged_internal = static_cast<InternalNode*>(p->children[merged_i]);
     auto another_internal =
@@ -982,7 +982,7 @@ void TextTree::MergeInternalNode(InternalNode* node, size_t index) {
 }
 
 std::string_view TextTree::TextView::ToStringView(std::string& buf) const {
-    MGO_ASSERT(end.offset() >= begin.offset());
+    CHX_ASSERT(end.offset() >= begin.offset());
     if (begin.node_ == end.node_) {
         return {&begin.node_->data[begin.index_], end.index_ - begin.index_};
     }
@@ -1144,4 +1144,4 @@ std::string TextTree::Check() {
     return {};
 }
 
-}  // namespace mango
+}  // namespace charxed

@@ -3,7 +3,7 @@
 #include "lsp/rpc.h"
 #include "subprocess.h"
 
-namespace mango {
+namespace charxed {
 
 class LspClient {
    public:
@@ -29,6 +29,7 @@ class LspClient {
     LspRpcReader reader_;
     LspRpcWriter writer_;
     bool started = false;
+    int cur_id_;
 };
 
 class StdioLspClient : public LspClient {
@@ -41,4 +42,4 @@ class StdioLspClient : public LspClient {
     Subprocess server_process_;
 };
 
-}  // namespace mango
+}  // namespace charxed

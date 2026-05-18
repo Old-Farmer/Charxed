@@ -2,7 +2,7 @@
 
 #include "editor_event_manager.h"
 
-namespace mango {
+namespace charxed {
 
 BufferManager::BufferManager(EditorEventManager* editor_event_manager)
     : list_head_(nullptr, false),
@@ -17,17 +17,17 @@ BufferManager::BufferManager(EditorEventManager* editor_event_manager)
 Buffer* BufferManager::AddBuffer(Buffer&& buffer) {
     int64_t buffer_id = buffer.id();
     auto [iter, inserted] = buffers_.emplace(buffer_id, std::move(buffer));
-    MGO_ASSERT(inserted);
+    CHX_ASSERT(inserted);
     iter->second.AppendToList(&list_tail_);
     return &iter->second;
 }
 
 void BufferManager::RemoveBuffer(Buffer* buffer) {
-    MGO_ASSERT(buffer);
+    CHX_ASSERT(buffer);
     int64_t id = buffer->id();
     editor_event_manager_->EmitEvent(EditorEvent::kBufferRemoved, buffer);
     buffer->RemoveFromList();
-    MGO_ASSERT(buffers_.count(id) == 1);
+    CHX_ASSERT(buffers_.count(id) == 1);
     buffers_.erase(id);
 }
 
@@ -65,4 +65,4 @@ Buffer* BufferManager::FindBuffer(int64_t id) {
     return &iter->second;
 }
 
-}  // namespace mango
+}  // namespace charxed

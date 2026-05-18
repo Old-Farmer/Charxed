@@ -15,7 +15,7 @@ struct TSLanguage;
 struct TSQueryCursor;
 struct TSQueryCapture;
 
-namespace mango {
+namespace charxed {
 struct Highlight {
     Range range;
     ColorSchemeType hl_type;
@@ -31,16 +31,16 @@ class SyntaxParser {
    public:
     SyntaxParser(GlobalOpts* options);
     ~SyntaxParser();
-    MGO_DELETE_COPY(SyntaxParser);
-    MGO_DELETE_MOVE(SyntaxParser);
+    CHX_DELETE_COPY(SyntaxParser);
+    CHX_DELETE_MOVE(SyntaxParser);
 
     void SyntaxInit(const Buffer* buffer);
     void ParseSyntaxAfterEdit(Buffer* buffer);
     void OnBufferDelete(const Buffer* buffer);
     // Get buffer Syntax Context: Current is Buffer syntax hl info.
-    // Need provide a range, so this function can calculate syntax hl info in the range.
-    // This range should be as small as possible.
-    // throw TSQueryPredicateDirectiveNotSupportException
+    // Need provide a range, so this function can calculate syntax hl info in
+    // the range. This range should be as small as possible. throw
+    // TSQueryPredicateDirectiveNotSupportException
     const SyntaxContext* GetBufferSyntaxContext(const Buffer* buffer,
                                                 const Range& range);
 
@@ -87,4 +87,4 @@ class SyntaxParser {
     GlobalOpts* global_opts_;
 };
 
-}  // namespace mango
+}  // namespace charxed

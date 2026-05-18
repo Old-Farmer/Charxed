@@ -20,18 +20,18 @@
 #include "utils.h"
 #include "window.h"
 
-namespace mango {
+namespace charxed {
 
 struct InitOpts;
 struct Options;
 
 class Editor {
    private:
-    MGO_DEFAULT_CONSTRUCT_DESTRUCT(Editor);
+    CHX_DEFAULT_CONSTRUCT_DESTRUCT(Editor);
 
    public:
-    MGO_DELETE_COPY(Editor);
-    MGO_DELETE_MOVE(Editor);
+    CHX_DELETE_COPY(Editor);
+    CHX_DELETE_MOVE(Editor);
 
     // Make sure that options is static lifetime
     void Init(std::unique_ptr<GlobalOpts> global_opts,
@@ -119,9 +119,9 @@ class Editor {
         std::unordered_map<ContextID, void*> contexts_;
 
        public:
-        MGO_DEFAULT_CONSTRUCT_DESTRUCT(ContextManager);
-        MGO_DELETE_COPY(ContextManager);
-        MGO_DELETE_MOVE(ContextManager);
+        CHX_DEFAULT_CONSTRUCT_DESTRUCT(ContextManager);
+        CHX_DELETE_COPY(ContextManager);
+        CHX_DELETE_MOVE(ContextManager);
 
         void*& GetContext(ContextID id);
         void FreeContext(ContextID id);
@@ -175,4 +175,4 @@ class Editor {
     Terminal& term_ = Terminal::GetInstance();
 };
 
-}  // namespace mango
+}  // namespace charxed

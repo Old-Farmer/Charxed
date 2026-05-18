@@ -5,12 +5,12 @@
 
 #include "pos.h"
 
-namespace mango {
+namespace charxed {
 
 class Buffer;
 
-std::vector<Range> BufferSearch(const Buffer* buffer, const std::string& pattern,
-                                bool ignore_case);
+std::vector<Range> BufferSearch(const Buffer* buffer,
+                                const std::string& pattern, bool ignore_case);
 
 struct BufferSearchContext {
     std::vector<Range> search_result;
@@ -34,4 +34,4 @@ struct BufferSearchState {
     size_t total = 0;
 };
 
-}  // namespace mango
+}  // namespace charxed

@@ -10,7 +10,7 @@
 #include "logging.h"
 #include "options.h"
 
-namespace mango {
+namespace charxed {
 
 int64_t Buffer::cur_buffer_id_ = 0;
 std::vector<bool> Buffer::new_file_alloced_ids_ = {};
@@ -75,7 +75,7 @@ void Buffer::Load() {
         }
 
         File f(path_.AbsolutePath(), mode);
-        MGO_LOG_DEBUG("file path {}", path_.AbsolutePath());
+        CHX_LOG_DEBUG("file path {}", path_.AbsolutePath());
 
         tree_.BulkLoad(f, eol_seq_);
 
@@ -193,7 +193,7 @@ Result Buffer::Write() {
 }
 
 Result Buffer::SaveAs(const Path& path) {
-    MGO_ASSERT(!path.Empty());
+    CHX_ASSERT(!path.Empty());
     Path old_p = path_;
     path_ = path;
 
@@ -272,8 +272,8 @@ void Buffer::AddInner(Pos pos, std::string_view str, Pos& cursor_pos_hint,
 
 std::string Buffer::DeleteInner(const Range& range, Pos& cursor_pos_hint,
                                 bool record_reverse, bool record_ts_edit) {
-    MGO_ASSERT(LineCnt() > range.end.line);
-    MGO_ASSERT(range.begin.line < range.end.line ||
+    CHX_ASSERT(LineCnt() > range.end.line);
+    CHX_ASSERT(range.begin.line < range.end.line ||
                (range.begin.line == range.end.line &&
                 range.begin.byte_offset <= range.end.byte_offset));
     TextTree::TextView view;
@@ -320,7 +320,7 @@ std::string Buffer::ReplaceInner(const Range& range, std::string_view str,
 }
 
 bool Buffer::TryRecordMerge(const BufferEditHistoryItem& item) {
-    MGO_ASSERT(edit_history_.Size() > 0);
+    CHX_ASSERT(edit_history_.Size() > 0);
     auto last_item_optional = edit_history_.GetItemJustBeforeCursor();
     if (!last_item_optional.has_value()) {
         return false;
@@ -459,7 +459,7 @@ Result Buffer::Redo(Pos& cursor_pos_hint) {
         return kNoHistoryAvailable;
     }
 
-    MGO_ASSERT(edit_history_.GetItemJustBeforeCursor().has_value());
+    CHX_ASSERT(edit_history_.GetItemJustBeforeCursor().has_value());
     BufferEditHistoryItem& item = *edit_history_.GetItemJustBeforeCursor();
     Edit(item.origin, cursor_pos_hint);
     cursor_pos_hint = item.origin_pos_hint;
@@ -471,7 +471,7 @@ Result Buffer::Undo(Pos& cursor_pos_hint) {
         return kNoHistoryAvailable;
     }
 
-    MGO_ASSERT(edit_history_.GetItemAtCursor().has_value());
+    CHX_ASSERT(edit_history_.GetItemAtCursor().has_value());
     BufferEditHistoryItem& item = *edit_history_.GetItemAtCursor();
     Edit(item.reverse, cursor_pos_hint);
     cursor_pos_hint = item.reverse_pos_hint;
@@ -503,9 +503,9 @@ bool Buffer::IsLastBuffer() const { return next_->next_ == nullptr; }
 bool Buffer::IsFirstBuffer() const { return prev_->prev_ == nullptr; }
 
 void Buffer::Modified() {
-    MGO_ASSERT(IsLoad() && !read_only());
+    CHX_ASSERT(IsLoad() && !read_only());
     state_ = BufferState::kModified;
     version_++;
 }
 
-}  // namespace mango
+}  // namespace charxed

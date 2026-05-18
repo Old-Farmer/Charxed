@@ -1,6 +1,6 @@
 #include "utf8.h"
 
-namespace mango {
+namespace charxed {
 
 bool CheckUtf8Valid(std::string_view str) {
     size_t offset = 0;
@@ -17,4 +17,4 @@ bool CheckUtf8Valid(std::string_view str) {
     return true;
 }
 
-}  // namespace mango
+}  // namespace charxed

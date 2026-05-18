@@ -17,7 +17,7 @@
 #include "str.h"
 #include "window.h"
 
-namespace mango {
+namespace charxed {
 
 // throw FSException
 static std::vector<std::string> SuggestFilePath(std::string_view hint) {
@@ -76,7 +76,7 @@ PeelCompleter::PeelCompleter(MangoPeel* peel, BufferManager* buffer_manager,
                     suggestions_ = SuggestFilePath(arg_hint);
                 } catch (FSException& e) {
                     // TODO: maybe we can throw catch the outer?
-                    MGO_LOG_ERROR("{}", e.what());
+                    CHX_LOG_ERROR("{}", e.what());
                 }
                 type_ = SuggestType::kPath;
             };
@@ -114,7 +114,7 @@ PeelCompleter::PeelCompleter(MangoPeel* peel, BufferManager* buffer_manager,
                     }
                     type_ = SuggestType::kOther;
                 } catch (FSException& e) {
-                    MGO_LOG_ERROR("{}", e.what());
+                    CHX_LOG_ERROR("{}", e.what());
                 }
             }
         };
@@ -179,7 +179,7 @@ Result PeelCompleter::Accept(size_t index, Cursor* cursor) {
                 suggestions_[index], nullptr, false, pos);
         }
     } else {
-        MGO_ASSERT("Shouldn't reach here");
+        CHX_ASSERT("Shouldn't reach here");
     }
     cursor->pos = pos;
     Result res;
@@ -269,7 +269,7 @@ void BufferBasicWordCompleter::Suggest(const Pos& cursor_pos,
         }
     }
     // auto end = std::chrono::steady_clock::now();
-    // MGO_LOG_INFO(
+    // CHX_LOG_INFO(
     //     "time {} ms",
     //     std::chrono::duration_cast<std::chrono::microseconds>(end - now)
     //         .count());
@@ -280,8 +280,8 @@ void BufferBasicWordCompleter::Suggest(const Pos& cursor_pos,
 }
 
 Result BufferBasicWordCompleter::Accept(size_t index, Cursor* cursor) {
-    MGO_ASSERT(cursor->in_window);
-    MGO_ASSERT(index < suggestions_.size());
+    CHX_ASSERT(cursor->in_window);
+    CHX_ASSERT(index < suggestions_.size());
     Pos cursor_pos = cursor->pos;
     cursor->in_window->Replace(
         {{cursor_pos.line,
@@ -298,4 +298,4 @@ void BufferBasicWordCompleter::Enable() { enabled_ = true; }
 
 void BufferBasicWordCompleter::Disable() { enabled_ = false; }
 
-}  // namespace mango
+}  // namespace charxed

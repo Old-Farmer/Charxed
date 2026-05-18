@@ -11,7 +11,7 @@
 #include "str.h"
 #include "syntax.h"
 
-namespace mango {
+namespace charxed {
 Window::Window(Cursor* cursor, GlobalOpts* global_opts, SyntaxParser* parser,
                ClipBoard* clipboard, BufferManager* buffer_manager) noexcept
     : cursor_(cursor),
@@ -135,7 +135,7 @@ Result Window::AddStringAtCursor(std::string_view str, bool raw) {
 }
 
 Result Window::NewLineAboveCursorline() {
-    MGO_ASSERT(!area_.IsSelectionActive());
+    CHX_ASSERT(!area_.IsSelectionActive());
     if (cursor_->pos.line == 0) {
         return area_.AddStringAtPos({0, 0}, "\n", &cursor_->pos);
     }
@@ -145,7 +145,7 @@ Result Window::NewLineAboveCursorline() {
 }
 
 Result Window::NewLineUnderCursorline() {
-    MGO_ASSERT(!area_.IsSelectionActive());
+    CHX_ASSERT(!area_.IsSelectionActive());
     return TryAutoIndent(
         {cursor_->pos.line,
          area_.buffer_->GetLineView(cursor_->pos.line).Size()});
@@ -156,7 +156,7 @@ Result Window::Replace(const Range& range, std::string_view str) {
 }
 
 Result Window::TryAutoPair(std::string_view str) {
-    MGO_ASSERT(str.size() == 1 && str[0] < CHAR_MAX && str[0] >= 0);
+    CHX_ASSERT(str.size() == 1 && str[0] < CHAR_MAX && str[0] >= 0);
 
     auto line = area_.buffer_->GetLineView(cursor_->pos.line);
 
@@ -207,7 +207,7 @@ Result Window::TryAutoPair(std::string_view str) {
 }
 
 Result Window::TryAutoIndent(Pos pos) {
-    MGO_ASSERT(!area_.IsSelectionActive());
+    CHX_ASSERT(!area_.IsSelectionActive());
 
     // TODO: use regex patterns for autoindent
 
@@ -312,7 +312,7 @@ Result Window::GotoFile() {
             real_path.append(path);
         }
     }
-    MGO_LOG_DEBUG("path: {}", real_path);
+    CHX_LOG_DEBUG("path: {}", real_path);
     try {
         // Check file stat to make sure that we don't create a buffer for
         // a completely wrong path.
@@ -354,7 +354,7 @@ void Window::AttachBuffer(Buffer* buffer) {
         bool ok;
         std::tie(b_view_iter, ok) =
             buffer_views_.emplace(buffer->id(), BufferView());
-        MGO_ASSERT(ok);
+        CHX_ASSERT(ok);
     }
     b_view_iter->second.RestoreCursorState(cursor_, buffer);
     area_.b_view_ = &b_view_iter->second;
@@ -459,7 +459,7 @@ void Window::JumpBackward() {
     }
     while (iter != jump_history_->begin()) {
         iter--;
-        MGO_ASSERT(iter != jump_history_->end());
+        CHX_ASSERT(iter != jump_history_->end());
         Buffer* b = buffer_manager_->FindBuffer(iter->buffer);
         if (b == nullptr) {
             iter = jump_history_->erase(iter);
@@ -479,4 +479,4 @@ int64_t Window::AllocId() noexcept { return cur_window_id_++; }
 
 int64_t Window::cur_window_id_ = 0;
 
-}  // namespace mango
+}  // namespace charxed

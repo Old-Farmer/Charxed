@@ -2,7 +2,7 @@
 
 #include "buffer.h"
 
-namespace mango {
+namespace charxed {
 
 Range NormalSelection::ToSelectRange(const Buffer* buffer) const {
     (void)buffer;
@@ -38,4 +38,4 @@ Range LineSelection::ToDeleteRange(const Buffer* buffer) const {
     return r;
 }
 
-}  // namespace mango
+}  // namespace charxed

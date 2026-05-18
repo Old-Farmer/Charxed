@@ -3,7 +3,7 @@
 #include "term.h"
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 struct Cursor;
 class GlobalOpts;
@@ -15,8 +15,8 @@ class StatusLine {
    public:
     StatusLine(Cursor* cursor, GlobalOpts* options, Mode* mode);
     ~StatusLine() = default;
-    MGO_DELETE_COPY(StatusLine);
-    MGO_DEFAULT_MOVE(StatusLine);
+    CHX_DELETE_COPY(StatusLine);
+    CHX_DEFAULT_MOVE(StatusLine);
 
     void Draw();
 
@@ -32,4 +32,4 @@ class StatusLine {
     Terminal* term_ = &Terminal::GetInstance();
 };
 
-}  // namespace mango
+}  // namespace charxed

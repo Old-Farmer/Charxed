@@ -11,7 +11,7 @@
 #include "linux/limits.h"
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 static constexpr const char* kXDGConfigHomeEnv = "XDG_CONFIG_HOME";
 static constexpr const char* kXDGCacheHomeEnv = "XDG_CACHE_HOME";
@@ -19,7 +19,7 @@ static constexpr const char* kXDGCacheHomeEnv = "XDG_CACHE_HOME";
 Path::Path() {}
 
 Path::Path(const std::string& str) {
-    MGO_ASSERT(!str.empty());
+    CHX_ASSERT(!str.empty());
     if (str[0] == kPathSeperator) {
         absolute_path_ = str;
         size_t pos = absolute_path_.find(cwd_);
@@ -30,7 +30,7 @@ Path::Path(const std::string& str) {
     }
 
     std::string::size_type pos = absolute_path_.find_last_of(kPathSeperator);
-    MGO_ASSERT(pos != std::string::npos);
+    CHX_ASSERT(pos != std::string::npos);
     file_name_len_ = absolute_path_.size() - pos - 1;
     last_cwd_version_ = cwd_version_;
 }
@@ -58,7 +58,7 @@ const std::string& Path::AbsolutePath() const noexcept {
 
 std::string_view Path::Dir() const noexcept {
     std::string::size_type pos = absolute_path_.find_last_of(kPathSeperator);
-    MGO_ASSERT(pos != std::string::npos);
+    CHX_ASSERT(pos != std::string::npos);
     return std::string_view(absolute_path_).substr(0, pos + 1);
 }
 
@@ -110,7 +110,7 @@ void Path::Normalize() {
     }
     absolute_path_ = normalized_path;
     std::string::size_type pos = absolute_path_.find_last_of(kPathSeperator);
-    MGO_ASSERT(pos != std::string::npos);
+    CHX_ASSERT(pos != std::string::npos);
     file_name_len_ = absolute_path_.size() - pos - 1;
     last_cwd_version_ = cwd_version_;
 }
@@ -228,7 +228,7 @@ std::vector<std::string> Path::ListUnderPath(const std::string& path) {
 }
 
 bool Path::IsAbsolutePath(std::string_view path) {
-    MGO_ASSERT(!path.empty());
+    CHX_ASSERT(!path.empty());
     return path[0] == kPathSeperator;
 }
 
@@ -238,7 +238,7 @@ int64_t Path::cwd_version_ = 0;
 std::string Path::app_root_ = "";
 
 Result GetFileStat(const std::string& path, FileStat& file_stat) {
-    MGO_ASSERT(!path.empty());
+    CHX_ASSERT(!path.empty());
     struct stat sta;
     int res = stat(path.c_str(), &sta);
     if (res == -1) {
@@ -254,4 +254,4 @@ Result GetFileStat(const std::string& path, FileStat& file_stat) {
     return kOk;
 }
 
-}  // namespace mango
+}  // namespace charxed

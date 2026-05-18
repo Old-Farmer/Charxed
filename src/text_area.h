@@ -9,7 +9,7 @@
 #include "term.h"
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 class Buffer;
 struct Cursor;
@@ -25,8 +25,8 @@ class TextArea {
     TextArea(Cursor* cursor, Opts* opts, SyntaxParser* parser,
              ClipBoard* clipboard) noexcept;
     ~TextArea() = default;
-    MGO_DELETE_COPY(TextArea);
-    MGO_DEFAULT_MOVE(TextArea);
+    CHX_DELETE_COPY(TextArea);
+    CHX_DEFAULT_MOVE(TextArea);
 
     // if search_context != nullptr, frame will draw the search highlight no
     // matter what kHighlighOnSearch is. So caller should be careful.
@@ -214,4 +214,4 @@ class TextArea {
     Terminal* term_ = &Terminal::GetInstance();
 };
 
-}  // namespace mango
+}  // namespace charxed

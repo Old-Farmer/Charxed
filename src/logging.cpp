@@ -2,16 +2,14 @@
 
 #include <cstdio>
 #include <cstring>
-#include "fs.h"
 
 #include "exception.h"
+#include "fs.h"
 
-namespace mango {
+namespace charxed {
 FILE* logging_file;
 
-std::string GetLoggingFilePath() {
-    return Path::GetCache() + "mango.log";
-}
+std::string GetLoggingFilePath() { return Path::GetCache() + "charxed.log"; }
 
 void LogInit(const std::string& file) {
     logging_file = fopen(file.c_str(), "a+");
@@ -20,7 +18,5 @@ void LogInit(const std::string& file) {
     }
 }
 
-void LogDeinit() {
-    fclose(logging_file);
-}
-}  // namespace mango
+void LogDeinit() { fclose(logging_file); }
+}  // namespace charxed

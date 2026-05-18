@@ -1,6 +1,6 @@
 #include "editor_event_manager.h"
 
-namespace mango {
+namespace charxed {
 
 EditorEventHandlerID EditorEventManager::AddHandler(
     EditorEvent event, EditorEventHandler handler) {
@@ -39,4 +39,4 @@ void EditorEventManager::EmitEvent(EditorEvent event, void* arg) {
         }
     }
 }
-}  // namespace mango
+}  // namespace charxed

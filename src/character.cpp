@@ -1,9 +1,9 @@
 #include "character.h"
 
-namespace mango {
+namespace charxed {
 
 int Character::Width() {
-    MGO_ASSERT(codepoints_cnt_ != 0);
+    CHX_ASSERT(codepoints_cnt_ != 0);
     return CharacterWidth(Codepoints(), CodePointCount());
 }
 
@@ -198,7 +198,7 @@ bool IsWordSeperator(char c) { return kIsWordSeparator[static_cast<int>(c)]; }
 
 Result ThisCharacterInner(std::string_view str, int64_t offset,
                           Character& character, int& byte_len) {
-    MGO_ASSERT(static_cast<size_t>(offset) < str.size());
+    CHX_ASSERT(static_cast<size_t>(offset) < str.size());
     int64_t cur_offset = offset;
     int64_t end_offset = str.size();
 
@@ -252,7 +252,7 @@ TextTree::Iterator NextCharacter(TextTree::Iterator iter,
 
 Result PrevCharacterInner(std::string_view str, int64_t offset,
                           Character& character, int& byte_len) {
-    MGO_ASSERT(offset > 0);
+    CHX_ASSERT(offset > 0);
 
     character.Clear();
     int64_t cur_offset = offset;
@@ -287,7 +287,7 @@ Result PrevCharacterInner(std::string_view str, int64_t offset,
     }
 
     // Impossible becasue we assume coding is correct.
-    MGO_ASSERT(!codepoints_reverse.empty());
+    CHX_ASSERT(!codepoints_reverse.empty());
 
     // We have found a break or we touch the beginning of the str,
     // we start find the last break before offset starting from the
@@ -322,7 +322,7 @@ Result PrevCharacterInner(std::string_view str, int64_t offset,
 TextTree::Iterator PrevCharacter(TextTree::Iterator iter,
                                  TextTree::Iterator begin,
                                  Character& character) {
-    MGO_ASSERT(iter != begin);
+    CHX_ASSERT(iter != begin);
 
     character.Clear();
     std::vector<Codepoint> codepoints_reverse;
@@ -351,7 +351,7 @@ TextTree::Iterator PrevCharacter(TextTree::Iterator iter,
     }
 
     // Impossible becasue we assume coding is correct.
-    MGO_ASSERT(!codepoints_reverse.empty());
+    CHX_ASSERT(!codepoints_reverse.empty());
 
     // We have found a break or we touch the beginning of the str,
     // we start find the last break before offset starting from the
@@ -460,4 +460,4 @@ size_t StringWidth(const std::string& str) {
     return width;
 }
 
-}  // namespace mango
+}  // namespace charxed

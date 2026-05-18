@@ -7,15 +7,15 @@
 #include "filetype.h"
 #include "fs.h"
 
-namespace mango {
+namespace charxed {
 
 static constexpr const char* kDefaultConfigPath = "resource/config/config.json";
 static constexpr const char* kDefaultColorschemePath =
     "resource/config/colorscheme.json";
 static const std::string kUserConfigPath =
-    std::string(Path::GetConfig()) + "mango-editor/config.json";
+    std::string(Path::GetConfig()) + "charxed/config.json";
 static const std::string kUserColorschemePath =
-    std::string(Path::GetConfig()) + "mango-editor/colorscheme.json";
+    std::string(Path::GetConfig()) + "charxed/colorscheme.json";
 
 static const std::unordered_map<std::string_view, OptKey> kStrRepToOptKey{
     // buffer
@@ -391,4 +391,4 @@ void Opts::InitAfterBufferLoad(const Buffer* buffer) {
     opts_ = iter->second;
 }
 
-}  // namespace mango
+}  // namespace charxed

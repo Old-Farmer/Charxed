@@ -8,7 +8,7 @@
 #include "result.h"
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 constexpr int8_t kMaxCommandArgCnt = 6;
 
@@ -29,9 +29,9 @@ struct Command {
 
 class CommandManager {
    public:
-    MGO_DEFAULT_CONSTRUCT_DESTRUCT(CommandManager);
-    MGO_DELETE_COPY(CommandManager);
-    MGO_DELETE_MOVE(CommandManager);
+    CHX_DEFAULT_CONSTRUCT_DESTRUCT(CommandManager);
+    CHX_DELETE_COPY(CommandManager);
+    CHX_DELETE_MOVE(CommandManager);
 
     // throw CommandNameExistException if command name conflict
     void AddCommand(const Command& command);
@@ -59,4 +59,4 @@ class CommandManager {
     std::vector<std::unique_ptr<Command>> commands_;
 };
 
-}  // namespace mango
+}  // namespace charxed

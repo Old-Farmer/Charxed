@@ -7,7 +7,7 @@
 #include "poll.h"
 #include "timer_manager.h"
 
-namespace mango {
+namespace charxed {
 
 constexpr int kEventRead = 0b1;
 constexpr int kEventWrite = 0b10;
@@ -52,8 +52,8 @@ class EventLoop {
 
     GlobalOpts* global_opts_;
 
-    public:
+   public:
     TimerManager timer_manager_;
 };
 
-}  // namespace mango
+}  // namespace charxed

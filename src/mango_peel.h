@@ -3,7 +3,7 @@
 #include "buffer.h"
 #include "text_area.h"
 
-namespace mango {
+namespace charxed {
 
 class CommandManager;
 
@@ -11,13 +11,15 @@ class CommandManager;
 // It fix at the bottome of the screan.
 // It usually shows in one row, when multiple row contents needed, it will
 // extend it row numbers.
+// This class is named like this because the project was initially called
+// "mango".
 class MangoPeel {
    public:
     MangoPeel(Cursor* cursor, GlobalOpts* global_opts, ClipBoard* clipboard,
               BufferManager* buffer_manager, CommandManager* command_manager);
     ~MangoPeel() = default;
-    MGO_DELETE_COPY(MangoPeel);
-    MGO_DEFAULT_MOVE(MangoPeel);
+    CHX_DELETE_COPY(MangoPeel);
+    CHX_DEFAULT_MOVE(MangoPeel);
 
     void Draw();
 
@@ -100,4 +102,4 @@ class MangoPeel {
     PeelCompleter completer_;
 };
 
-}  // namespace mango
+}  // namespace charxed

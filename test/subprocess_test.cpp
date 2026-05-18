@@ -5,7 +5,7 @@
 #include "catch2/catch_test_macros.hpp"
 #include "logging.h"
 
-using namespace mango;
+using namespace charxed;
 
 TEST_CASE("test Exec") {
     LogInit("subprocess_test.log");
@@ -49,6 +49,6 @@ TEST_CASE("test Exec") {
         int exit_code;
         const char* const argv[] = {"abcdefg", nullptr};
         res = Exec(argv, nullptr, nullptr, nullptr, exit_code, true);
-        REQUIRE(res == mango::kOuterCommandExecuteFail);
+        REQUIRE(res == kOuterCommandExecuteFail);
     }
 }

@@ -2,6 +2,6 @@
 
 #include <nlohmann/json.hpp>
 
-namespace mango {
-    using Json = nlohmann::json;
+namespace charxed {
+using Json = nlohmann::json;
 }

@@ -5,7 +5,7 @@
 
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 constexpr zstring_view kDefaultFileType = "text";
 
@@ -110,4 +110,4 @@ zstring_view FiletypeStrRep(zstring_view filetype) {
     return kFileTypesToStrRep.at(filetype);
 }
 
-}  // namespace mango
+}  // namespace charxed

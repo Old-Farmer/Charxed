@@ -14,7 +14,7 @@
 #include "search.h"
 #include "syntax.h"
 
-namespace mango {
+namespace charxed {
 
 static constexpr std::string_view kSublineIndicator = "<<<";
 
@@ -23,7 +23,7 @@ TextArea::TextArea(Cursor* cursor, Opts* opts, SyntaxParser* parser,
     : cursor_(cursor), clipboard_(clipboard), parser_(parser), opts_(opts) {}
 
 void TextArea::Draw(BufferSearchContext* search_context) {
-    MGO_ASSERT(buffer_ != nullptr);
+    CHX_ASSERT(buffer_ != nullptr);
     if (!buffer_->IsLoad()) {
         return;
     }
@@ -148,7 +148,7 @@ void TextArea::Draw(BufferSearchContext* search_context) {
                 ? line_view.Size()
                 : trailing_white_begin_pre_line[line - render_range.begin.line];
 
-        MGO_ASSERT(line < buffer_->LineCnt());
+        CHX_ASSERT(line < buffer_->LineCnt());
         for (size_t i = 0; i < height_; i++) {
             if (line >= buffer_->LineCnt()) {
                 if (!eob_mark) break;
@@ -577,7 +577,7 @@ void TextArea::MakeCursorVisible() {
     if (scroll_off * 2 + 1 <= height_) {
         top_scroll_off = bottom_scroll_off = scroll_off;
     } else {
-        MGO_ASSERT(height_ >= 1);
+        CHX_ASSERT(height_ >= 1);
         top_scroll_off = (height_ - 1) / 2;
         bottom_scroll_off = (height_ - 1) - top_scroll_off;
     }
@@ -620,7 +620,7 @@ void TextArea::MakeSureBColViewWantReady(CursorState& state) {
 
     size_t content_width = width_ - SidebarWidth();
     int tabstop = GetOpt<int64_t>(kOptTabStop);
-    MGO_ASSERT(state.pos.line < buffer_->LineCnt());
+    CHX_ASSERT(state.pos.line < buffer_->LineCnt());
     auto line = buffer_->GetLineView(state.pos.line);
     size_t b_view_col;
     if (GetOpt<bool>(kOptWrap)) {
@@ -790,8 +790,8 @@ void TextArea::SetCursorHintWrap(size_t s_row, size_t s_col,
 }
 
 void TextArea::SetCursorHint(size_t s_row, size_t s_col) {
-    MGO_ASSERT(buffer_);
-    MGO_ASSERT(In(s_col, s_row));
+    CHX_ASSERT(buffer_);
+    CHX_ASSERT(In(s_col, s_row));
     b_view_->make_cursor_visible = true;
 
     size_t sidebar_width = SidebarWidth();
@@ -869,8 +869,8 @@ void TextArea::ScrollRowsNoWrap(int64_t count, size_t content_width) {
 }
 
 void TextArea::ScrollRows(int64_t count) {
-    MGO_ASSERT(buffer_);
-    MGO_ASSERT(count != 0);
+    CHX_ASSERT(buffer_);
+    CHX_ASSERT(count != 0);
     b_view_->make_cursor_visible = false;
     size_t sidebar_width = SidebarWidth();
     if (!SizeValid(sidebar_width)) {
@@ -888,8 +888,8 @@ void TextArea::ScrollRows(int64_t count) {
 void TextArea::ScrollCols(int64_t count) { (void)count; }
 
 bool TextArea::CursorGoRightState(size_t count, CursorState& state) {
-    MGO_ASSERT(buffer_);
-    MGO_ASSERT(count != 0);
+    CHX_ASSERT(buffer_);
+    CHX_ASSERT(count != 0);
     auto _ = gsl::finally([&state] { state.DontHoldColWant(); });
 
     // end
@@ -909,8 +909,8 @@ bool TextArea::CursorGoRightState(size_t count, CursorState& state) {
 }
 
 bool TextArea::CursorGoLeftState(size_t count, CursorState& state) {
-    MGO_ASSERT(buffer_);
-    MGO_ASSERT(count != 0);
+    CHX_ASSERT(buffer_);
+    CHX_ASSERT(count != 0);
     auto _ = gsl::finally([&state] { state.DontHoldColWant(); });
 
     // home
@@ -1004,8 +1004,8 @@ bool TextArea::CursorGoUpStateNoWrap(size_t count, size_t content_width,
 }
 
 bool TextArea::CursorGoUpState(size_t count, CursorState& state) {
-    MGO_ASSERT(buffer_);
-    MGO_ASSERT(count != 0);
+    CHX_ASSERT(buffer_);
+    CHX_ASSERT(count != 0);
     size_t sidebar_width = SidebarWidth();
     if (!SizeValid(sidebar_width)) {
         return false;
@@ -1087,7 +1087,7 @@ bool TextArea::CursorGoDownStateNoWrap(size_t count, size_t content_width,
 }
 
 bool TextArea::CursorGoDownState(size_t count, CursorState& state) {
-    MGO_ASSERT(buffer_);
+    CHX_ASSERT(buffer_);
     size_t sidebar_width = SidebarWidth();
     if (!SizeValid(sidebar_width)) {
         return false;
@@ -1100,7 +1100,7 @@ bool TextArea::CursorGoDownState(size_t count, CursorState& state) {
 }
 
 bool TextArea::CursorGoHomeState(CursorState& state) {
-    MGO_ASSERT(buffer_);
+    CHX_ASSERT(buffer_);
     if (state.pos.byte_offset == 0) {
         return false;
     }
@@ -1109,7 +1109,7 @@ bool TextArea::CursorGoHomeState(CursorState& state) {
     return true;
 }
 bool TextArea::CursorGoFirstNonBlankState(CursorState& state) {
-    MGO_ASSERT(buffer_);
+    CHX_ASSERT(buffer_);
     auto line = buffer_->GetLineView(cursor_->pos.line);
     Character c;
     auto iter = line.begin;
@@ -1130,7 +1130,7 @@ bool TextArea::CursorGoFirstNonBlankState(CursorState& state) {
     return true;
 }
 bool TextArea::CursorGoEndState(CursorState& state) {
-    MGO_ASSERT(buffer_);
+    CHX_ASSERT(buffer_);
     size_t size = buffer_->GetLineView(state.pos.line).Size();
     if (state.pos.byte_offset == size) {
         return false;
@@ -1140,8 +1140,8 @@ bool TextArea::CursorGoEndState(CursorState& state) {
     return true;
 }
 bool TextArea::CursorGoNextWordEndState(size_t count, CursorState& state) {
-    MGO_ASSERT(buffer_);
-    MGO_ASSERT(count != 0);
+    CHX_ASSERT(buffer_);
+    CHX_ASSERT(count != 0);
     size_t i = 0;
     auto cur_line = buffer_->GetLineView(state.pos.line);
     auto iter = buffer_->Find(state.pos);
@@ -1164,8 +1164,8 @@ bool TextArea::CursorGoNextWordEndState(size_t count, CursorState& state) {
     return true;
 }
 bool TextArea::CursorGoPrevWordBeginState(size_t count, CursorState& state) {
-    MGO_ASSERT(buffer_);
-    MGO_ASSERT(count != 0);
+    CHX_ASSERT(buffer_);
+    CHX_ASSERT(count != 0);
     size_t i = 0;
     auto cur_line = buffer_->GetLineView(state.pos.line);
     auto iter = buffer_->Find(state.pos);
@@ -1189,8 +1189,8 @@ bool TextArea::CursorGoPrevWordBeginState(size_t count, CursorState& state) {
 }
 
 bool TextArea::CursorGoNextWordBeginState(size_t count, CursorState& state) {
-    MGO_ASSERT(buffer_);
-    MGO_ASSERT(count != 0);
+    CHX_ASSERT(buffer_);
+    CHX_ASSERT(count != 0);
     size_t i = 0;
     auto cur_line = buffer_->GetLineView(state.pos.line);
     auto iter = buffer_->Find(state.pos);
@@ -1214,7 +1214,7 @@ bool TextArea::CursorGoNextWordBeginState(size_t count, CursorState& state) {
 }
 
 bool TextArea::CursorGoLineState(size_t line, CursorState& state) {
-    MGO_ASSERT(buffer_);
+    CHX_ASSERT(buffer_);
     if (line == state.pos.line) {
         return false;
     }
@@ -1250,7 +1250,7 @@ void TextArea::CursorGoLeft(size_t count) {
 }
 
 void TextArea::CursorGoUp(size_t count) {
-    MGO_ASSERT(count != 0);
+    CHX_ASSERT(count != 0);
     b_view_->make_cursor_visible = true;
     CursorState state(cursor_);
     if (CursorGoUpState(count, state)) {
@@ -1260,7 +1260,7 @@ void TextArea::CursorGoUp(size_t count) {
 }
 
 void TextArea::CursorGoDown(size_t count) {
-    MGO_ASSERT(count != 0);
+    CHX_ASSERT(count != 0);
     b_view_->make_cursor_visible = true;
     CursorState state(cursor_);
     if (CursorGoDownState(count, state)) {
@@ -1368,8 +1368,8 @@ Result TextArea::DeleteAtCursor() {
 }
 
 Result TextArea::DeleteWordBeforeCursor() {
-    MGO_ASSERT(!IsSelectionActive());
-    MGO_ASSERT(buffer_);
+    CHX_ASSERT(!IsSelectionActive());
+    CHX_ASSERT(buffer_);
     b_view_->make_cursor_visible = true;
     Pos deleted_until;
     if (cursor_->pos.byte_offset == 0) {
@@ -1407,7 +1407,7 @@ Result TextArea::AddStringAtCursor(std::string_view str,
 
 Result TextArea::AddStringAtPos(Pos pos, std::string_view str,
                                 const Pos* cursor_pos) {
-    MGO_ASSERT(!IsSelectionActive());
+    CHX_ASSERT(!IsSelectionActive());
     b_view_->make_cursor_visible = true;
     Pos new_pos;
     if (cursor_pos != nullptr) {
@@ -1511,7 +1511,7 @@ void TextArea::Copy() {
 }
 
 Result TextArea::Paste(size_t count) {
-    MGO_ASSERT(count != 0);
+    CHX_ASSERT(count != 0);
     b_view_->make_cursor_visible = true;
     bool lines;
     std::string content = clipboard_->GetContent(lines);
@@ -1621,7 +1621,7 @@ Result TextArea::DeleteSelection() {
 
 Result TextArea::AddStringAtCursorNoSelection(std::string_view str,
                                               const Pos* cursor_pos) {
-    MGO_ASSERT(!IsSelectionActive());
+    CHX_ASSERT(!IsSelectionActive());
 
     Pos pos;
     if (cursor_pos != nullptr) {
@@ -1636,7 +1636,7 @@ Result TextArea::AddStringAtCursorNoSelection(std::string_view str,
 }
 
 Result TextArea::ReplaceSelection(std::string_view str, const Pos* cursor_pos) {
-    MGO_ASSERT(IsSelectionActive());
+    CHX_ASSERT(IsSelectionActive());
     if (Result res;
         // FIXME: ToSelectRange?
         (res = Replace(selection_->ToSelectRange(buffer_), str, cursor_pos)) !=
@@ -1722,7 +1722,7 @@ void TextArea::DrawSidebar(int s_row, size_t absolute_line,
                                                : cursor_line - absolute_line);
     } else {
         // Make compiler happy
-        MGO_ASSERT(false);
+        CHX_ASSERT(false);
         line_number = 0;
     }
     std::string line_number_str = std::to_string(line_number);
@@ -1776,4 +1776,4 @@ bool TextArea::SizeValid(size_t sidebar_width) {
     return sidebar_width < width_ && height_ > 0;
 }
 
-}  // namespace mango
+}  // namespace charxed

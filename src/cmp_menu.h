@@ -4,7 +4,7 @@
 
 #include "term.h"
 #include "utils.h"
-namespace mango {
+namespace charxed {
 
 class GlobalOpts;
 struct Cursor;
@@ -18,8 +18,8 @@ class CmpMenu {
     CmpMenu(Cursor* cursor, GlobalOpts* options);
     ~CmpMenu() = default;
 
-    MGO_DELETE_COPY(CmpMenu);
-    MGO_DELETE_MOVE(CmpMenu);
+    CHX_DELETE_COPY(CmpMenu);
+    CHX_DELETE_MOVE(CmpMenu);
 
     void SetEntries(std::vector<std::string>&& entries);
 
@@ -54,4 +54,4 @@ class CmpMenu {
     Terminal* term_ = &Terminal::GetInstance();
 };
 
-}  // namespace mango
+}  // namespace charxed

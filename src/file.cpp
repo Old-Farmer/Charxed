@@ -6,7 +6,7 @@
 
 #include "exception.h"
 
-namespace mango {
+namespace charxed {
 
 std::string_view format_as(EOLSeq eol_seq) {
     std::string_view str;
@@ -15,7 +15,7 @@ std::string_view format_as(EOLSeq eol_seq) {
     } else if (eol_seq == EOLSeq::kCRLF) {
         str = kEOLSeqCRLFReqStr;
     } else {
-        MGO_ASSERT(false);
+        CHX_ASSERT(false);
     }
     return str;
 }
@@ -97,7 +97,7 @@ std::string File::ReadAll() {
             } else if (feof(file_)) {
                 throw IOException("{}", strerror(errno));
             } else {
-                MGO_ASSERT(false);
+                CHX_ASSERT(false);
             }
         }
     }
@@ -151,4 +151,4 @@ bool File::FileReadable(const std::string& path) noexcept {
     return true;
 }
 
-}  // namespace mango
+}  // namespace charxed

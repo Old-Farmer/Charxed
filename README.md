@@ -1,4 +1,4 @@
-# Mango
+# Charxed
 
 A modern text editor that combines modal editing with an intuitive, out-of-the-box experience.
 
@@ -56,7 +56,7 @@ cmake -DCMAKE_BUILD_TYPE=Debug .. && cmake --build . -j$(nproc)
 cmake -DCMAKE_BUILD_TYPE=Release .. && cmake --build . -j$(nproc)
 
 # Execute app
-./mgo
+./chx
 # Execute test
 ./test
 

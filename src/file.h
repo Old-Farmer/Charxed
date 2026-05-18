@@ -4,7 +4,7 @@
 #include "result.h"
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 // End of line sequence
 constexpr const char* kEOLSeqLF = "\n";
@@ -28,7 +28,7 @@ class File {
          bool create_if_not_exist = false);
     ~File();
 
-    MGO_DELETE_COPY(File);
+    CHX_DELETE_COPY(File);
     File(File&&) noexcept;
     File& operator=(File&&) noexcept;
 
@@ -75,4 +75,4 @@ class File {
     FILE* file_;
 };
 
-}  // namespace mango
+}  // namespace charxed

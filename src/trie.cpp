@@ -6,7 +6,7 @@
 
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 Trie::~Trie() { Clear(); }
 
@@ -95,7 +95,7 @@ std::vector<std::string> Trie::PrefixWith(std::string_view seq) {
         }
         node = next;
     }
-    MGO_ASSERT(node);
+    CHX_ASSERT(node);
 
     std::string str(seq);
     std::vector<std::string> ret;
@@ -105,7 +105,7 @@ std::vector<std::string> Trie::PrefixWith(std::string_view seq) {
 
 void Trie::DfsToEveryEnd(std::string& str, Node* node,
                          std::vector<std::string>& res) {
-    MGO_ASSERT(node);
+    CHX_ASSERT(node);
 
     if (node->count > 0) {
         res.push_back(str);
@@ -121,4 +121,4 @@ void Trie::DfsToEveryEnd(std::string& str, Node* node,
     }
 }
 
-}  // namespace mango
+}  // namespace charxed

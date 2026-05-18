@@ -1,7 +1,7 @@
 #pragma once
 #include "json.h"
 
-namespace mango {
+namespace charxed {
 
 // A Blocking reader
 class LspRpcReader {
@@ -29,4 +29,4 @@ class LspRpcWriter {
     std::string msg_buf_;
 };
 
-}  // namespace mango
+}  // namespace charxed

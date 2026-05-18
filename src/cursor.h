@@ -5,7 +5,7 @@
 
 #include "pos.h"
 
-namespace mango {
+namespace charxed {
 
 class Window;
 struct Selection;
@@ -59,4 +59,4 @@ struct CursorState {
     void DontHoldColWant() { b_view_col_want.reset(); }
 };
 
-}  // namespace mango
+}  // namespace charxed

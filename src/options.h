@@ -7,7 +7,7 @@
 #include "json.h"
 #include "term.h"
 
-namespace mango {
+namespace charxed {
 
 class Buffer;
 class Window;
@@ -112,7 +112,7 @@ using ColorSchemeElement = Terminal::AttrPair;
 
 class Opts;
 
-#define MGO_IF_TYPE_MISMATCH_THROW(expr) \
+#define CHX_IF_TYPE_MISMATCH_THROW(expr) \
     if (!(expr)) throw TypeMismatchException("{}", #expr)
 
 // GlobalOpts is a class that represents all opts.
@@ -140,11 +140,11 @@ class GlobalOpts {
     template <typename T>
     constexpr T GetOpt(OptKey key) const {
         if constexpr (std::is_same_v<T, bool>) {
-            MGO_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kBool);
+            CHX_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kBool);
         } else if constexpr (std::is_same_v<T, int64_t>) {
-            MGO_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kInteger);
+            CHX_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kInteger);
         } else if constexpr (std::is_pointer_v<T>) {
-            MGO_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kPtr);
+            CHX_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kPtr);
         } else {
             static_assert(kAlwaysFalseV<>,
                           "GetOpt<T> only supports T = bool, int64_t, or "
@@ -161,11 +161,11 @@ class GlobalOpts {
     template <typename T>
     void SetOpt(OptKey key, T value) {
         if constexpr (std::is_same_v<T, bool>) {
-            MGO_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kBool);
+            CHX_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kBool);
         } else if constexpr (std::is_same_v<T, int64_t>) {
-            MGO_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kInteger);
+            CHX_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kInteger);
         } else if constexpr (std::is_pointer_v<T>) {
-            MGO_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kPtr);
+            CHX_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kPtr);
         } else {
             static_assert(kAlwaysFalseV<>,
                           "GetOpt<T> only supports T = bool, int64_t, or "
@@ -208,13 +208,13 @@ class Opts {
     template <typename T>
     T GetOpt(OptKey key) const {
         if constexpr (std::is_same_v<T, bool>) {
-            MGO_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
+            CHX_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
                                        Type::kBool);
         } else if constexpr (std::is_same_v<T, int64_t>) {
-            MGO_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
+            CHX_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
                                        Type::kInteger);
         } else if constexpr (std::is_pointer_v<T>) {
-            MGO_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
+            CHX_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
                                        Type::kPtr);
         } else {
             static_assert(kAlwaysFalseV<>,
@@ -222,7 +222,7 @@ class Opts {
                           "pointer types");
         }
 
-        MGO_ASSERT(OptScope::kGlobal != GetScope(key));
+        CHX_ASSERT(OptScope::kGlobal != GetScope(key));
 
         auto iter = opts_.find(key);
         if (iter == opts_.end()) {
@@ -239,13 +239,13 @@ class Opts {
     template <typename T>
     void SetOpt(OptKey key, T value, bool global = false) {
         if constexpr (std::is_same_v<T, bool>) {
-            MGO_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
+            CHX_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
                                        Type::kBool);
         } else if constexpr (std::is_same_v<T, int64_t>) {
-            MGO_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
+            CHX_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
                                        Type::kInteger);
         } else if constexpr (std::is_pointer_v<T>) {
-            MGO_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
+            CHX_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
                                        Type::kPtr);
         } else {
             static_assert(kAlwaysFalseV<>,
@@ -273,4 +273,4 @@ struct InitOpts {
     std::vector<const char*> begin_files;
 };
 
-}  // namespace mango
+}  // namespace charxed

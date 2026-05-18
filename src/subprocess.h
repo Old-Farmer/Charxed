@@ -3,7 +3,7 @@
 #include "os.h"
 #include "result.h"
 
-namespace mango {
+namespace charxed {
 
 // A subprocess is a child process with some pipe(Unix concept) resource.
 class Subprocess {
@@ -15,8 +15,8 @@ class Subprocess {
     Subprocess(const char* const argv[], bool check = false,
                bool need_stdin = true, bool need_stdout = true,
                bool need_stderr = true);
-    MGO_DELETE_COPY(Subprocess);
-    MGO_DEFAULT_MOVE(Subprocess);
+    CHX_DELETE_COPY(Subprocess);
+    CHX_DEFAULT_MOVE(Subprocess);
     // Will call Wait if wait hasn't called before.
     ~Subprocess() noexcept;
 
@@ -56,4 +56,4 @@ Result Exec(const char* const argv[], const std::string* stdin_data,
             std::string* stdout_data, std::string* stderr_data, int& exit_code,
             bool check = false);
 
-}  // namespace mango
+}  // namespace charxed

@@ -1,6 +1,6 @@
 # Modes
 
-There several modes in mango:
+There several modes in charxed:
 
 - Normal: Do navigation and editing with semantic keymaps.
 - Operator Pending: Waiting for motions or text object to complete an operator.

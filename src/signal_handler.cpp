@@ -7,7 +7,7 @@
 #include "signal.h"
 #include "term.h"
 
-namespace mango {
+namespace charxed {
 
 static constexpr int kBadSignals[] = {SIGABRT, SIGSEGV, SIGBUS};
 
@@ -40,4 +40,4 @@ SignalHandler::SignalHandler() {
     }
 }
 
-}  // namespace mango
+}  // namespace charxed

@@ -6,7 +6,7 @@
 
 #include "syntax.h"
 
-namespace mango {
+namespace charxed {
 
 // Draw a line on the terminal.
 // in highlights, index 0 means highest priority.
@@ -55,4 +55,4 @@ size_t ScreenRows(std::string_view line, size_t width, int tabstop);
 
 size_t ScreenRows(const TextTree::TextView& line, size_t width, int tabstop);
 
-}  // namespace mango
+}  // namespace charxed

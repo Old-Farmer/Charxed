@@ -2,7 +2,7 @@
 
 #include "pos.h"
 
-namespace mango {
+namespace charxed {
 
 class Buffer;
 
@@ -38,4 +38,4 @@ struct LineSelection : Selection {
     bool LineSemantic() const override { return true; }
 };
 
-}  // namespace mango
+}  // namespace charxed

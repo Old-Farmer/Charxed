@@ -4,10 +4,10 @@
 #include <string_view>
 #include <vector>
 
-namespace mango {
+namespace charxed {
 
 // A printable ascii character trie.
-// If insert in 
+// If insert in
 class Trie {
    public:
     Trie() {}
@@ -27,8 +27,9 @@ class Trie {
         size_t count = 0;
     };
 
-    void DfsToEveryEnd(std::string& str, Node* node, std::vector<std::string>& res);
+    void DfsToEveryEnd(std::string& str, Node* node,
+                       std::vector<std::string>& res);
 
     Node root_;
 };
-}  // namespace mango
+}  // namespace charxed

@@ -6,7 +6,7 @@
 #include "signal_handler.h"
 #include "term.h"
 
-namespace mango {
+namespace charxed {
 void TerminateHandler() {
     Terminal::GetInstance().Shutdown();
     std::exception_ptr exptr = std::current_exception();
@@ -22,9 +22,9 @@ void TerminateHandler() {
 
     std::abort();
 }
-}  // namespace mango
+}  // namespace charxed
 
-using namespace mango;
+using namespace charxed;
 
 int main(int argc, char* argv[]) {
     // Always use this locale.
@@ -39,8 +39,8 @@ int main(int argc, char* argv[]) {
 
     LogInit();
 
-    MGO_LOG_DEBUG("cwd {}", Path::GetCwd());
-    MGO_LOG_DEBUG("app root {}", Path::GetAppRoot());
+    CHX_LOG_DEBUG("cwd {}", Path::GetCwd());
+    CHX_LOG_DEBUG("app root {}", Path::GetAppRoot());
 
     auto global_opts = std::make_unique<GlobalOpts>();
     auto init_opts = std::make_unique<InitOpts>();

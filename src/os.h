@@ -8,7 +8,7 @@
 
 #include "exception.h"
 #include "utils.h"
-namespace mango {
+namespace charxed {
 
 // An RAII fd wrapper.
 // This struct should not handle sth you should not close, like stdin stdout
@@ -17,7 +17,7 @@ struct Fd {
     int fd = -1;
     Fd() {}
     Fd(int _fd) : fd(_fd) {}
-    MGO_DELETE_COPY(Fd);
+    CHX_DELETE_COPY(Fd);
     Fd(Fd&& other) noexcept {
         fd = other.fd;
         other.fd = -1;
@@ -36,7 +36,7 @@ struct Fd {
     }
     // throw OSException
     ssize_t Read(void* buf, size_t size) {
-        MGO_ASSERT(fd != -1);
+        CHX_ASSERT(fd != -1);
         while (true) {
             ssize_t n = read(fd, buf, size);
             if (n >= 0) {
@@ -51,7 +51,7 @@ struct Fd {
 
     // throw OSException
     void Write(const void* buf, size_t size) {
-        MGO_ASSERT(fd != -1);
+        CHX_ASSERT(fd != -1);
         while (true) {
             ssize_t n = write(fd, buf, size);
             if (n == static_cast<ssize_t>(size)) {
@@ -91,7 +91,7 @@ inline int Fork() {
 
 // throw OSException
 inline void Dup2(const Fd& old_fd, int new_fd) {
-    MGO_ASSERT(new_fd == STDIN_FILENO || new_fd == STDOUT_FILENO ||
+    CHX_ASSERT(new_fd == STDIN_FILENO || new_fd == STDOUT_FILENO ||
                new_fd == STDERR_FILENO);
     while (true) {
         int rc = dup2(old_fd.fd, new_fd);
@@ -124,4 +124,10 @@ inline Fd Open(const char* file, int oflags = O_RDWR, mode_t mode = 0644) {
     }
 }
 
-}  // namespace mango
+// Always success
+inline int32_t GetPID() {
+    static_assert(std::is_same_v<pid_t, int32_t>, "pid_t is not int32_t");
+    return getpid();
+}
+
+}  // namespace charxed

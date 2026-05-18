@@ -7,7 +7,7 @@
 
 #include "fmt/format.h"
 
-namespace mango {
+namespace charxed {
 
 // Print an exception info.
 // if e != nullptr, the type of e and e.what() will be shown;
@@ -65,4 +65,4 @@ MGO_NORMAL_EXCEPTION(OptionLoadException)
 MGO_NORMAL_EXCEPTION(ParseMsgException)
 MGO_NORMAL_EXCEPTION(CommandNameExistException)
 MGO_NORMAL_EXCEPTION(OptionInfoInitException)
-}  // namespace mango
+}  // namespace charxed

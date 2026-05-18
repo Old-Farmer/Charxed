@@ -7,14 +7,14 @@
 #include "utf8.h"
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 // A Rope & B+ tree like data structure which hold text.
 // It can find loc, modify text efficiently.
 class TextTree {
    public:
     TextTree();
-    MGO_DELETE_COPY(TextTree);
+    CHX_DELETE_COPY(TextTree);
     TextTree(TextTree&&) noexcept;
     TextTree& operator=(TextTree&&) noexcept;
     ~TextTree();
@@ -93,7 +93,7 @@ class TextTree {
         // return a iterator moving forward
         // and codepoint is assigned to the cur codepoint
         Iterator NextCodepoint(Codepoint& codepoint) {
-            MGO_ASSERT(*this != text_->End());
+            CHX_ASSERT(*this != text_->End());
             int byte_len;
             Utf8ToUnicode(&node_->data[index_], node_->bytes - index_, byte_len,
                           codepoint);
@@ -112,7 +112,7 @@ class TextTree {
         // return a iterator moving backward
         // and codepoint is assigned to the prev codepoint
         Iterator PrevCodepoint(Codepoint& codepoint) {
-            MGO_ASSERT(*this != text_->Begin());
+            CHX_ASSERT(*this != text_->Begin());
             Iterator iter = *this;
             if (iter.index_ == 0) {
                 iter.node_ = iter.node_->prev;
@@ -130,13 +130,13 @@ class TextTree {
         }
 
         char ThisByte() const {
-            MGO_ASSERT(*this != text_->End());
+            CHX_ASSERT(*this != text_->End());
             return node_->data[index_];
         }
 
         // Moving forward one byte.
         void NextByte() {
-            MGO_ASSERT(*this != text_->End());
+            CHX_ASSERT(*this != text_->End());
             index_++;
             if (index_ == node_->bytes) {
                 index_ = 0;
@@ -147,10 +147,10 @@ class TextTree {
 
         // Moving backward one byte.
         void PrevByte() {
-            MGO_ASSERT(*this != text_->Begin());
+            CHX_ASSERT(*this != text_->Begin());
             if (index_ == 0) {
                 node_ = node_->prev;
-                MGO_ASSERT(node_->bytes != 0);
+                CHX_ASSERT(node_->bytes != 0);
                 index_ = node_->bytes - 1;
             } else {
                 index_--;
@@ -165,15 +165,15 @@ class TextTree {
         }
 
         bool operator==(Iterator other) const {
-            MGO_ASSERT(text_ == other.text_);
+            CHX_ASSERT(text_ == other.text_);
             return offset_ == other.offset_;
         }
         bool operator!=(Iterator other) const {
-            MGO_ASSERT(text_ == other.text_);
+            CHX_ASSERT(text_ == other.text_);
             return offset_ != other.offset_;
         }
         bool operator<(Iterator other) const {
-            MGO_ASSERT(text_ == other.text_);
+            CHX_ASSERT(text_ == other.text_);
             return offset_ < other.offset_;
         };
     };
@@ -189,17 +189,17 @@ class TextTree {
 
        public:
         void Next() {
-            MGO_ASSERT(*this != text_->BlockEnd());
+            CHX_ASSERT(*this != text_->BlockEnd());
             node_ = node_->next;
         }
         std::string_view Data() { return {node_->data, node_->bytes}; }
 
         bool operator==(BlockIterator other) {
-            MGO_ASSERT(text_ == other.text_);
+            CHX_ASSERT(text_ == other.text_);
             return node_ == other.node_;
         }
         bool operator!=(BlockIterator other) {
-            MGO_ASSERT(text_ == other.text_);
+            CHX_ASSERT(text_ == other.text_);
             return node_ != other.node_;
         }
     };
@@ -256,7 +256,7 @@ class TextTree {
         Iterator end;
 
         size_t Size() const {
-            MGO_ASSERT(end.offset() >= begin.offset());
+            CHX_ASSERT(end.offset() >= begin.offset());
             return end.offset() - begin.offset();
         }
         // To std::string_view.
@@ -311,7 +311,7 @@ class TextTree {
         return {l_begin, l_end};
     }
     size_t LineCnt() const {
-        MGO_ASSERT(root_);
+        CHX_ASSERT(root_);
         return root_->lines + 1;
     }
 
@@ -379,4 +379,4 @@ class TextTree {
     LeafNode *begin_leaf_, *end_leaf_;
 };
 
-}  // namespace mango
+}  // namespace charxed

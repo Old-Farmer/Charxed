@@ -10,7 +10,7 @@
 
 // TODO: show sth. to users if modify the readonly buffer.
 
-namespace mango {
+namespace charxed {
 
 namespace {
 constexpr std::string_view kSmile = R"(
@@ -24,19 +24,35 @@ constexpr std::string_view kSmile = R"(
    '-._____.-'
 )";
 
+// constexpr const char* kStartup[] = {
+//     R"( __  __   ____   ___)",
+//     R"(|  \/  | / ___| / _ \)",
+//     R"(| |\/| || |  _ | | | |    MANGO EDITOR)",
+//     R"(| |  | || |_| || |_| |)",
+//     R"(|_|  |_| \____| \___/    BY SHIXIN CHAI)",
+//     "",
+//     "",
+//     R"(tips:   :help [doc]<ENTER>   open docs)",
+//     R"(        :edit <file><ENTER>  edit files)",
+//     R"(        :quit<ENTER>         quit)",
+//     R"(        :smile<ENTER>        :))",
+//     "",
+//     "",
+//     R"(      Press any key to continue...)"};
+
 constexpr const char* kStartup[] = {
-    R"( __  __   ____   ___)",
-    R"(|  \/  | / ___| / _ \)",
-    R"(| |\/| || |  _ | | | |    MANGO EDITOR)",
-    R"(| |  | || |_| || |_| |)",
-    R"(|_|  |_| \____| \___/    BY SHIXIN CHAI)",
+    R"(  ______ _    _ __   __)",
+    R"( / ____/| |  | |\ \ / /)",
+    R"(| |     | |__| | \ V /      CHARXED)",
+    R"(| |     |  __  |  | |)",
+    R"(| |____ | |  | | / ^ \   BY SHIXIN CHAI)",
+    R"( \_____||_|  |_|/_/ \_\)",
     "",
     "",
     R"(tips:   :help [doc]<ENTER>   open docs)",
     R"(        :edit <file><ENTER>  edit files)",
     R"(        :quit<ENTER>         quit)",
     R"(        :smile<ENTER>        :))",
-    "",
     "",
     R"(      Press any key to continue...)"};
 
@@ -82,7 +98,7 @@ void Editor::Init(std::unique_ptr<GlobalOpts> global_opts,
     } else {
         buf = buffer_manager_->AddBuffer({global_opts_.get()});
     }
-    MGO_LOG_DEBUG("buffer {}", buf->Name());
+    CHX_LOG_DEBUG("buffer {}", buf->Name());
     window_ = std::make_unique<Window>(&cursor_, global_opts_.get(),
                                        syntax_parser_.get(), clipboard_.get(),
                                        buffer_manager_.get());
@@ -159,7 +175,7 @@ void Editor::Loop() {
     auto term_handler = [this, &in_bracketed_paste,
                          &bracketed_paste_buffer](Event e) {
         (void)e;
-        MGO_ASSERT(e & kEventRead);
+        CHX_ASSERT(e & kEventRead);
         if (e & (kEventClose | kEventError)) {
             throw TermException("{}", "Poll event close or event error");
         }
@@ -175,7 +191,7 @@ void Editor::Loop() {
             if (autocmp_trigger_timer_ &&
                 autocmp_trigger_timer_->IsTimingOn()) {
                 loop_->timer_manager_.StopTimer(autocmp_trigger_timer_.get());
-                MGO_ASSERT(!autocmp_trigger_timer_->IsTimingOn());
+                CHX_ASSERT(!autocmp_trigger_timer_->IsTimingOn());
             }
 
             multirow_peel_keep_ = false;
@@ -252,83 +268,83 @@ void Editor::Loop() {
     loop_->Loop();
 }
 
-#define MGO_KEYMAP keymap_manager_.AddKeyseq
+#define CHX_KEYMAP keymap_manager_.AddKeyseq
 
 void Editor::InitKeymaps() {
     // Navigation
-    MGO_KEYMAP("h", {[this] { cursor_.in_window->CursorGoLeft(Count()); }},
-               {MGO_DEFAULT_MODES});
-    MGO_KEYMAP("h", {[this] { peel_->CursorGoLeft(Count()); }},
+    CHX_KEYMAP("h", {[this] { cursor_.in_window->CursorGoLeft(Count()); }},
+               {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("h", {[this] { peel_->CursorGoLeft(Count()); }},
                {Mode::kPeelShow});
-    MGO_KEYMAP("l", {[this] { cursor_.in_window->CursorGoRight(Count()); }},
-               {MGO_DEFAULT_MODES});
-    MGO_KEYMAP("l", {[this] { peel_->CursorGoRight(Count()); }},
+    CHX_KEYMAP("l", {[this] { cursor_.in_window->CursorGoRight(Count()); }},
+               {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("l", {[this] { peel_->CursorGoRight(Count()); }},
                {Mode::kPeelShow});
-    MGO_KEYMAP("b", {[this] { cursor_.in_window->CursorGoWordBegin(Count()); }},
-               {MGO_DEFAULT_MODES});
-    MGO_KEYMAP("b", {[this] { peel_->CursorGoPrevWordBegin(Count()); }},
+    CHX_KEYMAP("b", {[this] { cursor_.in_window->CursorGoWordBegin(Count()); }},
+               {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("b", {[this] { peel_->CursorGoPrevWordBegin(Count()); }},
                {Mode::kPeelShow});
-    MGO_KEYMAP("e",
+    CHX_KEYMAP("e",
                {[this] { cursor_.in_window->CursorGoNextWordEnd(Count()); }},
-               {MGO_DEFAULT_MODES});
-    MGO_KEYMAP("e", {[this] { peel_->CursorGoNextWordEnd(Count()); }},
+               {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("e", {[this] { peel_->CursorGoNextWordEnd(Count()); }},
                {Mode::kPeelShow});
-    MGO_KEYMAP("w",
+    CHX_KEYMAP("w",
                {[this] { cursor_.in_window->CursorGoNextWordBegin(Count()); }},
-               {MGO_DEFAULT_MODES});
-    MGO_KEYMAP("w", {[this] { peel_->CursorGoNextWordBegin(Count()); }},
+               {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("w", {[this] { peel_->CursorGoNextWordBegin(Count()); }},
                {Mode::kPeelShow});
-    MGO_KEYMAP("k", {[this] { cursor_.in_window->CursorGoUp(Count()); }},
-               {MGO_DEFAULT_MODES});
-    MGO_KEYMAP("k", {[this] { peel_->CursorGoUp(Count()); }},
+    CHX_KEYMAP("k", {[this] { cursor_.in_window->CursorGoUp(Count()); }},
+               {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("k", {[this] { peel_->CursorGoUp(Count()); }},
                {Mode::kPeelShow});
-    MGO_KEYMAP("j", {[this] { cursor_.in_window->CursorGoDown(Count()); }},
-               {MGO_DEFAULT_MODES});
-    MGO_KEYMAP("j", {[this] { peel_->CursorGoDown(Count()); }},
+    CHX_KEYMAP("j", {[this] { cursor_.in_window->CursorGoDown(Count()); }},
+               {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("j", {[this] { peel_->CursorGoDown(Count()); }},
                {Mode::kPeelShow});
-    MGO_KEYMAP("0", {[this] { cursor_.in_window->CursorGoHome(); }},
-               {MGO_DEFAULT_MODES});
-    MGO_KEYMAP("0", {[this] { peel_->CursorGoHome(); }}, {Mode::kPeelShow});
-    MGO_KEYMAP("$", {[this] { cursor_.in_window->CursorGoEnd(); }},
-               {MGO_DEFAULT_MODES});
-    MGO_KEYMAP("$", {[this] { peel_->CursorGoEnd(); }}, {Mode::kPeelShow});
-    MGO_KEYMAP(
+    CHX_KEYMAP("0", {[this] { cursor_.in_window->CursorGoHome(); }},
+               {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("0", {[this] { peel_->CursorGoHome(); }}, {Mode::kPeelShow});
+    CHX_KEYMAP("$", {[this] { cursor_.in_window->CursorGoEnd(); }},
+               {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("$", {[this] { peel_->CursorGoEnd(); }}, {Mode::kPeelShow});
+    CHX_KEYMAP(
         "<c-f>", {[this] {
             cursor_.in_window->CursorGoDown(cursor_.in_window->area_.height_);
         }},
-        {MGO_DEFAULT_MODES});
-    MGO_KEYMAP("<c-f>", {[this] { peel_->CursorGoDown(peel_->area_.height_); }},
+        {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("<c-f>", {[this] { peel_->CursorGoDown(peel_->area_.height_); }},
                {Mode::kPeelShow});
-    MGO_KEYMAP(
+    CHX_KEYMAP(
         "<c-b>", {[this] {
             cursor_.in_window->CursorGoUp(cursor_.in_window->area_.height_);
         }},
-        {MGO_DEFAULT_MODES});
-    MGO_KEYMAP("<c-b>", {[this] {
+        {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("<c-b>", {[this] {
                    cursor_.in_window->CursorGoUp(peel_->area_.height_);
                }},
                {Mode::kPeelShow});
-    MGO_KEYMAP("<c-d>", {[this] {
+    CHX_KEYMAP("<c-d>", {[this] {
                    cursor_.in_window->CursorGoDown(
                        cursor_.in_window->area_.height_ / 2);
                }},
-               {MGO_DEFAULT_MODES});
-    MGO_KEYMAP("<c-d>",
+               {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("<c-d>",
                {[this] { peel_->CursorGoDown(peel_->area_.height_ / 2); }},
                {Mode::kPeelShow});
-    MGO_KEYMAP(
+    CHX_KEYMAP(
         "<c-u>", {[this] {
             cursor_.in_window->CursorGoUp(cursor_.in_window->area_.height_ / 2);
         }},
-        {MGO_DEFAULT_MODES});
-    MGO_KEYMAP("<c-u>",
+        {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("<c-u>",
                {[this] { peel_->CursorGoUp(peel_->area_.height_ / 2); }},
                {Mode::kPeelShow});
-    MGO_KEYMAP("<c-o>", {[this] { cursor_.in_window->JumpBackward(); }},
+    CHX_KEYMAP("<c-o>", {[this] { cursor_.in_window->JumpBackward(); }},
                {Mode::kNormal});
-    MGO_KEYMAP("<c-i>", {[this] { cursor_.in_window->JumpForward(); }},
+    CHX_KEYMAP("<c-i>", {[this] { cursor_.in_window->JumpForward(); }},
                {Mode::kNormal});
-    MGO_KEYMAP("G", {[this] {
+    CHX_KEYMAP("G", {[this] {
                    size_t l;
                    if (count_ == 0) {
                        l = cursor_.in_window->area_.buffer_->LineCnt() - 1;
@@ -337,53 +353,53 @@ void Editor::InitKeymaps() {
                    }
                    cursor_.in_window->CursorGoLine(l);
                }},
-               {MGO_DEFAULT_MODES});
-    MGO_KEYMAP("gg", {[this] { cursor_.in_window->CursorGoLine(0); }},
-               {MGO_DEFAULT_MODES});
-    MGO_KEYMAP("gf", {[this] { cursor_.in_window->GotoFile(); }},
-               {MGO_DEFAULT_MODES});
+               {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("gg", {[this] { cursor_.in_window->CursorGoLine(0); }},
+               {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("gf", {[this] { cursor_.in_window->GotoFile(); }},
+               {CHX_DEFAULT_MODES});
 
     // Buffer manangement
-    MGO_KEYMAP("]b", {[this] { cursor_.in_window->NextBuffer(); }},
+    CHX_KEYMAP("]b", {[this] { cursor_.in_window->NextBuffer(); }},
                {Mode::kNormal});
-    MGO_KEYMAP("[b", {[this] { cursor_.in_window->PrevBuffer(); }},
+    CHX_KEYMAP("[b", {[this] { cursor_.in_window->PrevBuffer(); }},
                {Mode::kNormal});
 
     // esc
-    MGO_KEYMAP("<esc>", {[this] {
+    CHX_KEYMAP("<esc>", {[this] {
                    if (IsPeel(mode_)) {
                        NotifyUser("");
                    }
                    ExitFromMode();
                }},
-               {MGO_ALL_MODES});
+               {CHX_ALL_MODES});
 
     // command & search
-    MGO_KEYMAP("/", {[this] {
+    CHX_KEYMAP("/", {[this] {
                    search_foward_ = true;
                    GotoPeel(Mode::kPeelSearch);
                }},
                {Mode::kNormal});
-    MGO_KEYMAP("?", {[this] {
+    CHX_KEYMAP("?", {[this] {
                    search_foward_ = false;
                    GotoPeel(Mode::kPeelSearch);
                }},
                {Mode::kNormal});
-    MGO_KEYMAP("N",
+    CHX_KEYMAP("N",
                {[this] { CursorGoSearch(!search_foward_, Count(), false); }},
                {Mode::kNormal});
-    MGO_KEYMAP("n",
+    CHX_KEYMAP("n",
                {[this] { CursorGoSearch(search_foward_, Count(), false); }},
                {Mode::kNormal});
-    MGO_KEYMAP(":", {[this] { GotoPeel(); }}, {Mode::kNormal});
-    MGO_KEYMAP("<enter>", {[this] { GotoPeel(Mode::kPeelShow); }},
+    CHX_KEYMAP(":", {[this] { GotoPeel(); }}, {Mode::kNormal});
+    CHX_KEYMAP("<enter>", {[this] { GotoPeel(Mode::kPeelShow); }},
                {Mode::kNormal});
-    MGO_KEYMAP("<c-r>", {[this] {
+    CHX_KEYMAP("<c-r>", {[this] {
                    peel_->Paste();
                    layout_manager_->ArrangeLayout();
                }},
                {Mode::kPeelCommand, Mode::kPeelSearch});
-    MGO_KEYMAP("<bs>", {[this] {
+    CHX_KEYMAP("<bs>", {[this] {
                    if (peel_->DeleteCharacterBeforeCursor() == kOk) {
                        editor_event_manager_.EmitEvent(
                            EditorEvent::kCommandCharEdit, nullptr);
@@ -391,7 +407,7 @@ void Editor::InitKeymaps() {
                    }
                }},
                {Mode::kPeelCommand});
-    MGO_KEYMAP("<bs>", {[this] {
+    CHX_KEYMAP("<bs>", {[this] {
                    if (peel_->DeleteCharacterBeforeCursor() == kOk) {
                        editor_event_manager_.EmitEvent(
                            EditorEvent::kSearchCharEdit, nullptr);
@@ -399,40 +415,40 @@ void Editor::InitKeymaps() {
                    }
                }},
                {Mode::kPeelSearch});
-    MGO_KEYMAP("<c-w>", {[this] {
+    CHX_KEYMAP("<c-w>", {[this] {
                    peel_->DeleteWordBeforeCursor();
                    layout_manager_->ArrangeLayout();
                }},
                {Mode::kPeelCommand, Mode::kPeelSearch});
-    MGO_KEYMAP("<enter>", {[this] {
+    CHX_KEYMAP("<enter>", {[this] {
                    CommandHitEnter();
                    multirow_peel_keep_ = true;
                }},
                {Mode::kPeelCommand});
-    MGO_KEYMAP("<enter>", {[this] {
+    CHX_KEYMAP("<enter>", {[this] {
                    SearchHitEnter();
                    multirow_peel_keep_ = true;
                }},
                {Mode::kPeelSearch});
-    MGO_KEYMAP("<left>", {[this] { peel_->CursorGoLeft(Count()); }},
+    CHX_KEYMAP("<left>", {[this] { peel_->CursorGoLeft(Count()); }},
                {Mode::kPeelCommand, Mode::kPeelSearch});
-    MGO_KEYMAP("<right>", {[this] { peel_->CursorGoRight(Count()); }},
+    CHX_KEYMAP("<right>", {[this] { peel_->CursorGoRight(Count()); }},
                {Mode::kPeelCommand, Mode::kPeelSearch});
-    MGO_KEYMAP("<c-left>", {[this] { peel_->CursorGoPrevWordBegin(Count()); }},
+    CHX_KEYMAP("<c-left>", {[this] { peel_->CursorGoPrevWordBegin(Count()); }},
                {Mode::kPeelCommand, Mode::kPeelSearch});
-    MGO_KEYMAP("<c-right>", {[this] { peel_->CursorGoNextWordEnd(Count()); }},
+    CHX_KEYMAP("<c-right>", {[this] { peel_->CursorGoNextWordEnd(Count()); }},
                {Mode::kPeelCommand, Mode::kPeelSearch});
-    MGO_KEYMAP("<home>", {[this] { peel_->CursorGoHome(); }},
+    CHX_KEYMAP("<home>", {[this] { peel_->CursorGoHome(); }},
                {Mode::kPeelCommand, Mode::kPeelSearch});
-    MGO_KEYMAP("<end>", {[this] { peel_->CursorGoEnd(); }},
+    CHX_KEYMAP("<end>", {[this] { peel_->CursorGoEnd(); }},
                {Mode::kPeelCommand, Mode::kPeelSearch});
 
     // cmp & history
-    MGO_KEYMAP("<c-space>", {[this] { TriggerCompletion(false); }},
+    CHX_KEYMAP("<c-space>", {[this] { TriggerCompletion(false); }},
                {Mode::kInsert, Mode::kPeelCommand});
-    MGO_KEYMAP("<c-c>", {[this] { TriggerCompletion(false); }},
+    CHX_KEYMAP("<c-c>", {[this] { TriggerCompletion(false); }},
                {Mode::kInsert, Mode::kPeelCommand});
-    MGO_KEYMAP("<tab>", {[this] {
+    CHX_KEYMAP("<tab>", {[this] {
                    if (CompletionTriggered()) {
                        if (completer_->Accept(cmp_menu_->Accept(), &cursor_) ==
                            kRetriggerCmp) {
@@ -447,14 +463,14 @@ void Editor::InitKeymaps() {
                    }
                }},
                {Mode::kInsert, Mode::kPeelCommand});
-    MGO_KEYMAP("<c-n>", {[this] {
+    CHX_KEYMAP("<c-n>", {[this] {
                    if (CompletionTriggered()) {
                        cmp_menu_->SelectNext(1);
                        show_cmp_menu_ = true;
                    }
                }},
                {Mode::kInsert});
-    MGO_KEYMAP("<c-n>", {[this] {
+    CHX_KEYMAP("<c-n>", {[this] {
                    if (CompletionTriggered()) {
                        cmp_menu_->SelectNext(1);
                        show_cmp_menu_ = true;
@@ -463,18 +479,18 @@ void Editor::InitKeymaps() {
                    }
                }},
                {Mode::kPeelCommand});
-    MGO_KEYMAP("<c-n>", {[this] {
+    CHX_KEYMAP("<c-n>", {[this] {
                    peel_->NextHistoryItem(MangoPeel::HistoryType::kSearch);
                }},
                {Mode::kPeelSearch});
-    MGO_KEYMAP("<c-p>", {[this] {
+    CHX_KEYMAP("<c-p>", {[this] {
                    if (CompletionTriggered()) {
                        cmp_menu_->SelectPrev(1);
                        show_cmp_menu_ = true;
                    }
                }},
                {Mode::kInsert});
-    MGO_KEYMAP("<c-p>", {[this] {
+    CHX_KEYMAP("<c-p>", {[this] {
                    if (CompletionTriggered()) {
                        cmp_menu_->SelectPrev(1);
                        show_cmp_menu_ = true;
@@ -483,117 +499,117 @@ void Editor::InitKeymaps() {
                    }
                }},
                {Mode::kPeelCommand});
-    MGO_KEYMAP("<c-p>", {[this] {
+    CHX_KEYMAP("<c-p>", {[this] {
                    peel_->PrevHistoryItem(MangoPeel::HistoryType::kSearch);
                }},
                {Mode::kPeelSearch});
 
     // Edit
-    MGO_KEYMAP("<bs>", {[this] {
+    CHX_KEYMAP("<bs>", {[this] {
                    if (cursor_.in_window->DeleteAtCursor() == kOk) {
                        editor_event_manager_.EmitEvent(
                            EditorEvent::kEditCharEdit, nullptr);
                    }
                }},
                {Mode::kInsert});
-    MGO_KEYMAP("<c-w>",
+    CHX_KEYMAP("<c-w>",
                {[this] { cursor_.in_window->DeleteWordBeforeCursor(); }},
                {Mode::kInsert});
-    MGO_KEYMAP("<enter>",
+    CHX_KEYMAP("<enter>",
                {[this] { cursor_.in_window->AddStringAtCursor("\n"); }},
                {Mode::kInsert});
-    MGO_KEYMAP("<c-r>", {[this] { cursor_.in_window->Paste(1); }},
+    CHX_KEYMAP("<c-r>", {[this] { cursor_.in_window->Paste(1); }},
                {Mode::kInsert});
-    MGO_KEYMAP("i", {[this] { GotoMode(Mode::kInsert); }}, {Mode::kNormal});
-    MGO_KEYMAP("I", {[this] {
+    CHX_KEYMAP("i", {[this] { GotoMode(Mode::kInsert); }}, {Mode::kNormal});
+    CHX_KEYMAP("I", {[this] {
                    cursor_.in_window->CursorGoFirstNonBlank();
                    GotoMode(Mode::kInsert);
                }},
                {Mode::kNormal});  // TODO it
-    MGO_KEYMAP("a", {[this] {
+    CHX_KEYMAP("a", {[this] {
                    cursor_.in_window->CursorGoRight(Count());
                    GotoMode(Mode::kInsert);
                }},
                {Mode::kNormal});
-    MGO_KEYMAP("A", {[this] {
+    CHX_KEYMAP("A", {[this] {
                    cursor_.in_window->CursorGoEnd();
                    GotoMode(Mode::kInsert);
                }},
                {Mode::kNormal});
-    MGO_KEYMAP("o", {[this] {
+    CHX_KEYMAP("o", {[this] {
                    cursor_.in_window->NewLineUnderCursorline();
                    GotoMode(Mode::kInsert);
                }},
                {Mode::kNormal});
-    MGO_KEYMAP("O", {[this] {
+    CHX_KEYMAP("O", {[this] {
                    cursor_.in_window->NewLineAboveCursorline();
                    GotoMode(Mode::kInsert);
                }},
                {Mode::kNormal});
-    MGO_KEYMAP("u", {[this] { cursor_.in_window->Undo(); }}, {Mode::kNormal});
-    MGO_KEYMAP("<c-r>", {[this] { cursor_.in_window->Redo(); }},
+    CHX_KEYMAP("u", {[this] { cursor_.in_window->Undo(); }}, {Mode::kNormal});
+    CHX_KEYMAP("<c-r>", {[this] { cursor_.in_window->Redo(); }},
                {Mode::kNormal});
-    MGO_KEYMAP("y", {[this] {
+    CHX_KEYMAP("y", {[this] {
                    cursor_.in_window->Copy();
                    ExitFromMode();
                }},
-               {MGO_SELECT_MODES});
-    MGO_KEYMAP("y", {[this] {
+               {CHX_SELECT_MODES});
+    CHX_KEYMAP("y", {[this] {
                    mode_ = Mode::kOperatorPending;
                    pending_operator_ = Operator::kYank;
                }},
                {Mode::kNormal});
-    MGO_KEYMAP("p", {[this] { cursor_.in_window->Paste(Count()); }},
+    CHX_KEYMAP("p", {[this] { cursor_.in_window->Paste(Count()); }},
                {Mode::kNormal});
     // TODO: p in visual mode
-    MGO_KEYMAP("d", {[this] {
+    CHX_KEYMAP("d", {[this] {
                    cursor_.in_window->Cut();
                    ExitFromMode();
                }},
-               {MGO_SELECT_MODES});
-    MGO_KEYMAP("d", {[this] {
+               {CHX_SELECT_MODES});
+    CHX_KEYMAP("d", {[this] {
                    mode_ = Mode::kOperatorPending;
                    pending_operator_ = Operator::kDelete;
                }},
                {Mode::kNormal});
 
     // Operator Pending motion / text object
-    MGO_KEYMAP("d", {[this] {
+    CHX_KEYMAP("d", {[this] {
                    // TODO
                    ExitFromMode();
                }},
                {Mode::kOperatorPending});
-    MGO_KEYMAP("y", {[this] {
+    CHX_KEYMAP("y", {[this] {
                    // TODO
                    ExitFromMode();
                }},
                {Mode::kOperatorPending});
 
     // Selection
-    MGO_KEYMAP("s", {[this] {
+    CHX_KEYMAP("s", {[this] {
                    cursor_.in_window->area_.StartLineSelection(cursor_.pos);
                    GotoMode(Mode::kSelectLine);
                }},
                {Mode::kNormal});
-    MGO_KEYMAP("S", {[this] {
+    CHX_KEYMAP("S", {[this] {
                    cursor_.in_window->area_.StartSelection(cursor_.pos);
                    GotoMode(Mode::kSelect);
                }},
                {Mode::kNormal});
-#define MGO_CMD command_manager_.AddCommand
+#define CHX_CMD command_manager_.AddCommand
 }
 
 void Editor::InitCommands() {
-#define MGO_ENSURE_ARGEXITS(v) MGO_ASSERT(args[v].has_value())
-    MGO_CMD({"quit", "q", "", {}, [this](CommandArgs args) {
+#define CHX_ENSURE_ARGEXITS(v) CHX_ASSERT(args[v].has_value())
+    CHX_CMD({"quit", "q", "", {}, [this](CommandArgs args) {
                  (void)args;
                  Quit(false);
              }});
-    MGO_CMD({"quit!", "q!", "", {}, [this](CommandArgs args) {
+    CHX_CMD({"quit!", "q!", "", {}, [this](CommandArgs args) {
                  (void)args;
                  Quit(true);
              }});
-    MGO_CMD({"help",
+    CHX_CMD({"help",
              "h",
              "",
              {Type::kString},
@@ -606,7 +622,7 @@ void Editor::InitCommands() {
              },
              1,
              1});
-    MGO_CMD({"write",
+    CHX_CMD({"write",
              "w",
              "",
              {Type::kString},
@@ -620,12 +636,12 @@ void Editor::InitCommands() {
              },
              1,
              1});
-    MGO_CMD({"edit",
+    CHX_CMD({"edit",
              "e",
              "",
              {Type::kString},
              [this](CommandArgs args) {
-                 MGO_ENSURE_ARGEXITS(0);
+                 CHX_ENSURE_ARGEXITS(0);
                  const std::string& name_str =
                      std::get<std::string>(args[0].value());
                  Path p = Path(name_str);
@@ -638,12 +654,12 @@ void Editor::InitCommands() {
                      Buffer(global_opts_.get(), std::move(p))));
              },
              1});
-    MGO_CMD({"buffer",
+    CHX_CMD({"buffer",
              "b",
              "",
              {Type::kString},
              [this](CommandArgs args) {
-                 MGO_ENSURE_ARGEXITS(0);
+                 CHX_ENSURE_ARGEXITS(0);
                  const std::string& name_str =
                      std::get<std::string>(args[0].value());
                  Buffer* b = buffer_manager_->FindBuffer(name_str);
@@ -652,11 +668,11 @@ void Editor::InitCommands() {
                  }
              },
              1});
-    MGO_CMD({"bdelete", "bd", "", {}, [this](CommandArgs args) {
+    CHX_CMD({"bdelete", "bd", "", {}, [this](CommandArgs args) {
                  (void)args;
                  RemoveCurrentBuffer();
              }});
-    MGO_CMD({"smile",
+    CHX_CMD({"smile",
              "",
              "",
              {Type::kString},
@@ -666,7 +682,7 @@ void Editor::InitCommands() {
              },
              0,
              0});
-#undef MGO_ENSURE_ARGEXITS
+#undef CHX_ENSURE_ARGEXITS
 }
 
 void Editor::PrintKey(const Terminal::KeyInfo& key_info) {
@@ -678,7 +694,7 @@ void Editor::PrintKey(const Terminal::KeyInfo& key_info) {
     char c[5];
     int len = UnicodeToUtf8(key_info.codepoint, c);
     c[len] = '\0';
-    MGO_LOG_DEBUG(
+    CHX_LOG_DEBUG(
         "ctrl {} shift {} alt {} motion {} special key {} codepoint "
         "\\U{:08X} char {}",
         ctrl, shift, alt, motion, static_cast<int>(key_info.special_key),
@@ -701,12 +717,12 @@ void Editor::HandleBracketedPaste(std::string& bracketed_paste_buffer) {
         }
     } else if (key_info.IsSpecialKey()) {
         bracketed_paste_buffer.append(kReplacement);
-        MGO_LOG_INFO("Unknown Special key in bracketed paste");
+        CHX_LOG_INFO("Unknown Special key in bracketed paste");
     } else {
         char c[5];
         int len = UnicodeToUtf8(key_info.codepoint, c);
         c[len] = '\0';
-        MGO_ASSERT(len > 0);
+        CHX_ASSERT(len > 0);
         bracketed_paste_buffer.append(c);
     }
 }
@@ -750,7 +766,7 @@ void Editor::HandleKey() {
         count_ = 0;
         return;
     } else if (res == kKeyseqMatched) {
-        // MGO_LOG_DEBUG("keymap matched");
+        // CHX_LOG_DEBUG("keymap matched");
 
         // Encounter a sequnce, we let multirow peel stay.
         if (!IsPeel(mode_) && peel_->area_.height_ > 1) {
@@ -777,7 +793,7 @@ void Editor::HandleKey() {
             char c[5];
             int len = UnicodeToUtf8(key_info.codepoint, c);
             c[len] = '\0';
-            MGO_ASSERT(len > 0);
+            CHX_ASSERT(len > 0);
             Result res;
             if (IsPeel(mode_)) {
                 res = peel_->AddStringAtCursor(c);
@@ -801,7 +817,7 @@ void Editor::HandleKey() {
                     break;
                 default:
                     ev = EditorEvent::__kCount;
-                    MGO_ASSERT("Can't reach here");
+                    CHX_ASSERT("Can't reach here");
                     break;
             }
             editor_event_manager_.EmitEvent(ev, nullptr);
@@ -955,7 +971,7 @@ void Editor::PreProcess() {
             // TODO: Not init if file is too big.
             syntax_parser_->SyntaxInit(window_->area_.buffer_);
         } catch (Exception& e) {
-            MGO_LOG_ERROR("buffer {} : {}", window_->area_.buffer_->Name(),
+            CHX_LOG_ERROR("buffer {} : {}", window_->area_.buffer_->Name(),
                           e.what());
             // TODO: Maybe Notify the user
         }
@@ -1002,7 +1018,7 @@ void Editor::Help(const std::string& doc_name) {
             }
             b = buffer_manager_->AddBuffer(Buffer(global_opts_.get(), p, true));
         } catch (FSException& e) {
-            MGO_LOG_ERROR("AllDocs error: {}", e.what());
+            CHX_LOG_ERROR("AllDocs error: {}", e.what());
             return;
         }
     }
@@ -1026,7 +1042,7 @@ void Editor::Quit(bool force) {
 }
 
 void Editor::GotoPeel(Mode mode) {
-    MGO_ASSERT(!IsPeel(mode_));
+    CHX_ASSERT(!IsPeel(mode_));
 
     if (mode == Mode::kPeelShow && peel_->area_.height_ == 1) {
         return;
@@ -1069,7 +1085,7 @@ void Editor::ExitFromMode() {
             term_.SetCursorStyle(Terminal::CursorStyle::kBlock);
             peel_->SetHistoryCursorToEnd();
         case Mode::kPeelShow: {
-            MGO_ASSERT(cursor_.restore_from_peel);
+            CHX_ASSERT(cursor_.restore_from_peel);
             cursor_.in_window = cursor_.restore_from_peel;
             const TextArea& f = cursor_.in_window->area_;
             *(f.b_view_) = b_view_stored_for_edit;
@@ -1078,7 +1094,7 @@ void Editor::ExitFromMode() {
             break;
         }
         default:
-            MGO_ASSERT("Can't reach here");
+            CHX_ASSERT("Can't reach here");
     }
     mode_ = Mode::kNormal;
 }
@@ -1300,7 +1316,7 @@ void Editor::SaveCurrentBufferAs(const Path& path) {
         }
     } catch (IOException& e) {
         std::string err_str = fmt::format("Buffer can't save: {}", e.what());
-        MGO_LOG_ERROR("{}", err_str);
+        CHX_LOG_ERROR("{}", err_str);
         NotifyUser(err_str);
     }
 }
@@ -1376,4 +1392,4 @@ void Editor::StartupScreen() {
     }
 }
 
-}  // namespace mango
+}  // namespace charxed

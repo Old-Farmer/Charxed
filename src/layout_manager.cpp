@@ -4,7 +4,7 @@
 #include "status_line.h"
 #include "window.h"
 
-namespace mango {
+namespace charxed {
 
 static constexpr size_t kStatusLineHeight = 1;
 
@@ -41,4 +41,4 @@ void LayoutManager::ArrangeLayoutInner(size_t peel_need_height) {
     peel_buffer_version_ = peel_->buffer_.version();
 }
 
-}  // namespace mango
+}  // namespace charxed

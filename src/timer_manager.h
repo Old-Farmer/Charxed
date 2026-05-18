@@ -6,7 +6,7 @@
 
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 using Task = std::function<void()>;
 
@@ -60,11 +60,12 @@ class LoopTimer : public Timer {
    public:
     // LoopTimer will do task at every intervals, when the timer reach intervals
     // end, it loops back.
-    LoopTimer(const std::vector<std::chrono::milliseconds>& intervals, const Task& task)
+    LoopTimer(const std::vector<std::chrono::milliseconds>& intervals,
+              const Task& task)
         : Timer(task),
           intervals_(intervals),
           interval_i_(intervals.size() == 1 ? 0 : 1) {
-        MGO_ASSERT(!intervals.empty());
+        CHX_ASSERT(!intervals.empty());
     }
 
    protected:
@@ -93,9 +94,9 @@ class LoopTimer : public Timer {
 // Every methods of this class won't new or delete any timer.
 class TimerManager {
    public:
-    MGO_DEFAULT_CONSTRUCT_DESTRUCT(TimerManager);
-    MGO_DELETE_COPY(TimerManager);
-    MGO_DELETE_MOVE(TimerManager);
+    CHX_DEFAULT_CONSTRUCT_DESTRUCT(TimerManager);
+    CHX_DELETE_COPY(TimerManager);
+    CHX_DELETE_MOVE(TimerManager);
 
     // Start monitoring a timer, If the timer has already been monitored,
     // restart it.
@@ -119,4 +120,4 @@ class TimerManager {
     std::vector<Timer*> timer_heap_;  // a Min heap of timer
 };
 
-}  // namespace mango
+}  // namespace charxed

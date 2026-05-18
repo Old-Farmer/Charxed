@@ -4,7 +4,7 @@
 
 #include "buffer.h"
 
-namespace mango {
+namespace charxed {
 
 std::vector<Range> BufferSearch(const Buffer* buffer,
                                 const std::string& pattern, bool ignore_case) {
@@ -103,7 +103,7 @@ bool BufferSearchContext::EnsureSearched(const Buffer* buffer) {
 bool BufferSearchContext::NearestSearchPos(Pos pos, const Buffer* buffer,
                                            bool next, size_t count,
                                            bool keep_current_if_one) {
-    MGO_ASSERT(count != 0);
+    CHX_ASSERT(count != 0);
     bool has_result = EnsureSearched(buffer);
     if (!has_result) {
         return false;
@@ -153,4 +153,4 @@ bool BufferSearchContext::NearestSearchPos(Pos pos, const Buffer* buffer,
     current_search = left;
     return true;
 }
-}  // namespace mango
+}  // namespace charxed

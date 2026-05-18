@@ -4,7 +4,7 @@
 
 #include "character.h"
 
-namespace mango {
+namespace charxed {
 
 using tm = Terminal;
 using ki = Terminal::KeyInfo;
@@ -78,7 +78,7 @@ static const std::unordered_map<std::string_view, Terminal::KeyInfo>
 };
 
 KeyseqManager::KeyseqManager(Mode& mode) : mode_(mode) {
-    MGO_ASSERT(roots_.size() == static_cast<size_t>(Mode::_kCount));
+    CHX_ASSERT(roots_.size() == static_cast<size_t>(Mode::_kCount));
 }
 
 Result KeyseqManager::ParseKeyseq(const std::string& seq,
@@ -210,4 +210,4 @@ Result KeyseqManager::FeedKey(const Terminal::KeyInfo& key, Keyseq*& handler) {
     }
 }
 
-}  // namespace mango
+}  // namespace charxed

@@ -4,15 +4,15 @@
 #include "search.h"
 #include "text_area.h"
 
-namespace mango {
+namespace charxed {
 
 class Window {
    public:
     Window(Cursor* cursor, GlobalOpts* global_opts, SyntaxParser* parser,
            ClipBoard* clipboard, BufferManager* buffer_manager) noexcept;
     ~Window() = default;
-    MGO_DELETE_COPY(Window);
-    MGO_DEFAULT_MOVE(Window);
+    CHX_DELETE_COPY(Window);
+    CHX_DEFAULT_MOVE(Window);
 
     int id() { return id_; }
 
@@ -155,4 +155,4 @@ class Window {
     BufferSearchContext b_search_context_;
 };
 
-}  // namespace mango
+}  // namespace charxed

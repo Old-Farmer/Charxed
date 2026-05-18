@@ -2,7 +2,7 @@
 
 #include <csetjmp>
 
-namespace mango {
+namespace charxed {
 
 class SignalHandler {
    public:
@@ -15,4 +15,4 @@ class SignalHandler {
     SignalHandler();
 };
 
-}  // namespace mango
+}  // namespace charxed

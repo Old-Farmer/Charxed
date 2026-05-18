@@ -6,7 +6,7 @@
 #include "keyseq_manager.h"
 #include "timer_manager.h"
 
-using namespace mango;
+using namespace charxed;
 
 TEST_CASE("keyseq_manager test") {
     LogInit("keyseq_manager_test.log");
@@ -30,18 +30,18 @@ TEST_CASE("keyseq_manager test") {
     SECTION("FeedKey test") {
         Result res;
         res = manager.FeedKey(a, h2);
-        REQUIRE(res == mango::kKeyseqMatched);
+        REQUIRE(res == kKeyseqMatched);
         res = manager.FeedKey(b, h2);
-        REQUIRE(res == mango::kKeyseqMatched);
+        REQUIRE(res == kKeyseqMatched);
         res = manager.FeedKey(c, h2);
-        REQUIRE(res == mango::kKeyseqDone);
+        REQUIRE(res == kKeyseqDone);
         REQUIRE_THROWS(h2->f());
 
         res = manager.FeedKey(a, h2);
-        REQUIRE(res == mango::kKeyseqMatched);
-        mode = mango::Mode::kPeelCommand;
+        REQUIRE(res == kKeyseqMatched);
+        mode = Mode::kPeelCommand;
         res = manager.FeedKey(a, h2);
-        REQUIRE(res == mango::kKeyseqError);
+        REQUIRE(res == kKeyseqError);
     }
 
     SECTION("Remove test") {
@@ -49,17 +49,17 @@ TEST_CASE("keyseq_manager test") {
 
         Result res;
         res = manager.FeedKey(a, h2);
-        REQUIRE(res == mango::kKeyseqError);
+        REQUIRE(res == kKeyseqError);
 
         manager.AddKeyseq("<c-a>", h, {mode});
         manager.AddKeyseq("<c-a><c-b><c-c>", h, {mode});
         manager.RemoveKeyseq("<c-a>", {mode});
         res = manager.FeedKey(a, h2);
-        REQUIRE(res == mango::kKeyseqMatched);
+        REQUIRE(res == kKeyseqMatched);
         res = manager.FeedKey(b, h2);
-        REQUIRE(res == mango::kKeyseqMatched);
+        REQUIRE(res == kKeyseqMatched);
         res = manager.FeedKey(c, h2);
-        REQUIRE(res == mango::kKeyseqDone);
+        REQUIRE(res == kKeyseqDone);
         REQUIRE_THROWS(h2->f());
     }
 
@@ -68,7 +68,7 @@ TEST_CASE("keyseq_manager test") {
 
         Result res;
         res = manager.FeedKey(a, h2);
-        REQUIRE(res == mango::kKeyseqDone);
+        REQUIRE(res == kKeyseqDone);
     }
 
     SECTION("override test 2") {
@@ -82,9 +82,9 @@ TEST_CASE("keyseq_manager test") {
 
         Result res;
         res = manager.FeedKey(c_k, h2);
-        REQUIRE(res == mango::kKeyseqMatched);
+        REQUIRE(res == kKeyseqMatched);
         res = manager.FeedKey(c_i, h2);
-        REQUIRE(res == mango::kKeyseqDone);
+        REQUIRE(res == kKeyseqDone);
     }
 }
 
@@ -126,7 +126,7 @@ TEST_CASE("command_manager test") {
     m.RemoveCommand("my_command");
 
     res = m.EvalCommand("my_command true 1024 hello", args, co);
-    REQUIRE(res == mango::kNotExist);
+    REQUIRE(res == kNotExist);
 }
 
 TEST_CASE("timer_manager test") {

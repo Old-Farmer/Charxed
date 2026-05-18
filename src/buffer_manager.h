@@ -5,7 +5,7 @@
 #include "buffer.h"
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 class Buffer;
 class Path;
@@ -17,8 +17,8 @@ class BufferManager {
    public:
     BufferManager(EditorEventManager* editor_event_manager);
     ~BufferManager() = default;
-    MGO_DELETE_COPY(BufferManager);
-    MGO_DELETE_MOVE(BufferManager);
+    CHX_DELETE_COPY(BufferManager);
+    CHX_DELETE_MOVE(BufferManager);
 
     Buffer* AddBuffer(Buffer&& buffer);
     void RemoveBuffer(Buffer* buffer);
@@ -40,4 +40,4 @@ class BufferManager {
     EditorEventManager* editor_event_manager_;
 };
 
-}  // namespace mango
+}  // namespace charxed

@@ -4,7 +4,7 @@
 
 #include "logging.h"
 
-namespace mango {
+namespace charxed {
 
 Subprocess::Subprocess(const char* const argv[], bool check, bool need_stdin,
                        bool need_stdout, bool need_stderr)
@@ -97,7 +97,7 @@ Subprocess::~Subprocess() noexcept {
         int exit_code;
         Wait(exit_code);
     } catch (std::exception& e) {
-        MGO_LOG_ERROR("{}", e.what());
+        CHX_LOG_ERROR("{}", e.what());
     }
 }
 
@@ -123,11 +123,11 @@ Result Subprocess::Wait(int& exit_code) {
         buf[n] = '\0';
         if (n > 0) {
             if (check_) {
-                MGO_LOG_INFO(
+                CHX_LOG_INFO(
                     "Error occure before or when execvp in child process: {}",
                     buf);
             } else {
-                MGO_LOG_ERROR(
+                CHX_LOG_ERROR(
                     "Error occure before or when execvp in child process: {}",
                     buf);
             }
@@ -144,7 +144,7 @@ Result Exec(const char* const argv[], const std::string* stdin_data,
     if (stdin_data) {
         subprocess.stdin().Write(stdin_data->data(), stdin_data->size());
         subprocess.stdin().Close();  // Some apps need close to commit, we
-                                        // unconditinally add this.
+                                     // unconditinally add this.
     }
     if (stdout_data) {
         char buf[4096];
@@ -169,4 +169,4 @@ Result Exec(const char* const argv[], const std::string* stdin_data,
     return subprocess.Wait(exit_code);
 }
 
-}  // namespace mango
+}  // namespace charxed

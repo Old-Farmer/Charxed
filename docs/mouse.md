@@ -1,6 +1,6 @@
 # Mouse
 
-Mango supports mouse.
+Charxed supports mouse.
 
 - Left click to locate
 - Holding to selection

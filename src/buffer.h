@@ -16,9 +16,9 @@
 #include "tree_sitter/api.h"
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
-constexpr const char* kSwapSuffix = ".mango_swap";
+constexpr const char* kSwapSuffix = ".charxed_swap";
 
 struct Cursor;
 struct Options;
@@ -61,8 +61,8 @@ class Buffer {
            bool read_only = false);
     // A new file backup buffer
     Buffer(GlobalOpts* options, const Path& path, bool read_only = false);
-    MGO_DELETE_COPY(Buffer);
-    MGO_DEFAULT_MOVE(Buffer);
+    CHX_DELETE_COPY(Buffer);
+    CHX_DEFAULT_MOVE(Buffer);
     ~Buffer();
 
     // throws IOException, FileCreateException, CodingException, FSException
@@ -95,7 +95,7 @@ class Buffer {
     // is undefined.
 
     std::string_view GetLine(size_t line) const {
-        MGO_ASSERT(LineCnt() > line);
+        CHX_ASSERT(LineCnt() > line);
         auto line_view = tree_.GetLine(line);
         auto line_str = line_view.ToStringView(line_buf_);
         return line_str;
@@ -103,12 +103,12 @@ class Buffer {
 
     using TextView = TextTree::TextView;
     TextView GetLineView(size_t line) const {
-        MGO_ASSERT(LineCnt() > line);
+        CHX_ASSERT(LineCnt() > line);
         return tree_.GetLine(line);
     }
 
     TextView GetContentView(const Range& range) const {
-        MGO_ASSERT(LineCnt() > range.end.line);
+        CHX_ASSERT(LineCnt() > range.end.line);
         return {tree_.Find(range.begin), tree_.Find(range.end)};
     }
 
@@ -122,7 +122,7 @@ class Buffer {
     Iterator Find(Pos pos) const { return tree_.Find(pos); }
 
     Iterator LineEnd(size_t line) {
-        MGO_ASSERT(LineCnt() > line);
+        CHX_ASSERT(LineCnt() > line);
         if (line == LineCnt() - 1) {
             return tree_.End();
         } else {
@@ -269,4 +269,4 @@ class Buffer {
     static std::vector<bool> new_file_alloced_ids_;
 };
 
-}  // namespace mango
+}  // namespace charxed

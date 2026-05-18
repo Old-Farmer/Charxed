@@ -7,7 +7,7 @@
 #include "options.h"
 #include "window.h"
 
-namespace mango {
+namespace charxed {
 
 StatusLine::StatusLine(Cursor* cursor, GlobalOpts* global_opts, Mode* mode)
     : cursor_(cursor), global_opts_(global_opts), mode_(mode) {}
@@ -27,7 +27,7 @@ void StatusLine::Draw() {
         b = cursor_->in_window->area_.buffer_;
     }
     std::string left_str;
-    left_str = fmt::format("{:<" MGO_VIM_MODE_WIDTH "} {}{}",
+    left_str = fmt::format("{:<" CHX_VIM_MODE_WIDTH "} {}{}",
                            kModeString[static_cast<int>(*mode_)], b->Name(),
                            kBufferStateString[static_cast<int>(b->state())]);
 
@@ -53,4 +53,4 @@ void StatusLine::Draw() {
                  right_str.c_str());
 }
 
-}  // namespace mango
+}  // namespace charxed

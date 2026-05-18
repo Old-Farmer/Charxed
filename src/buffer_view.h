@@ -5,7 +5,7 @@
 
 #include "pos.h"
 
-namespace mango {
+namespace charxed {
 
 class Buffer;
 struct Cursor;
@@ -41,4 +41,4 @@ struct BufferView {
     void RestoreCursorState(Cursor* cursor, Buffer* buffer);
 };
 
-}  // namespace mango
+}  // namespace charxed

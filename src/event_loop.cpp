@@ -2,7 +2,7 @@
 
 #include "options.h"
 
-namespace mango {
+namespace charxed {
 
 EventLoop::EventLoop(GlobalOpts* global_opts) : global_opts_(global_opts) {
     // TODO: Remove it when global_opts_ is used.
@@ -95,4 +95,4 @@ void EventLoop::Loop() {
     }
 }
 
-}  // namespace mango
+}  // namespace charxed

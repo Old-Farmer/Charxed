@@ -8,7 +8,7 @@
 #include "result.h"
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 using namespace std::string_view_literals;
 
@@ -96,7 +96,7 @@ static Result ParseLspMessage(std::string_view msg, Json& content,
 }
 
 std::vector<Json> LspRpcReader::ReadMessage() {
-    MGO_ASSERT(acc_buf_.empty());
+    CHX_ASSERT(acc_buf_.empty());
     constexpr size_t size = 1024;
     char buf[size];
     std::vector<Json> contents(1);
@@ -180,4 +180,4 @@ void LspRpcWriter::WriteMessage(const Json& content) {
     msg_buf_.clear();
 }
 
-}  // namespace mango
+}  // namespace charxed

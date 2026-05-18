@@ -14,7 +14,7 @@
 #include "tree_sitter/api.h"
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 struct Cursor;
 struct Options;
@@ -66,8 +66,8 @@ class BufferNaive {
     BufferNaive(const std::string& path, bool read_only = false);
     // A no file backup buffer
     BufferNaive(bool read_only = false);
-    MGO_DELETE_COPY(BufferNaive);
-    MGO_DEFAULT_MOVE(BufferNaive);
+    CHX_DELETE_COPY(BufferNaive);
+    CHX_DEFAULT_MOVE(BufferNaive);
     ~BufferNaive();
 
     // throws IOException, FileCreateException, CodingException
@@ -100,7 +100,7 @@ class BufferNaive {
     // is undefined.
 
     std::string_view GetLine(size_t line) const {
-        MGO_ASSERT(LineCnt() > line);
+        CHX_ASSERT(LineCnt() > line);
         return lines_[line].line_str;
     }
 
@@ -109,7 +109,7 @@ class BufferNaive {
     // want to copy.
     // They must modify a byte to '\0' and then modified back.
     gsl::span<char> GetLineNonConst(size_t line) {
-        MGO_ASSERT(LineCnt() > line);
+        CHX_ASSERT(LineCnt() > line);
         return {lines_[line].line_str.data(), lines_[line].line_str.size() + 1};
     }
 
@@ -169,7 +169,7 @@ class BufferNaive {
     int64_t id() const noexcept { return id_; }
     // Must always >= 1
     size_t LineCnt() const noexcept {
-        MGO_ASSERT(lines_.size() >= 1);
+        CHX_ASSERT(lines_.size() >= 1);
         return lines_.size();
     }
     BufferState& state() { return state_; };
@@ -249,4 +249,4 @@ class BufferNaive {
     static std::vector<bool> new_file_alloced_ids_;
 };
 
-}  // namespace mango
+}  // namespace charxed

@@ -7,7 +7,7 @@
 #include "fmt/chrono.h"  // IWYU pragma: keep
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 extern FILE* logging_file;
 
@@ -26,9 +26,9 @@ constexpr std::string_view kErrorPrefix = "[ERROR]";
 
 enum class LogLevel { kDebug, kInfo, kWarn, kError };
 
-#define MGO_LOG_FILE __builtin_FILE()
-#define MGO_LOG_LINE __LINE__
-#define MGO_LOG_FUNC __func__
+#define CHX_LOG_FILE __builtin_FILE()
+#define CHX_LOG_LINE __LINE__
+#define CHX_LOG_FUNC __func__
 
 template <LogLevel level, typename... Args>
 void Log(const char* file, unsigned int line, const char* func,
@@ -57,30 +57,30 @@ void Log(const char* file, unsigned int line, const char* func,
 
 #ifdef NDEBUG
 
-#define MGO_LOG_DEBUG(format, ...) \
+#define CHX_LOG_DEBUG(format, ...) \
     do {                           \
     } while (0)
 
 #else
 
-#define MGO_LOG_DEBUG(format, ...)                                          \
-    Log<LogLevel::kDebug>(MGO_LOG_FILE, MGO_LOG_LINE, MGO_LOG_FUNC, format, \
+#define CHX_LOG_DEBUG(format, ...)                                          \
+    Log<LogLevel::kDebug>(CHX_LOG_FILE, CHX_LOG_LINE, CHX_LOG_FUNC, format, \
                           ##__VA_ARGS__)
 
 #endif  // NDEBUG
 
-#define MGO_LOG_INFO(format, ...)                                          \
-    Log<LogLevel::kInfo>(MGO_LOG_FILE, MGO_LOG_LINE, MGO_LOG_FUNC, format, \
+#define CHX_LOG_INFO(format, ...)                                          \
+    Log<LogLevel::kInfo>(CHX_LOG_FILE, CHX_LOG_LINE, CHX_LOG_FUNC, format, \
                          ##__VA_ARGS__)
 
-#define MGO_LOG MGO_LOG_INFO
+#define CHX_LOG CHX_LOG_INFO
 
-#define MGO_LOG_WARN(format, ...)                                          \
-    Log<LogLevel::kWarn>(MGO_LOG_FILE, MGO_LOG_LINE, MGO_LOG_FUNC, format, \
+#define CHX_LOG_WARN(format, ...)                                          \
+    Log<LogLevel::kWarn>(CHX_LOG_FILE, CHX_LOG_LINE, CHX_LOG_FUNC, format, \
                          ##__VA_ARGS__)
 
-#define MGO_LOG_ERROR(format, ...)                                          \
-    Log<LogLevel::kError>(MGO_LOG_FILE, MGO_LOG_LINE, MGO_LOG_FUNC, format, \
+#define CHX_LOG_ERROR(format, ...)                                          \
+    Log<LogLevel::kError>(CHX_LOG_FILE, CHX_LOG_LINE, CHX_LOG_FUNC, format, \
                           ##__VA_ARGS__)
 
-}  // namespace mango
+}  // namespace charxed

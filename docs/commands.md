@@ -1,6 +1,6 @@
 # Commands
 
-Commands are instructions you can execute in the Mango Peel. You can use full form or short form as you like.
+Commands are instructions you can execute in the Charxed Peel. You can use full form or short form as you like.
 
 - `quit`  
     short form: q

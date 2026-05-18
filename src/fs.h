@@ -7,7 +7,7 @@
 #include "result.h"
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 constexpr char kPathSeperator = '/';
 
@@ -88,4 +88,4 @@ struct FileStat {
 // return kOk for success, kNotExist for not exist.
 Result GetFileStat(const std::string& path, FileStat& file_stat);
 
-}  // namespace mango
+}  // namespace charxed

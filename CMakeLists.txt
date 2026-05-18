@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(Mango)
+project(Charxed)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -163,13 +163,13 @@ FetchContent_MakeAvailable(fmt)
 # # ICU
 # find_package(ICU REQUIRED COMPONENTS uc i18n data)
 
-# Mango library
+# Charxed library
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 set(SRC_LSP_DIR "${CMAKE_SOURCE_DIR}/src/lsp")
-add_library(mango_lib STATIC)
-add_dependencies(mango_lib build_termbox2 build_treesitter build_utf8proc)
+add_library(charxed_lib STATIC)
+add_dependencies(charxed_lib build_termbox2 build_treesitter build_utf8proc)
 target_sources(
-  mango_lib PUBLIC
+  charxed_lib PUBLIC
   "${SRC_LSP_DIR}/client.h"
   "${SRC_LSP_DIR}/client.cpp"
   "${SRC_LSP_DIR}/rpc.h"
@@ -273,10 +273,10 @@ foreach(LANG IN LISTS TS_GRAMMAR_LANGS)
         list(APPEND TS_SOURCES "${BASE}/scanner.cc")
     endif()
 endforeach()
-target_sources(mango_lib PUBLIC ${TS_SOURCES})
+target_sources(charxed_lib PUBLIC ${TS_SOURCES})
 
 target_link_libraries(
-  mango_lib
+  charxed_lib
   PUBLIC
     ${TERMBOX2_LIB}
     Microsoft.GSL::GSL
@@ -286,7 +286,7 @@ target_link_libraries(
     fmt::fmt
 )
 target_include_directories(
-  mango_lib
+  charxed_lib
   PUBLIC
   "${SRC_DIR}"
   "${TERMBOX2_INCLUDE_DIR}"
@@ -294,15 +294,15 @@ target_include_directories(
   "${UTF8PROC_INCLUDE_DIR}"
 )
 
-target_compile_definitions(mango_lib PUBLIC TB_OPT_ATTR_W=64 TB_OPT_EGC)
+target_compile_definitions(charxed_lib PUBLIC TB_OPT_ATTR_W=64 TB_OPT_EGC)
 
-# mango executable
-add_executable(mgo)
+# charxed executable
+add_executable(chx)
 target_sources(
-  mgo PUBLIC
+  chx PUBLIC
   "${SRC_DIR}/main.cpp"
 )
-target_link_libraries(mgo PUBLIC mango_lib)
+target_link_libraries(chx PUBLIC charxed_lib)
 
 # Tests
 set(TEST_DIR "${CMAKE_SOURCE_DIR}/test")
@@ -322,12 +322,12 @@ target_sources(
   "${TEST_DIR}/unicode_test.cpp"
   "${TEST_DIR}/xxx_manager_test.cpp"
 )
-target_link_libraries(test PUBLIC mango_lib Catch2::Catch2WithMain)
+target_link_libraries(test PUBLIC charxed_lib Catch2::Catch2WithMain)
 
 # Package
-install(TARGETS mgo RUNTIME DESTINATION bin)
+install(TARGETS chx RUNTIME DESTINATION bin)
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/resource/" DESTINATION resource)
 
-set(CPACK_PACKAGE_FILE_NAME "mango-editor-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
+set(CPACK_PACKAGE_FILE_NAME "Charxed-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
 set(CPACK_GENERATOR "ZIP")
 include(CPack)

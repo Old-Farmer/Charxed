@@ -2,7 +2,7 @@
 
 #include "catch2/catch_test_macros.hpp"
 
-using namespace mango;
+using namespace charxed;
 
 TEST_CASE("json merge behavior") {
     Json a = Json::parse(R"(

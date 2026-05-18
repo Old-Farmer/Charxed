@@ -1,8 +1,8 @@
 #pragma once
 
 #include <string_view>
-namespace mango {
 
+namespace charxed {
 enum class MouseState {
     kReleased,
     kLeftNotReleased,
@@ -51,17 +51,17 @@ constexpr std::string_view kModeString[] = {
     "COMMAND", "SEARCH", "SHOW",   "",         "",
 };
 
-#define MGO_VIM_MODE_WIDTH "8"  // WIDTH for showing mode
+#define CHX_VIM_MODE_WIDTH "8"  // WIDTH for showing mode
 
 inline bool IsPeel(Mode mode) {
     return mode == Mode::kPeelCommand || mode == Mode::kPeelShow ||
            mode == Mode::kPeelSearch;
 }
 
-#define MGO_SELECT_MODES Mode::kSelect, Mode::kSelectLine
-#define MGO_DEFAULT_MODES Mode::kNormal, MGO_SELECT_MODES
-#define MGO_ALL_MODES                                                       \
-    Mode::kNormal, Mode::kInsert, MGO_SELECT_MODES, Mode::kOperatorPending, \
+#define CHX_SELECT_MODES Mode::kSelect, Mode::kSelectLine
+#define CHX_DEFAULT_MODES Mode::kNormal, CHX_SELECT_MODES
+#define CHX_ALL_MODES                                                       \
+    Mode::kNormal, Mode::kInsert, CHX_SELECT_MODES, Mode::kOperatorPending, \
         Mode::kPeelShow, Mode::kPeelCommand, Mode::kPeelSearch
 
-}  // namespace mango
+}  // namespace charxed

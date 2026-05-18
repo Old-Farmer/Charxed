@@ -4,7 +4,7 @@
 
 #include "str.h"
 
-namespace mango {
+namespace charxed {
 
 namespace {
 constexpr std::string_view kBoolTrue = "true";
@@ -84,7 +84,7 @@ Result CommandManager::EvalCommand(std::string_view str, CommandArgs args,
         } else if (c->types[i] == Type::kString) {
             args[i] = std::string(substr);
         } else {
-            MGO_ASSERT(false);
+            CHX_ASSERT(false);
         }
     }
     // Other optional args(if have) will be default init to std::nullopt
@@ -92,4 +92,4 @@ Result CommandManager::EvalCommand(std::string_view str, CommandArgs args,
     return kOk;
 }
 
-}  // namespace mango
+}  // namespace charxed

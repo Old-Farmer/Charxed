@@ -6,9 +6,9 @@
 #include "catch2/catch_test_macros.hpp"
 #include "logging.h"
 
-using namespace mango;
+using namespace charxed;
 
-namespace mango {
+namespace charxed {
 
 size_t LineCntForTest(const std::string& fname) {
     size_t cnt = 1;
@@ -52,7 +52,7 @@ void DeleteForTest(TextTree& tree, BufferNaive& buffer, const Range& range) {
     SameForTest(tree, buffer);
 }
 
-}  // namespace mango
+}  // namespace charxed
 
 TEST_CASE("TextTree test") {
     LogInit("text_tree_test.log");

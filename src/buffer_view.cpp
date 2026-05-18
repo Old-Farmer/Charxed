@@ -3,7 +3,7 @@
 #include "buffer.h"
 #include "cursor.h"
 
-namespace mango {
+namespace charxed {
 
 void BufferView::SaveCursorState(Cursor* cursor) {
     cursor_state.pos = cursor->pos;
@@ -13,8 +13,8 @@ void BufferView::SaveCursorState(Cursor* cursor) {
 }
 
 void BufferView::RestoreCursorState(Cursor* cursor, Buffer* buffer) {
-    MGO_ASSERT(buffer);
-    MGO_ASSERT(cursor_state_valid);
+    CHX_ASSERT(buffer);
+    CHX_ASSERT(cursor_state_valid);
     if (buffer->state() == BufferState::kHaveNotRead) {
         cursor->pos = {0, 0};
         cursor->b_view_col_want.reset();
@@ -31,4 +31,4 @@ void BufferView::RestoreCursorState(Cursor* cursor, Buffer* buffer) {
     cursor_state_valid = false;
 }
 
-}  // namespace mango
+}  // namespace charxed

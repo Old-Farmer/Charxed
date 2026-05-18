@@ -5,7 +5,7 @@
 
 #include "character.h"
 
-namespace mango {
+namespace charxed {
 
 // InBytes work on byte.
 // InCharacter work on grapheme.
@@ -33,4 +33,4 @@ bool StrFuzzyMatchInBytes(const TextTree::TextView& sub,
 TextTree::TextView FindPath(const TextTree::TextView& line,
                             TextTree::Iterator iter);
 
-}  // namespace mango
+}  // namespace charxed

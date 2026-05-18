@@ -4,7 +4,7 @@
 
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 class Buffer;
 
@@ -28,10 +28,10 @@ using EditorEventHandler = std::function<void(void*)>;
 // Users can emit event to call those callbacks;
 class EditorEventManager {
    public:
-    MGO_DEFAULT_CONSTRUCT_DESTRUCT(EditorEventManager);
+    CHX_DEFAULT_CONSTRUCT_DESTRUCT(EditorEventManager);
 
-    MGO_DELETE_COPY(EditorEventManager);
-    MGO_DELETE_MOVE(EditorEventManager);
+    CHX_DELETE_COPY(EditorEventManager);
+    CHX_DELETE_MOVE(EditorEventManager);
 
     EditorEventHandlerID AddHandler(EditorEvent event,
                                     EditorEventHandler handler);
@@ -50,4 +50,4 @@ class EditorEventManager {
         handlers_[static_cast<size_t>(EditorEvent::__kCount)];
 };
 
-}  // namespace mango
+}  // namespace charxed

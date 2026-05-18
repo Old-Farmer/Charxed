@@ -1,6 +1,6 @@
 #include "draw.h"
 
-namespace mango {
+namespace charxed {
 
 // Locate a pos in ranges, select a range when a pos just locate in, or just
 // after the pos.
@@ -469,4 +469,4 @@ size_t ScreenRows(const TextTree::TextView& line, size_t width, int tabstop) {
     return row_cnt;
 }
 
-}  // namespace mango
+}  // namespace charxed

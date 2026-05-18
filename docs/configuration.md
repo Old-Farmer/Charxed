@@ -1,7 +1,7 @@
 # Configuration
 
 Mango currently uses json for user configuration: 
-    All config files are in `$XDG_CONFIG_HOME/mango-editor/`.
+    All config files are in `$XDG_CONFIG_HOME/charxed/`.
     Current support files: `config.json`, `colorscheme.json`.
 
 ## Options
@@ -129,7 +129,7 @@ In `config.json`, Support options:
 - max_peel_history:  
     type: integer,
     default: 100,
-    desc: The maximum number of cmd/search history records kept for the mango peel.
+    desc: The maximum number of cmd/search history records kept for the peel.
 
 - search_ignore_case:  
     type: bool

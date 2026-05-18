@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-namespace mango {
+namespace charxed {
 
 // A Pos object represent a position in the line
 struct Pos {
@@ -47,4 +47,4 @@ struct Range {
     }
 };
 
-}
+}  // namespace charxed

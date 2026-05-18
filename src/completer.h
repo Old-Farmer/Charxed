@@ -7,10 +7,9 @@
 
 #include "pos.h"
 #include "result.h"
-#include "text_tree.h"
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 struct Cursor;
 
@@ -65,8 +64,8 @@ struct BufferEdit;
 class BufferBasicWordCompleter : public Completer {
    public:
     BufferBasicWordCompleter(const Buffer* buffer);
-    MGO_DELETE_COPY(BufferBasicWordCompleter);
-    MGO_DELETE_MOVE(BufferBasicWordCompleter);
+    CHX_DELETE_COPY(BufferBasicWordCompleter);
+    CHX_DELETE_MOVE(BufferBasicWordCompleter);
 
     virtual void Suggest(const Pos& cursor_pos,
                          std::vector<std::string>& menu_entries) override;
@@ -84,4 +83,4 @@ class BufferBasicWordCompleter : public Completer {
     size_t bytes_of_word_before_cursor_;
 };
 
-}  // namespace mango
+}  // namespace charxed

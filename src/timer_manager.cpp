@@ -1,6 +1,6 @@
 #include "timer_manager.h"
 
-namespace mango {
+namespace charxed {
 
 static inline bool TimeOut(std::chrono::steady_clock::time_point t,
                            std::chrono::steady_clock::time_point now) {
@@ -36,7 +36,7 @@ void TimerManager::StopTimer(Timer* timer) {
         return;
     }
 
-    MGO_ASSERT(!timer_heap_.empty());
+    CHX_ASSERT(!timer_heap_.empty());
     if (timer_heap_.size() == 1) {
         timer->heap_index_ = -1;
         timer_heap_.clear();
@@ -72,7 +72,7 @@ int64_t TimerManager::NextTimeout() {
 }
 
 void TimerManager::TimerHeapSiftUp(size_t index) {
-    MGO_ASSERT(index < timer_heap_.size());
+    CHX_ASSERT(index < timer_heap_.size());
 
     while (index != 0) {
         size_t parent = HeapParent(index);
@@ -87,7 +87,7 @@ void TimerManager::TimerHeapSiftUp(size_t index) {
     }
 }
 void TimerManager::TimerHeapSiftDown(size_t index) {
-    MGO_ASSERT(index < timer_heap_.size());
+    CHX_ASSERT(index < timer_heap_.size());
 
     while (true) {
         size_t min_index = index;
@@ -114,7 +114,7 @@ void TimerManager::TimerHeapSiftDown(size_t index) {
 }
 
 void TimerManager::PopTimer() {
-    MGO_ASSERT(!timer_heap_.empty());
+    CHX_ASSERT(!timer_heap_.empty());
 
     timer_heap_[0]->heap_index_ = -1;
     if (timer_heap_.size() == 1) {
@@ -143,4 +143,4 @@ void TimerManager::Tick() {
     }
 }
 
-}  // namespace mango
+}  // namespace charxed

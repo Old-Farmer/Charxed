@@ -7,9 +7,9 @@
 
 #ifndef NDEBUG
 #include "term.h"
-#endif // !NDEBUG
+#endif  // !NDEBUG
 
-namespace mango {
+namespace charxed {
 
 #ifndef NDEBUG
 void AssertFail(const char* __assertion, const char* __file,
@@ -17,6 +17,6 @@ void AssertFail(const char* __assertion, const char* __file,
     Terminal::GetInstance().Shutdown();
     __assert_fail(__assertion, __file, __line, __function);
 }
-#endif // !NDEBUG
+#endif  // !NDEBUG
 
-}  // namespace mango
+}  // namespace charxed

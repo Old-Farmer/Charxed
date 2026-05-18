@@ -4,7 +4,7 @@
 
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 // A filetype is represented as an immutable string
 
@@ -18,4 +18,4 @@ zstring_view IsFiletype(zstring_view filetype);
 
 zstring_view FiletypeStrRep(zstring_view filetype);
 
-}  // namespace mango
+}  // namespace charxed

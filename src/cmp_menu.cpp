@@ -4,7 +4,7 @@
 #include "cursor.h"
 #include "options.h"
 
-namespace mango {
+namespace charxed {
 
 CmpMenu::CmpMenu(Cursor* cursor, GlobalOpts* global_opts)
     : global_opts_(global_opts), cursor_(cursor) {}
@@ -16,7 +16,7 @@ void CmpMenu::SetEntries(std::vector<std::string>&& entries) {
 }
 
 void CmpMenu::DecideLocAndSize() {
-    MGO_ASSERT(entries_.size() > menu_view_line_);
+    CHX_ASSERT(entries_.size() > menu_view_line_);
     // TODO: fix calc when screen is very small, like 1 height
     size_t shown_enties_cnt =
         std::min<size_t>(global_opts_->GetOpt<int64_t>(kOptCmpMenuMaxHeight),
@@ -41,8 +41,8 @@ void CmpMenu::DecideLocAndSize() {
         row_ = cursor_->s_row - height_;
     }
     col_ = cursor_->s_col;
-    MGO_ASSERT(row_ < term_->Height());
-    MGO_ASSERT(col_ < term_->Width());
+    CHX_ASSERT(row_ < term_->Height());
+    CHX_ASSERT(col_ < term_->Width());
 
     // Decide width
     entries_width_.resize(height_);
@@ -55,7 +55,7 @@ void CmpMenu::DecideLocAndSize() {
         max_width = std::max(w, max_width);
     }
     // should not be zero
-    MGO_ASSERT(max_width != 0);
+    CHX_ASSERT(max_width != 0);
     width_ =
         std::min<size_t>(std::min(max_width, term_->Width() - col_),
                          global_opts_->GetOpt<int64_t>(kOptCmpMenuMaxWidth));
@@ -153,4 +153,4 @@ void CmpMenu::Clear() {
     visible_ = false;
 }
 
-}  // namespace mango
+}  // namespace charxed

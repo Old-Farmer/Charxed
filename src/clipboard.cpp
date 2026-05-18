@@ -1,11 +1,11 @@
 #include "clipboard.h"
 
-#include "character.h"
 #include "constants.h"
 #include "exception.h"
 #include "subprocess.h"
+#include "utf8.h"
 
-namespace mango {
+namespace charxed {
 
 std::unique_ptr<ClipBoard> ClipBoard::CreateClipBoard(bool prefer_system) {
     if (prefer_system) {
@@ -134,4 +134,4 @@ void XClipBoard::WslFilterCharacter(std::string& content) {
     }
 }
 
-}  // namespace mango
+}  // namespace charxed

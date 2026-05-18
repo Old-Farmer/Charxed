@@ -3,25 +3,25 @@
 #include <cassert>
 #include <string_view>
 
-namespace mango {
+namespace charxed {
 
-#define MGO_DELETE_COPY(ClassName)        \
+#define CHX_DELETE_COPY(ClassName)        \
     ClassName(const ClassName&) = delete; \
     ClassName& operator=(const ClassName&) = delete
 
-#define MGO_DELETE_MOVE(ClassName)   \
+#define CHX_DELETE_MOVE(ClassName)   \
     ClassName(ClassName&&) = delete; \
     ClassName& operator=(ClassName&&) = delete
 
-#define MGO_DEFAULT_COPY(ClassName)        \
+#define CHX_DEFAULT_COPY(ClassName)        \
     ClassName(const ClassName&) = default; \
     ClassName& operator=(const ClassName&) = default
 
-#define MGO_DEFAULT_MOVE(ClassName)            \
+#define CHX_DEFAULT_MOVE(ClassName)            \
     ClassName(ClassName&&) noexcept = default; \
     ClassName& operator=(ClassName&&) noexcept = default
 
-#define MGO_DEFAULT_CONSTRUCT_DESTRUCT(ClassName) \
+#define CHX_DEFAULT_CONSTRUCT_DESTRUCT(ClassName) \
     ClassName() = default;                        \
     ~ClassName() = default
 
@@ -39,11 +39,11 @@ struct List {
 };
 
 #ifdef NDEBUG
-#define MGO_ASSERT(expr) (static_cast<void>(0))
+#define CHX_ASSERT(expr) (static_cast<void>(0))
 #else
 void AssertFail(const char* __assertion, const char* __file,
                 unsigned int __line, const char* __function);
-#define MGO_ASSERT(expr)     \
+#define CHX_ASSERT(expr)     \
     (static_cast<bool>(expr) \
          ? void(0)           \
          : AssertFail(#expr, __ASSERT_FILE, __ASSERT_LINE, __ASSERT_FUNCTION))
@@ -63,4 +63,4 @@ inline size_t NumberWidth(size_t num) {
 template <typename... T>
 inline constexpr bool kAlwaysFalseV = false;
 
-}  // namespace mango
+}  // namespace charxed

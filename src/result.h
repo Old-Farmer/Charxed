@@ -6,7 +6,7 @@
 
 #include "fmt/core.h"
 
-namespace mango {
+namespace charxed {
 
 enum Result {
     kOk = 0,
@@ -47,4 +47,4 @@ inline void PrintResultExit(std::string_view context, Result result) {
     exit(EXIT_FAILURE);
 }
 
-}  // namespace mango
+}  // namespace charxed

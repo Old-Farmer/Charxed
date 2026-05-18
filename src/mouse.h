@@ -4,7 +4,7 @@
 
 #include "state.h"
 
-namespace mango {
+namespace charxed {
 
 struct Mouse {
     MouseState state = MouseState::kReleased;
@@ -19,4 +19,4 @@ struct Mouse {
                                            // kXXNotReleased
 };
 
-}  // namespace mango
+}  // namespace charxed

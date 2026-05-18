@@ -1,6 +1,3 @@
 #include "cursor.h"
 
-namespace mango {
-
-
-}  // namespace mango
+namespace charxed {}  // namespace charxed

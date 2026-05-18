@@ -4,7 +4,7 @@
 #include "utf8proc.h"
 #include "utils.h"
 
-namespace mango {
+namespace charxed {
 
 using Codepoint = utf8proc_int32_t;
 static constexpr size_t kMaxBytesUtf8Codepoint = 4;
@@ -19,7 +19,7 @@ inline bool IsUtf8BeginByte(char b) {
 // otherwise, kInvalidCoding will return.
 inline Result Utf8ToUnicode(const char* in, size_t len, int& byte_eat,
                             Codepoint& out) {
-    MGO_ASSERT(len != 0);
+    CHX_ASSERT(len != 0);
     if ((byte_eat = utf8proc_iterate(
              reinterpret_cast<const utf8proc_uint8_t*>(in), len, &out)) < 0) {
         return kInvalidCoding;
@@ -36,4 +36,4 @@ inline int UnicodeToUtf8(uint32_t in, char* out) {
 
 bool CheckUtf8Valid(std::string_view str);
 
-}  // namespace mango
+}  // namespace charxed
