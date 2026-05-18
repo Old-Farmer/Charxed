@@ -46,6 +46,12 @@ class Window {
         area_.CursorGoNextWordBegin(count);
     }
     void CursorGoLine(size_t line);
+    void FindNextCharacterAndCursorGoInCurrentLine(const Character& c) {
+        area_.FindNextCharacterAndCursorGoInCurrentLine(c);
+    }
+    void FindPrevCharacterAndCursorGoInCurrentLine(const Character& c) {
+        area_.FindPrevCharacterAndCursorGoInCurrentLine(c);
+    }
 
     void SelectAll() { area_.SelectAll(); }
 

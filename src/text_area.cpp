@@ -1231,6 +1231,40 @@ bool TextArea::CursorGoLineState(size_t line, CursorState& state) {
     return true;
 }
 
+bool TextArea::FindNextCharacterAndCursorGoInCurrentLineState(
+    const Character& c, CursorState& state) {
+    CHX_ASSERT(buffer_);
+    auto line = buffer_->GetLineView(state.pos.line);
+    auto iter = buffer_->Find(state.pos);
+    Character cur_c;
+    if (iter != line.end) iter = NextCharacter(iter, line.end, cur_c);
+    while (iter != line.end) {
+        auto next = NextCharacter(iter, line.end, cur_c);
+        if (cur_c == c) {
+            state.pos.byte_offset = iter.offset() - line.begin.offset();
+            return true;
+        }
+        iter = next;
+    }
+    return false;
+}
+
+bool TextArea::FindPrevCharacterAndCursorGoInCurrentLineState(
+    const Character& c, CursorState& state) {
+    CHX_ASSERT(buffer_);
+    auto line = buffer_->GetLineView(state.pos.line);
+    auto iter = buffer_->Find(state.pos);
+    Character cur_c;
+    while (iter != line.begin) {
+        iter = PrevCharacter(iter, line.begin, cur_c);
+        if (cur_c == c) {
+            state.pos.byte_offset = iter.offset() - line.begin.offset();
+            return true;
+        }
+    }
+    return false;
+}
+
 void TextArea::CursorGoRight(size_t count) {
     b_view_->make_cursor_visible = true;
     CursorState state(cursor_);
@@ -1327,6 +1361,24 @@ void TextArea::CursorGoLine(size_t line) {
     b_view_->make_cursor_visible = true;
     CursorState state(cursor_);
     if (CursorGoLineState(line, state)) {
+        state.SetCursor(cursor_);
+        SelectionFollowCursor();
+    }
+}
+
+void TextArea::FindNextCharacterAndCursorGoInCurrentLine(const Character& c) {
+    b_view_->make_cursor_visible = true;
+    CursorState state(cursor_);
+    if (FindNextCharacterAndCursorGoInCurrentLineState(c, state)) {
+        state.SetCursor(cursor_);
+        SelectionFollowCursor();
+    }
+}
+
+void TextArea::FindPrevCharacterAndCursorGoInCurrentLine(const Character& c) {
+    b_view_->make_cursor_visible = true;
+    CursorState state(cursor_);
+    if (FindPrevCharacterAndCursorGoInCurrentLineState(c, state)) {
         state.SetCursor(cursor_);
         SelectionFollowCursor();
     }

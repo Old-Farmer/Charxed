@@ -15,6 +15,7 @@ NOTE: Don't support self-defined keymaps now.
 - `<end>` means End key
 - `<left>` means Left arrow key
 - `<right>` means Right arrow key
+- `<char>` means any single codepoint character
 
 ## Mode Reference
 
@@ -55,6 +56,10 @@ NOTE: Don't support self-defined keymaps now.
 | `gg` | Move to beginning of file | Normal, Select, Select-L |
 | `G` | Move to end of file (or go to line {count}) | Normal, Select, Select-L |
 | `gf` | Go to file at cursor | Normal, Select, Select-L |
+| `f<char>` | Go to the next positon of the character in the current line | Normal, Select, Select-L |
+| `F<char>` | Go to the prev positon of the character in the current line | Normal, Select, Select-L |
+| `;` | Repeat the last `f<char>` or `F<char>` | Normal, Select, Select-L |
+| `,` | Repeat the last `f<char>` or `F<char>` but int the opposite direction | Normal, Select, Select-L |
 | `<c-o>` | Jump to previous cursor position | Normal |
 | `<c-i>` | Jump to next cursor position | Normal |
 | `]b` | Go to next buffer | Normal |

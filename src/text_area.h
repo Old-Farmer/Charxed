@@ -66,6 +66,10 @@ class TextArea {
     bool CursorGoPrevWordBeginState(size_t count, CursorState& state);
     bool CursorGoNextWordBeginState(size_t count, CursorState& state);
     bool CursorGoLineState(size_t line, CursorState& state);
+    bool FindNextCharacterAndCursorGoInCurrentLineState(const Character& c,
+                                                        CursorState& state);
+    bool FindPrevCharacterAndCursorGoInCurrentLineState(const Character& c,
+                                                        CursorState& state);
 
     void CursorGoRight(size_t count);
     void CursorGoLeft(size_t count);
@@ -78,6 +82,8 @@ class TextArea {
     void CursorGoPrevWordBegin(size_t count);
     void CursorGoNextWordBegin(size_t count);
     void CursorGoLine(size_t line);
+    void FindNextCharacterAndCursorGoInCurrentLine(const Character& c);
+    void FindPrevCharacterAndCursorGoInCurrentLine(const Character& c);
 
     void StartSelection(Pos anchor);
     void StartLineSelection(Pos anchor);

@@ -153,6 +153,7 @@ class Editor {
     enum class InputState {
         kNone,
         kCount,  // count
+        kFind,
     };
     enum class Operator {
         kYank,
@@ -161,11 +162,13 @@ class Editor {
 
     size_t count_;
     size_t op_pending_stored_count_ = 0;
+    Character c_to_find_;
 
     InputState input_state_ = InputState::kNone;
     Operator pending_operator_;
 
     bool search_foward_ = true;
+    bool find_forward_ = true;
 
     std::unique_ptr<SingleTimer> autocmp_trigger_timer_;
     std::unique_ptr<SingleTimer> search_on_type_timer_;

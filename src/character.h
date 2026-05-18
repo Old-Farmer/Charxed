@@ -79,6 +79,19 @@ class Character {
 
     int Width();
 
+    bool operator==(const Character& other) {
+        if (CodePointCount() != other.CodePointCount()) {
+            return false;
+        }
+        size_t sz = CodePointCount();
+        for (size_t i = 0; i < sz; i++) {
+            if (Codepoints()[i] != other.Codepoints()[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
    private:
     std::vector<Codepoint> codepoints_;
     // single codepoint grapheme optimization(most case)

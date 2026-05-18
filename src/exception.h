@@ -29,7 +29,7 @@ class Exception : public std::exception {
     std::string msg_;
 };
 
-#define MGO_NORMAL_EXCEPTION(exception)                         \
+#define CHX_NORMAL_EXCEPTION(exception)                         \
     class exception : public Exception {                        \
        public:                                                  \
         template <typename... Args>                             \
@@ -37,16 +37,16 @@ class Exception : public std::exception {
             : Exception(format, std::forward<Args>(args)...) {} \
     };
 
-MGO_NORMAL_EXCEPTION(TermException)
-MGO_NORMAL_EXCEPTION(IOException)
-MGO_NORMAL_EXCEPTION(FileCreateException)
-MGO_NORMAL_EXCEPTION(CodingException)
-MGO_NORMAL_EXCEPTION(FSException)
-MGO_NORMAL_EXCEPTION(LogInitException)
-MGO_NORMAL_EXCEPTION(SignalRegisterException)
-MGO_NORMAL_EXCEPTION(KeyNotPredefinedException)
-MGO_NORMAL_EXCEPTION(TSQueryPredicateDirectiveNotSupportException)
-MGO_NORMAL_EXCEPTION(RegexCompileException)
+CHX_NORMAL_EXCEPTION(TermException)
+CHX_NORMAL_EXCEPTION(IOException)
+CHX_NORMAL_EXCEPTION(FileCreateException)
+CHX_NORMAL_EXCEPTION(CodingException)
+CHX_NORMAL_EXCEPTION(FSException)
+CHX_NORMAL_EXCEPTION(LogInitException)
+CHX_NORMAL_EXCEPTION(SignalRegisterException)
+CHX_NORMAL_EXCEPTION(KeyNotPredefinedException)
+CHX_NORMAL_EXCEPTION(TSQueryPredicateDirectiveNotSupportException)
+CHX_NORMAL_EXCEPTION(RegexCompileException)
 
 class OSException : public Exception {
    public:
@@ -60,9 +60,9 @@ class OSException : public Exception {
     int error_code_;
 };
 
-MGO_NORMAL_EXCEPTION(TypeMismatchException)
-MGO_NORMAL_EXCEPTION(OptionLoadException)
-MGO_NORMAL_EXCEPTION(ParseMsgException)
-MGO_NORMAL_EXCEPTION(CommandNameExistException)
-MGO_NORMAL_EXCEPTION(OptionInfoInitException)
+CHX_NORMAL_EXCEPTION(TypeMismatchException)
+CHX_NORMAL_EXCEPTION(OptionLoadException)
+CHX_NORMAL_EXCEPTION(ParseMsgException)
+CHX_NORMAL_EXCEPTION(CommandNameExistException)
+CHX_NORMAL_EXCEPTION(OptionInfoInitException)
 }  // namespace charxed

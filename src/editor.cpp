@@ -358,6 +358,40 @@ void Editor::InitKeymaps() {
                {CHX_DEFAULT_MODES});
     CHX_KEYMAP("gf", {[this] { cursor_.in_window->GotoFile(); }},
                {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("gf", {[this] { cursor_.in_window->GotoFile(); }},
+               {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("f", {[this] {
+                   input_state_ = InputState::kFind;
+                   find_forward_ = true;
+               }},
+               {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("F", {[this] {
+                   input_state_ = InputState::kFind;
+                   find_forward_ = false;
+               }},
+               {CHX_DEFAULT_MODES});
+    CHX_KEYMAP(
+        ";", {[this] {
+            if (find_forward_) {
+                cursor_.in_window->FindNextCharacterAndCursorGoInCurrentLine(
+                    c_to_find_);
+            } else {
+                cursor_.in_window->FindPrevCharacterAndCursorGoInCurrentLine(
+                    c_to_find_);
+            }
+        }},
+        {CHX_DEFAULT_MODES});
+    CHX_KEYMAP(
+        ",", {[this] {
+            if (find_forward_) {
+                cursor_.in_window->FindPrevCharacterAndCursorGoInCurrentLine(
+                    c_to_find_);
+            } else {
+                cursor_.in_window->FindNextCharacterAndCursorGoInCurrentLine(
+                    c_to_find_);
+            }
+        }},
+        {CHX_DEFAULT_MODES});
 
     // Buffer manangement
     CHX_KEYMAP("]b", {[this] { cursor_.in_window->NextBuffer(); }},
@@ -751,6 +785,26 @@ void Editor::HandleKey() {
         return;
     }
 
+    if (input_state_ == InputState::kFind) {
+        input_state_ = InputState::kNone;
+        if (key_info.IsSpecialKey()) {
+            return;
+        }
+
+        // For simplicity, currently we only find one codepoint.
+        c_to_find_.Clear();
+        c_to_find_.Push(key_info.codepoint);
+        CHX_ASSERT(cursor_.in_window);
+        if (find_forward_) {
+            cursor_.in_window->FindNextCharacterAndCursorGoInCurrentLine(
+                c_to_find_);
+        } else {
+            cursor_.in_window->FindPrevCharacterAndCursorGoInCurrentLine(
+                c_to_find_);
+        }
+        return;
+    }
+
     Result res = kKeyseqError;
     Keyseq* handler;
     if (key_info.IsSpecialKey() || key_info.codepoint <= CHAR_MAX) {
@@ -758,12 +812,14 @@ void Editor::HandleKey() {
     }
     if (res == kKeyseqDone) {
         handler->f();
-        input_state_ = InputState::kNone;
         if (mode_ == Mode::kOperatorPending) {
             // key seq like 2d2l -> d4l
             op_pending_stored_count_ = count_;
         }
-        count_ = 0;
+        if (input_state_ == InputState::kCount) {
+            count_ = 0;
+            input_state_ = InputState::kNone;
+        }
         return;
     } else if (res == kKeyseqMatched) {
         // CHX_LOG_DEBUG("keymap matched");
