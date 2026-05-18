@@ -71,7 +71,7 @@ In `config.json`, Support options:
 - line_number  
     type: int,
     available: 0 = none, 1 = absolute, 2 = relative,
-    default: 1,
+    default: 2,
     desc: Show line number.
 
 - scroll_off  
