@@ -211,7 +211,7 @@ void SyntaxParser::GenerateHighlight(const Buffer* buffer, const Range& range) {
             int64_t priority;
             auto iter = ts_query_capture_name_to_character_type_->find(name);
             if (iter == ts_query_capture_name_to_character_type_->end()) {
-                hl_type = kNormal;
+                hl_type = kNormalFg;
                 priority = -1;
             } else {
                 hl_type = iter->second;

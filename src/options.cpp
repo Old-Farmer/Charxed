@@ -245,6 +245,11 @@ static void GetColorScheme(bool truecolor, const Json& colorscheme_json,
             }
         }
     }
+
+    colorscheme[kNormalFg] = colorscheme[kNormal];
+    colorscheme[kNormalFg].bg_exist = false;
+    colorscheme_type_cnt++;
+
     if (colorscheme_type_cnt != __kColorSchemeTypeCount) {
         throw OptionLoadException("{}", "Colorscheme type cnt wrong");
     }

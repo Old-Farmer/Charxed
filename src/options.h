@@ -21,6 +21,7 @@ enum class Type {
 
 enum ColorSchemeType : int {
     kNormal = 0,
+    kNormalFg, // Will be extract from kNormal
     kSelection,
     kMenu,
     kMenuSelection,
