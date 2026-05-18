@@ -160,10 +160,12 @@ class TextArea {
     void MakeCursorVisibleWrap(size_t top_scroll_off, size_t bottom_scroll_off);
     void MakeCursorVisibleWrapInnerWhenCursorBeforeRenderRange(
         size_t top_scroll_off, size_t content_width);
-    // Calculate how many screen lines b view should move when cursor is in the
-    // render range to satisfy the scroll off setting.
-    // return scroll line, < 0 means b_view go up, > 0 means b_view go down
-    int64_t CalcScrollLineForMakeCursorVisibleWrapWhenCursorInRenderRange(
+    // Make Cursor Visible and Calculate how many screen lines b view should
+    // move when cursor is in the render range to satisfy the scroll off
+    // setting. b_view->make_cursor_visible must be true.
+    // return scroll line, < 0 means b_view go up, > 0 means b_view go
+    // down.
+    int64_t MakeCursorVisibleWrapWhenCursorInRenderRange(
         size_t row, size_t top_scroll_off, size_t bottom_scroll_off,
         size_t content_width);
     void MakeCursorVisibleWrapInnerWhenCursorAfterRenderRange(

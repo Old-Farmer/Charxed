@@ -251,6 +251,7 @@ bool TextArea::In(size_t s_col, size_t s_row) {
 // cursor is before the first row.
 void TextArea::MakeCursorVisibleWrapInnerWhenCursorBeforeRenderRange(
     size_t top_scroll_off, size_t content_width) {
+    CHX_ASSERT(b_view_->make_cursor_visible);
     auto tabstop = GetOpt<int64_t>(kOptTabStop);
 
     b_view_->line = cursor_->pos.line;
@@ -305,6 +306,7 @@ void TextArea::MakeCursorVisibleWrapInnerWhenCursorBeforeRenderRange(
 
 void TextArea::MakeCursorVisibleWrapInnerWhenCursorAfterRenderRange(
     size_t bottom_scroll_off, size_t content_width) {
+    CHX_ASSERT(b_view_->make_cursor_visible);
     auto tabstop = GetOpt<int64_t>(kOptTabStop);
 
     // Which subline of the line the cursor in?
@@ -358,9 +360,10 @@ void TextArea::MakeCursorVisibleWrapInnerWhenCursorAfterRenderRange(
     }
 }
 
-int64_t TextArea::CalcScrollLineForMakeCursorVisibleWrapWhenCursorInRenderRange(
+int64_t TextArea::MakeCursorVisibleWrapWhenCursorInRenderRange(
     size_t row, size_t top_scroll_off, size_t bottom_scroll_off,
     size_t content_width) {
+    CHX_ASSERT(b_view_->make_cursor_visible);
     int tabstop = GetOpt<int64_t>(kOptTabStop);
 
     int64_t actual_scroll = 0;
@@ -460,8 +463,11 @@ void TextArea::MakeCursorVisibleWrap(size_t top_scroll_off,
             // We find the cursor's location. It's in the screen.
             if (stop_at_cursor) {
                 int64_t actual_scroll =
-                    CalcScrollLineForMakeCursorVisibleWrapWhenCursorInRenderRange(
-                        i, top_scroll_off, bottom_scroll_off, content_width);
+                    b_view_->make_cursor_visible
+                        ? MakeCursorVisibleWrapWhenCursorInRenderRange(
+                              i, top_scroll_off, bottom_scroll_off,
+                              content_width)
+                        : 0;
                 cursor_->SetScreenPos(end_view_col + width_ - content_width,
                                       row_ + i - actual_scroll);
                 if (!cursor_->b_view_col_want.has_value()) {
@@ -550,17 +556,23 @@ void TextArea::MakeCursorVisibleNotWrap(size_t top_scroll_off,
 
     // adjust row of view
     if (row < b_view_->line + top_scroll_off) {
-        if (row < b_view_->line && !b_view_->make_cursor_visible) {
-            cursor_->SetScreenPos(-1, -1);
-            return;
+        if (!b_view_->make_cursor_visible) {
+            if (row < b_view_->line) {
+                cursor_->SetScreenPos(-1, -1);
+                return;
+            }
+        } else {
+            b_view_->line = row > top_scroll_off ? row - top_scroll_off : 0;
         }
-        b_view_->line = row > top_scroll_off ? row - top_scroll_off : 0;
     } else if (row - b_view_->line >= height_ - bottom_scroll_off) {
-        if (row - b_view_->line >= height_ && !b_view_->make_cursor_visible) {
-            cursor_->SetScreenPos(-1, -1);
-            return;
+        if (!b_view_->make_cursor_visible) {
+            if (row - b_view_->line >= height_) {
+                cursor_->SetScreenPos(-1, -1);
+                return;
+            }
+        } else {
+            b_view_->line = row + 1 - height_ + bottom_scroll_off;
         }
-        b_view_->line = row + 1 - height_ + bottom_scroll_off;
     }
 
     cursor_->SetScreenPos(cur_b_view_c - b_view_->col + content_s_col,
