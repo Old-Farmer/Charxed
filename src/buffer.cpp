@@ -83,14 +83,7 @@ void Buffer::Load() {
         if (read_only_ || (file_stat.mode & kFMWrite) == 0) {
             read_only_ = true;
         }
-        // when debug, leave files under build dir not be read only
-        if (!read_only_ &&
-            (path_.AbsolutePath().find(Path::GetAppRoot()) !=
-                 std::string::npos &&
-             path_.AbsolutePath().find(Path::GetAppRoot() + "build" +
-                                       kPathSeperator) == std::string::npos)) {
-            read_only_ = true;
-        }
+        // when debug, leave files under app dir not be read only
 #else
         if (read_only_ || (file_stat.mode & kFMWrite) == 0 ||
             path_.AbsolutePath().find(Path::GetAppRoot()) !=

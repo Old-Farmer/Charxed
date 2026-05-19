@@ -66,6 +66,12 @@ void TextTree::BulkLoad(File& file, EOLSeq& eol_seq) {
     BuildIndex(cnt);
     CHX_LOG_DEBUG("loading file: leaf_cnt: {}, bytes: {}, lines: {}", cnt,
                   root_->bytes, LineCnt());
+#ifndef NDEBUG
+    auto check_str = Check();
+    auto check_c_str = check_str.c_str();
+    (void)check_c_str;
+    CHX_ASSERT(check_str == "");
+#endif
 }
 
 void TextTree::BulkLoad(std::string_view str) {
@@ -258,7 +264,7 @@ void TextTree::BuildIndex(size_t leaf_cnt) {
         return;
     }
 
-    size_t single_level_intenal_cnt = leaf_cnt / kChildSize + 1;
+    size_t single_level_intenal_cnt = leaf_cnt / kChildSize;
     size_t remain = leaf_cnt % kChildSize;
     std::vector<Node*> nodes;
     std::vector<Node*> upper_level_nodes;
@@ -267,28 +273,36 @@ void TextTree::BuildIndex(size_t leaf_cnt) {
     for (auto n = begin_leaf_; n != nullptr; n = n->next) {
         nodes.push_back(n);
     }
-    while (single_level_intenal_cnt != 1) {
-        size_t stop_i = single_level_intenal_cnt - 2;
-        for (size_t i = 0; i < stop_i; i++) {
+    while (single_level_intenal_cnt != 0) {
+        if (remain == 0) {
+            for (size_t i = 0; i < single_level_intenal_cnt; i++) {
+                auto intenal = new InternalNode;
+                FillInternalNode(intenal, nodes, i * kChildSize, kChildSize);
+                upper_level_nodes.push_back(intenal);
+            }
+        } else {
+            size_t stop_i = single_level_intenal_cnt + 1 - 2;
+            for (size_t i = 0; i < stop_i; i++) {
+                auto intenal = new InternalNode;
+                FillInternalNode(intenal, nodes, i * kChildSize, kChildSize);
+                upper_level_nodes.push_back(intenal);
+            }
+
+            // Last two internal nodes, we redistribute them.
+            size_t size = (kChildSize + remain) / 2;
             auto intenal = new InternalNode;
-            FillInternalNode(intenal, nodes, i * kChildSize, kChildSize);
+            FillInternalNode(intenal, nodes, stop_i * kChildSize, size);
+            upper_level_nodes.push_back(intenal);
+
+            intenal = new InternalNode;
+            size_t begin_index = stop_i * kChildSize + size;
+            size = kChildSize + remain - size;
+            FillInternalNode(intenal, nodes, begin_index, size);
             upper_level_nodes.push_back(intenal);
         }
 
-        // Last two internal nodes, we redistribute them.
-        size_t size = (kChildSize + remain) / 2;
-        auto intenal = new InternalNode;
-        FillInternalNode(intenal, nodes, stop_i * kChildSize, size);
-        upper_level_nodes.push_back(intenal);
-
-        intenal = new InternalNode;
-        size_t begin_index = stop_i * kChildSize + size;
-        size = kChildSize + remain - size;
-        FillInternalNode(intenal, nodes, begin_index, size);
-        upper_level_nodes.push_back(intenal);
-
         std::swap(nodes, upper_level_nodes);
-        single_level_intenal_cnt = nodes.size() / kChildSize + 1;
+        single_level_intenal_cnt = nodes.size() / kChildSize;
         remain = nodes.size() % kChildSize;
         upper_level_nodes.clear();
     }
@@ -483,6 +497,7 @@ void TextTree::Delete(Iterator begin, Iterator end) {
     begin.index_ = 0;
     begin.offset_ = end.offset() - end.index_;
     DeleteInOneNode(begin.node_, begin.index_, end.index_);
+    CHX_ASSERT(Check() == "");
 
     size_t offset_end = begin.offset();
     while (true) {
@@ -494,6 +509,7 @@ void TextTree::Delete(Iterator begin, Iterator end) {
         }
         if (begin.node_ == end.node_) {
             DeleteInOneNode(begin.node_, begin.index_, end.index_);
+            CHX_ASSERT(Check() == "");
             return;
         }
 
@@ -502,6 +518,12 @@ void TextTree::Delete(Iterator begin, Iterator end) {
         begin.offset_ = end.offset() - end.index_;
         DeleteInOneNode(begin.node_, begin.index_, end.index_);
         offset_end = begin.offset();
+#ifndef NDEBUG
+        auto check_str = Check();
+        auto check_c_str = check_str.c_str();
+        (void)check_c_str;
+        CHX_ASSERT(check_str == "");
+#endif
     }
 }
 
@@ -601,6 +623,7 @@ void TextTree::DeleteInOneNode(LeafNode* node, size_t begin_index,
     size_t i = std::find(internal->children,
                          internal->children + internal->size, node) -
                internal->children;
+    CHX_ASSERT(i != internal->size);
     internal->lines -= internal->infos[i].lines - node->lines;
     internal->bytes -= internal->infos[i].bytes - node->bytes;
     // We don't update internal->infos[i] here becuse redistribute or merge will
@@ -619,6 +642,7 @@ void TextTree::DeleteInOneNode(LeafNode* node, size_t begin_index,
     while (p) {
         i = std::find(p->children, p->children + p->size, internal) -
             p->children;
+        CHX_ASSERT(i != internal->size);
         p->lines -= p->infos[i].lines - internal->lines;
         p->bytes -= p->infos[i].bytes - internal->bytes;
         if (TryRedistributeIntenalNode(internal, i)) {
@@ -765,6 +789,7 @@ bool TextTree::TryRedistributeLeafNode(LeafNode* node, size_t index) {
     if (index != 0) {
         auto sibling = static_cast<LeafNode*>(p->children[index - 1]);
         size_t bytes = sibling->bytes + node->bytes;
+        CHX_LOG_DEBUG("left redis: {}", bytes);
         if (bytes > kDataSize) {
 #ifndef NDEBUG
             size_t _total_bytes = node->bytes + sibling->bytes;
@@ -800,6 +825,7 @@ bool TextTree::TryRedistributeLeafNode(LeafNode* node, size_t index) {
     if (index != p->size - 1) {
         auto sibling = static_cast<LeafNode*>(p->children[index + 1]);
         size_t bytes = sibling->bytes + node->bytes;
+        CHX_LOG_DEBUG("right redis: {}", bytes);
         if (bytes > kDataSize) {
 #ifndef NDEBUG
             size_t _total_bytes = node->bytes + sibling->bytes;
@@ -837,13 +863,20 @@ void TextTree::MergeLeafNode(LeafNode* node, size_t index) {
     // CHX_LOG_DEBUG("merge");
     int64_t merged_i = -1;
     auto p = node->parent;
+    CHX_ASSERT(p->children[index] == node);
     // First try left sibling
     if (index != 0 && p->infos[index - 1].bytes + node->bytes <= kDataSize) {
+        CHX_LOG_DEBUG("left merge: {} {}", p->infos[index - 1].bytes,
+                      node->bytes);
+        CHX_ASSERT(p->infos[index - 1].bytes == p->children[index - 1]->bytes);
         merged_i = index - 1;
     }
     // Then try right sibling
     if (merged_i == -1 && index != node->parent->size - 1 &&
         p->infos[index + 1].bytes + node->bytes <= kDataSize) {
+        CHX_LOG_DEBUG("right merge: {} {}", p->infos[index + 1].bytes,
+                      node->bytes);
+        CHX_ASSERT(p->infos[index + 1].bytes == p->children[index + 1]->bytes);
         merged_i = index;
     }
     CHX_ASSERT(merged_i != -1);
@@ -902,13 +935,16 @@ bool TextTree::TryRedistributeIntenalNode(InternalNode* node, size_t index) {
             size_t moved_lines = 0;
             size_t moved_bytes = 0;
             for (size_t i = redst_i; i < sibling->size; i++) {
-                moved_lines += p->infos[i].lines;
-                moved_bytes += p->infos[i].bytes;
+                moved_lines += sibling->infos[i].lines;
+                moved_bytes += sibling->infos[i].bytes;
+                sibling->children[i]->parent = node;
             }
             node->bytes += moved_bytes;
             node->lines += moved_lines;
             sibling->bytes -= moved_bytes;
             sibling->lines -= moved_lines;
+            sibling->size = redst_i;
+            node->size = size - sibling->size;
             p->infos[index] = {node->lines, node->bytes};
             p->infos[index - 1] = {sibling->lines, sibling->bytes};
             return true;
@@ -923,8 +959,9 @@ bool TextTree::TryRedistributeIntenalNode(InternalNode* node, size_t index) {
             size_t moved_lines = 0;
             size_t moved_bytes = 0;
             for (size_t i = 0; i < redst_i; i++) {
-                moved_lines += p->infos[i].lines;
-                moved_bytes += p->infos[i].bytes;
+                moved_lines += sibling->infos[i].lines;
+                moved_bytes += sibling->infos[i].bytes;
+                sibling->children[i]->parent = node;
             }
             std::move(sibling->infos, sibling->infos + redst_i,
                       node->infos + node->size);
@@ -938,6 +975,8 @@ bool TextTree::TryRedistributeIntenalNode(InternalNode* node, size_t index) {
             node->lines += moved_lines;
             sibling->bytes -= moved_bytes;
             sibling->lines -= moved_lines;
+            node->size += redst_i;
+            sibling->size -= redst_i;
             p->infos[index] = {node->lines, node->bytes};
             p->infos[index + 1] = {sibling->lines, sibling->bytes};
             return true;
@@ -965,6 +1004,9 @@ void TextTree::MergeInternalNode(InternalNode* node, size_t index) {
     auto merged_internal = static_cast<InternalNode*>(p->children[merged_i]);
     auto another_internal =
         static_cast<InternalNode*>(p->children[merged_i + 1]);
+    for (size_t i = 0; i < another_internal->size; i++) {
+        another_internal->children[i]->parent = merged_internal;
+    }
     std::move(another_internal->infos,
               another_internal->infos + another_internal->size,
               merged_internal->infos + merged_internal->size);
@@ -973,6 +1015,8 @@ void TextTree::MergeInternalNode(InternalNode* node, size_t index) {
               merged_internal->children + merged_internal->size);
     merged_internal->lines += another_internal->lines;
     merged_internal->bytes += another_internal->bytes;
+    merged_internal->size += another_internal->size;
+    delete another_internal;
 
     // tweak the parent
     p->infos[merged_i] = {merged_internal->lines, merged_internal->bytes};
@@ -1065,6 +1109,12 @@ std::string TextTree::Check() {
         if (n->parent == nullptr) {
             return fmt::format("Leaf node {} parent is null", (void*)n);
         }
+        auto iter = std::find(n->parent->children,
+                              n->parent->children + n->parent->size, n);
+        if (iter == n->parent->children + n->parent->size) {
+            return fmt::format("Leaf node {} can't found in its parent",
+                               (void*)n);
+        }
         if (q.empty()) {
             q.push(n->parent);
         } else if (q.back() != n->parent) {
@@ -1087,7 +1137,7 @@ std::string TextTree::Check() {
                     "Internal node {} children size under the threshold",
                     (void*)n);
             }
-            if (n->size >= kChildSize) {
+            if (n->size > kChildSize) {
                 return fmt::format("Internal node {} has {} children", (void*)n,
                                    n->size);
             }
@@ -1120,7 +1170,7 @@ std::string TextTree::Check() {
     if (root_ != n) {
         return fmt::format("root mismatch");
     }
-    if (n->size >= kChildSize) {
+    if (n->size > kChildSize) {
         return fmt::format("root node {} has {} children", (void*)n, n->size);
     }
     size_t lines = 0;

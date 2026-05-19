@@ -135,4 +135,6 @@ TEST_CASE("TextTree test") {
               buffer_naive.GetLine(buffer_naive.LineCnt() - 1).size()}});
         AddForTest(tree, buffer_naive, {0, 0}, all);
     }
+
+    // TODO: more cases
 }
