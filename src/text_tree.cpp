@@ -64,8 +64,8 @@ void TextTree::BulkLoad(File& file, EOLSeq& eol_seq) {
         throw CodingException("{}", "utf8 encoding error");
     }
     BuildIndex(cnt);
-    CHX_LOG_DEBUG("loading file: leaf_cnt: {}, bytes: {}, lines: {}", cnt,
-                  root_->bytes, LineCnt());
+    // CHX_LOG_DEBUG("loading file: leaf_cnt: {}, bytes: {}, lines: {}", cnt,
+    //               root_->bytes, LineCnt());
 #ifndef NDEBUG
     auto check_str = Check();
     auto check_c_str = check_str.c_str();
@@ -82,8 +82,8 @@ void TextTree::BulkLoad(std::string_view str) {
         return;
     }
     BuildIndex(cnt);
-    CHX_LOG_DEBUG("loading str: leaf_cnt: {}, bytes: {}, lines: {}", cnt,
-                  root_->bytes, root_->lines);
+    // CHX_LOG_DEBUG("loading str: leaf_cnt: {}, bytes: {}, lines: {}", cnt,
+    //               root_->bytes, root_->lines);
 }
 
 size_t TextTree::LoadLeafNodes(File& file, EOLSeq& eol_seq) {
@@ -789,7 +789,7 @@ bool TextTree::TryRedistributeLeafNode(LeafNode* node, size_t index) {
     if (index != 0) {
         auto sibling = static_cast<LeafNode*>(p->children[index - 1]);
         size_t bytes = sibling->bytes + node->bytes;
-        CHX_LOG_DEBUG("left redis: {}", bytes);
+        // CHX_LOG_DEBUG("left redis: {}", bytes);
         if (bytes > kDataSize) {
 #ifndef NDEBUG
             size_t _total_bytes = node->bytes + sibling->bytes;
@@ -825,7 +825,7 @@ bool TextTree::TryRedistributeLeafNode(LeafNode* node, size_t index) {
     if (index != p->size - 1) {
         auto sibling = static_cast<LeafNode*>(p->children[index + 1]);
         size_t bytes = sibling->bytes + node->bytes;
-        CHX_LOG_DEBUG("right redis: {}", bytes);
+        // CHX_LOG_DEBUG("right redis: {}", bytes);
         if (bytes > kDataSize) {
 #ifndef NDEBUG
             size_t _total_bytes = node->bytes + sibling->bytes;
@@ -874,8 +874,8 @@ void TextTree::MergeLeafNode(LeafNode* node, size_t index) {
     // Then try right sibling
     if (merged_i == -1 && index != node->parent->size - 1 &&
         p->infos[index + 1].bytes + node->bytes <= kDataSize) {
-        CHX_LOG_DEBUG("right merge: {} {}", p->infos[index + 1].bytes,
-                      node->bytes);
+        // CHX_LOG_DEBUG("right merge: {} {}", p->infos[index + 1].bytes,
+        //               node->bytes);
         CHX_ASSERT(p->infos[index + 1].bytes == p->children[index + 1]->bytes);
         merged_i = index;
     }
