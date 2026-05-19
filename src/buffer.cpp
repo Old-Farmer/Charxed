@@ -498,7 +498,7 @@ Result Buffer::Replace(const Range& range, std::string_view str,
     item.origin.str = str;
     item.origin_pos_hint = cursor_pos_hint;
 
-    item.reverse.range = {range.begin, cursor_pos_hint};
+    item.reverse.range = {range.begin, origin_pos_hint};
     item.reverse.str = std::move(old_str);
     item.reverse_pos_hint = cursor_pos ? *cursor_pos : range.end;
     Record(std::move(item));
