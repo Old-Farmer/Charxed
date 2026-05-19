@@ -64,8 +64,6 @@ void Buffer::Load() {
             return;
         }
 
-        path_.Normalize();
-
         File f(path_.AbsolutePath(), "r", true);
         CHX_LOG_DEBUG("file path {}", path_.AbsolutePath());
 

@@ -5,10 +5,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cstring>
 
 #include "exception.h"
 #include "linux/limits.h"
+#include "str.h"
 #include "utils.h"
 
 namespace charxed {
@@ -20,13 +22,11 @@ Path::Path() {}
 
 Path::Path(const std::string& str) {
     CHX_ASSERT(!str.empty());
-    if (str[0] == kPathSeperator) {
-        absolute_path_ = str;
-        size_t pos = absolute_path_.find(cwd_);
-        in_cwd_ = pos != std::string::npos;
+    if (IsAbsolutePath(str)) {
+        absolute_path_ = Normalize(str);
     } else {
-        absolute_path_ = cwd_ + str;
-        in_cwd_ = true;
+        absolute_path_ = Normalize(cwd_ + str);
+        GenRelativePath();
     }
 
     std::string::size_type pos = absolute_path_.find_last_of(kPathSeperator);
@@ -42,14 +42,15 @@ zstring_view Path::FileName() const noexcept {
 }
 
 zstring_view Path::ThisPath() noexcept {
-    if (last_cwd_version_ != cwd_version_) {
-        in_cwd_ = absolute_path_.find(cwd_) != std::string::npos;
-    }
-    if (!in_cwd_) {
+    if (relative_path_.empty()) {
         return zstring_view(absolute_path_);
     }
-    return zstring_view(absolute_path_.c_str() + cwd_.size(),
-                        absolute_path_.size() - cwd_.size());
+
+    if (last_cwd_version_ != cwd_version_) {
+        last_cwd_version_ = cwd_version_;
+        GenRelativePath();
+    }
+    return zstring_view(relative_path_);
 }
 
 const std::string& Path::AbsolutePath() const noexcept {
@@ -62,36 +63,15 @@ std::string_view Path::Dir() const noexcept {
     return std::string_view(absolute_path_).substr(0, pos + 1);
 }
 
-void Path::Normalize() {
-    if (absolute_path_.empty()) {
-        return;
+std::string Path::Normalize(const std::string& path) {
+    CHX_ASSERT(IsAbsolutePath(path));
+    if (path.empty()) {
+        return {};
     }
 
+    auto sub_paths = StrSplit(path, kPathSeperator);
     std::vector<std::string_view> sta;
-    int64_t last_sep = -1;
-    size_t i = 0;
-    for (; i < absolute_path_.size(); i++) {
-        if (absolute_path_[i] == kPathSeperator) {
-            if (last_sep == -1) {
-                last_sep = i;
-            } else {
-                std::string_view sub_path =
-                    std::string_view(absolute_path_)
-                        .substr(last_sep + 1, i - last_sep - 1);
-                if (sub_path.empty() || sub_path == ".") {
-                    ;
-                } else if (sub_path == "..") {
-                    if (!sta.empty()) sta.pop_back();
-                } else {
-                    sta.push_back(sub_path);
-                }
-                last_sep = i;
-            }
-        }
-    }
-    if (last_sep != static_cast<int64_t>(absolute_path_.size() - 1)) {
-        std::string_view sub_path = std::string_view(absolute_path_)
-                                        .substr(last_sep + 1, i - last_sep - 1);
+    for (auto sub_path : sub_paths) {
         if (sub_path.empty() || sub_path == ".") {
             ;
         } else if (sub_path == "..") {
@@ -105,14 +85,10 @@ void Path::Normalize() {
         normalized_path += kPathSeperator;
         normalized_path += sub_path;
     }
-    if (absolute_path_.back() == kPathSeperator) {
+    if (path.back() == kPathSeperator) {
         normalized_path += kPathSeperator;
     }
-    absolute_path_ = normalized_path;
-    std::string::size_type pos = absolute_path_.find_last_of(kPathSeperator);
-    CHX_ASSERT(pos != std::string::npos);
-    file_name_len_ = absolute_path_.size() - pos - 1;
-    last_cwd_version_ = cwd_version_;
+    return normalized_path;
 }
 
 const std::string& Path::GetCwd() noexcept { return cwd_; }
@@ -230,6 +206,26 @@ std::vector<std::string> Path::ListUnderPath(const std::string& path) {
 bool Path::IsAbsolutePath(std::string_view path) {
     CHX_ASSERT(!path.empty());
     return path[0] == kPathSeperator;
+}
+
+void Path::GenRelativePath() {
+    size_t i = 0;
+    for (; i < absolute_path_.size() && i < cwd_.size(); i++) {
+        if (absolute_path_[i] != cwd_[i]) {
+            break;
+        }
+    }
+    relative_path_.clear();
+    size_t path_sep_cnt =
+        std::count(cwd_.begin() + i, cwd_.end(), kPathSeperator);
+    for (size_t j = 0; j < path_sep_cnt; j++) {
+        relative_path_.append(std::string("..") + kPathSeperator);
+    }
+    relative_path_.append(absolute_path_.begin() + i, absolute_path_.end());
+    if (relative_path_.empty()) {
+        relative_path_.append(".");
+        relative_path_.append(1, kPathSeperator);
+    }
 }
 
 std::string Path::cwd_ = "";

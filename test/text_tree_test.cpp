@@ -57,6 +57,7 @@ void DeleteForTest(TextTree& tree, BufferNaive& buffer, const Range& range) {
 TEST_CASE("TextTree test") {
     LogInit("text_tree_test.log");
     auto _ = gsl::finally([] { LogDeinit(); });
+    Path::GetCwdSys();
 
     const std::string fname = "../test/test_sample.txt";
 

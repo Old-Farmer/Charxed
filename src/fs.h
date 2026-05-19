@@ -28,22 +28,28 @@ class Path {
     bool Empty() const noexcept { return absolute_path_.empty(); }
 
     zstring_view FileName() const noexcept;
+    // ThisPath return a zstring_view for showing.
+    // If you construct Path with a relative path,
+    // return relative path,
+    // else return absolute path.
     zstring_view ThisPath() noexcept;
     const std::string& AbsolutePath() const noexcept;
+    // return a absolute dir path
     std::string_view Dir() const noexcept;
-
-    void Normalize();
 
     // Cwd and AppRoot all have a slash at the end
 
+    // return normalized path.
     static const std::string& GetCwd() noexcept;
     static const std::string& GetAppRoot() noexcept;
 
+    // return normalized path.
     // throw Exception if home can't be detected
     static std::string GetConfig();
     static std::string GetCache();
     static std::string GetHome();
 
+    // return normalized path.
     // throws FSException
     static const std::string& GetCwdSys();
     static const std::string& GetAppRootSys();
@@ -56,11 +62,16 @@ class Path {
 
     static bool IsAbsolutePath(std::string_view path);
 
+    // path must be absolute path
+    static std::string Normalize(const std::string& path);
+
    private:
+    void GenRelativePath();
+
     std::string absolute_path_;
+    std::string relative_path_;
     size_t file_name_len_;
     int64_t last_cwd_version_;
-    bool in_cwd_;
 
     static std::string cwd_;
     static int64_t cwd_version_;  // changing or getting cwd by syscall need
@@ -74,9 +85,9 @@ class Path {
                                    // where xxx can build, build-debug whatever.
 };
 
-constexpr uint32_t kFMRead = 1 << 1;
+constexpr uint32_t kFMRead = 1 << 0;
 constexpr uint32_t kFMWrite = 1 << 1;
-constexpr uint32_t kFMExec = 1 << 1;
+constexpr uint32_t kFMExec = 1 << 2;
 
 struct FileStat {
     uint32_t mode = 0;
