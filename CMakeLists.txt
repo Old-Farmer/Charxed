@@ -315,6 +315,7 @@ target_sources(
   "${TEST_DIR}/buffer_naive.h"
   "${TEST_DIR}/buffer_naive.cpp"
   "${TEST_DIR}/data_structure_test.cpp"
+  "${TEST_DIR}/fs_test.cpp"
   "${TEST_DIR}/json_test.cpp"
   "${TEST_DIR}/logging_test.cpp"
   "${TEST_DIR}/lsp_test.cpp"
