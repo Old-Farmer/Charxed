@@ -28,6 +28,7 @@ Linux only now.
 - Syntax highlighting with tree-sitter(c, c++, json)
 - Basic word-based auto completion
 - Colorscheme
+- File Watching
 
 See [help](./docs/help.md) for more infomation.
 

@@ -644,10 +644,14 @@ void Editor::InitKeymaps() {
                        if (exit_code != 0 || !CheckUtf8Valid(stdout)) {
                            return;
                        }
-                       window_->area_.b_view_->make_cursor_visible = true;
+                       if (stdin == stdout) {
+                           return;
+                       }
+                       cursor_.in_window->area_.b_view_->make_cursor_visible =
+                           true;
                        Pos pos = FixCursorPos(cursor_.pos, stdout);
                        // TODO: diff
-                       window_->area_.Replace(
+                       cursor_.in_window->area_.Replace(
                            {{0, 0},
                             {b->LineCnt() - 1,
                              b->GetLineView(b->LineCnt() - 1).Size()}},

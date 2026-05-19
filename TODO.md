@@ -24,7 +24,6 @@
 - Replace
 - Options need a range limitaion
 - Jump history should be adjusted when buffer changed.
-- File changing detection
 - diff algorithm and diff view
 - Better auto indent per laguages
 - MacOS support

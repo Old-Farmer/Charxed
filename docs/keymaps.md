@@ -58,8 +58,6 @@ NOTE: Don't support self-defined keymaps now.
 | `gf` | Go to file at cursor | Normal, Select, Select-L |
 | `f<char>` | Go to the next positon of the character in the current line | Normal, Select, Select-L |
 | `F<char>` | Go to the prev positon of the character in the current line | Normal, Select, Select-L |
-| `;` | Repeat the last `f<char>` or `F<char>` | Normal, Select, Select-L |
-| `,` | Repeat the last `f<char>` or `F<char>` but int the opposite direction | Normal, Select, Select-L |
 | `<c-o>` | Jump to previous cursor position | Normal |
 | `<c-i>` | Jump to next cursor position | Normal |
 | `]b` | Go to next buffer | Normal |
@@ -91,6 +89,7 @@ NOTE: Don't support self-defined keymaps now.
 | `<bs>` | Delete character before cursor | Insert |
 | `<c-w>` | Delete word before cursor | Insert |
 | `<c-r>` | Paste from clipboard | Insert |
+| `<space>f` | Call clang-format to format the current buffer(really unstable) | Normal |
 
 ## Completion & History
 
