@@ -9,7 +9,10 @@
 
 namespace charxed {
 
+sig_atomic_t sig_flag = SignalHandler::kNone;
+
 static constexpr int kBadSignals[] = {SIGABRT, SIGSEGV, SIGBUS};
+static constexpr int kGoodSignals[] = {SIGTSTP, SIGCONT};
 
 // throw SignalRegisterException
 static sighandler_t Signal(int signum, sighandler_t handler) {
@@ -34,10 +37,30 @@ static void BadSignalHandler(int signum) {
     raise(signum);
 }
 
-SignalHandler::SignalHandler() {
+static void GoodSignalHandler(int signum) {
+    if (signum == SIGTSTP) {
+        sig_flag = SignalHandler::kTStp;
+    } else if (signum == SIGCONT) {
+        sig_flag = SignalHandler::kCont;
+    }
+}
+
+SignalHandler::SignalHandler() {}
+
+void SignalHandler::Init() {
     for (int signum : kBadSignals) {
         Signal(signum, BadSignalHandler);
     }
+    for (int signum : kGoodSignals) {
+        Signal(signum, GoodSignalHandler);
+    }
+}
+void SignalHandler::StopHandleTSTP() { Signal(SIGTSTP, SIG_DFL); }
+void SignalHandler::StartHandleTSTP() { Signal(SIGTSTP, GoodSignalHandler); }
+
+SignalHandler& SignalHandler::GetInstance() {
+    static SignalHandler handler;
+    return handler;
 }
 
 }  // namespace charxed

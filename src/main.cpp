@@ -30,7 +30,8 @@ int main(int argc, char* argv[]) {
     // Always use this locale.
     setlocale(LC_CTYPE, "en_US.UTF-8");
 
-    SignalHandler signal_handler;
+    SignalHandler& signal_handler = SignalHandler::GetInstance();
+    signal_handler.Init();
 
     std::set_terminate(TerminateHandler);
 

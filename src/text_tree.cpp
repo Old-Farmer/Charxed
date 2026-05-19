@@ -866,8 +866,8 @@ void TextTree::MergeLeafNode(LeafNode* node, size_t index) {
     CHX_ASSERT(p->children[index] == node);
     // First try left sibling
     if (index != 0 && p->infos[index - 1].bytes + node->bytes <= kDataSize) {
-        CHX_LOG_DEBUG("left merge: {} {}", p->infos[index - 1].bytes,
-                      node->bytes);
+        // CHX_LOG_DEBUG("left merge: {} {}", p->infos[index - 1].bytes,
+        //               node->bytes);
         CHX_ASSERT(p->infos[index - 1].bytes == p->children[index - 1]->bytes);
         merged_i = index - 1;
     }

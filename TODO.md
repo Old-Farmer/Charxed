@@ -26,6 +26,7 @@
 - Jump history should be adjusted when buffer changed.
 - diff algorithm and diff view
 - Better auto indent per laguages
+- SIGTSTP & SIGCONT support
 - MacOS support
 - Windows support
 - Low lantency remote development
