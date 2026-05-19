@@ -2,7 +2,6 @@
 
 #include <unordered_map>
 
-#include "buffer.h"
 #include "options.h"
 #include "regex.h"
 #include "term.h"
@@ -16,6 +15,9 @@ struct TSQueryCursor;
 struct TSQueryCapture;
 
 namespace charxed {
+
+class Buffer;
+
 struct Highlight {
     Range range;
     ColorSchemeType hl_type;

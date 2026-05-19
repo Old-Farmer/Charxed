@@ -328,23 +328,25 @@ void GlobalOpts::TryApply(const Json& config, const Json& colorscheme_config) {
 // We don't wrap our default config loading in catch.
 // If errs occur on out default config, just let it crash.
 void GlobalOpts::LoadConfig() {
+    EOLSeq eol_seq;
     std::string default_config_str =
         File(std::string(Path::GetAppRoot() + kDefaultConfigPath), "r", false)
-            .ReadAll();
+            .ReadAll(eol_seq);
     std::string default_colorscheme_str =
         File(std::string(Path::GetAppRoot() + kDefaultColorschemePath), "r",
              false)
-            .ReadAll();
+            .ReadAll(eol_seq);
 
     try {
         std::string user_config_str;
         if (File::FileReadable(kUserConfigPath)) {
-            user_config_str = File(kUserConfigPath, "r", false).ReadAll();
+            user_config_str =
+                File(kUserConfigPath, "r", false).ReadAll(eol_seq);
         }
         std::string user_colorscheme_str;
         if (File::FileReadable(kUserColorschemePath)) {
             user_colorscheme_str =
-                File(kUserColorschemePath, "r", false).ReadAll();
+                File(kUserColorschemePath, "r", false).ReadAll(eol_seq);
         }
 
         // We merge with user config

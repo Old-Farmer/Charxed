@@ -29,6 +29,8 @@ class BufferManager {
     Buffer* FindBuffer(const Path& path);
     // By buffer name.
     Buffer* FindBuffer(const std::string& name);
+    // By absolute path str
+    Buffer* FindBuffer(std::string_view absolute_path);
     // By id.
     Buffer* FindBuffer(int64_t id);
 

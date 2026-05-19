@@ -21,7 +21,7 @@ class TextTree {
 
     // Should BulkLoad before using.
 
-    // throws CodingException
+    // throws IOException, CodingException
     void BulkLoad(File& file, EOLSeq& eol_seq);
 
     // BulkLoad an empty str just init the class.

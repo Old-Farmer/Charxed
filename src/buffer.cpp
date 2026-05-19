@@ -64,22 +64,20 @@ void Buffer::Load() {
             return;
         }
 
-        const char* mode = "r";
-
         path_.Normalize();
 
-        FileStat file_stat;
-        Result res = GetFileStat(path_.AbsolutePath(), file_stat);
-        if (res == kNotExist) {
-            mode = "w+";
-        }
-
-        File f(path_.AbsolutePath(), mode);
+        File f(path_.AbsolutePath(), "r", true);
         CHX_LOG_DEBUG("file path {}", path_.AbsolutePath());
 
         tree_.BulkLoad(f, eol_seq_);
 
         filetype_ = DecideFiletype(path_.FileName());
+
+        FileStat file_stat;
+        Result res = GetFileStat(path_.AbsolutePath(), file_stat);
+        if (res == kNotExist) {
+            throw FSException("File not exist even after reading");
+        }
 
 #ifndef NDEBUG
         if (read_only_ || (file_stat.mode & kFMWrite) == 0) {
@@ -104,15 +102,64 @@ void Buffer::Load() {
             read_only_ ? BufferState::kReadOnly : BufferState::kNotModified;
 
         // TODO: check file stat for more op
+    } catch (CodingException& e) {
+        tree_.BulkLoad("");  // ensure init
+        state_ = BufferState::kCodingInvalid;
+        throw;
     } catch (FileCreateException& e) {
         tree_.BulkLoad("");  // ensure init
         state_ = BufferState::kCannotCreate;
         throw;
-    } catch (IOException& e) {
+    } catch (Exception& e) {
         tree_.BulkLoad("");  // ensure init
         state_ = BufferState::kCannotRead;
         throw;
-    } catch (FSException& e) {
+    }
+}
+
+void Buffer::Reload(Pos* cursor_pos, Pos& cursor_pos_hint) {
+    try {
+        File f(path_.AbsolutePath(), "r", false);
+        CHX_LOG_DEBUG("reload file path {}", path_.AbsolutePath());
+
+        FileStat file_stat;
+        Result res = GetFileStat(path_.AbsolutePath(), file_stat);
+        if (res == kNotExist) {
+            throw FSException("File not exist even after reading");
+        }
+
+        if ((file_stat.mode & kFMWrite) == 0) {
+            read_only_ = true;
+        }
+
+        std::string str = f.ReadAll(eol_seq_);
+        if (!CheckUtf8Valid(str)) {
+            return;
+        }
+
+        Range range = {{0, 0},
+                       {LineCnt() - 1, GetLineView(LineCnt() - 1).Size()}};
+
+        // TODO: diff content.
+        // And use diff to adjust cursor pos
+
+        bool origin_readonly = read_only_;
+        read_only_ = false;
+        state_ = BufferState::kNotModified;
+        cursor_pos_hint = FixCursorPos(*cursor_pos, str);
+        Replace(range, str, cursor_pos, true, cursor_pos_hint);
+        if (origin_readonly) {
+            state_ = BufferState::kReadOnly;
+            read_only_ = origin_readonly;
+        } else {
+            state_ = BufferState::kNotModified;
+        }
+
+    } catch (CodingException& e) {
+        tree_.BulkLoad("");  // ensure init
+        state_ = BufferState::kCodingInvalid;
+        throw;
+    } catch (Exception& e) {
         tree_.BulkLoad("");  // ensure init
         state_ = BufferState::kCannotRead;
         throw;
@@ -138,7 +185,11 @@ Result Buffer::Write() {
         return kBufferReadOnly;
     }
 
-    std::string swap_file_path = path_.AbsolutePath() + kSwapSuffix;
+    std::string swap_file_path;
+    swap_file_path.reserve(path_.AbsolutePath().size() + kSwapSuffix.size());
+    swap_file_path.append(path_.AbsolutePath());
+    swap_file_path.append(kSwapSuffix);
+
     File swap_file = File(swap_file_path, "w", true);
 
     if (eol_seq_ == EOLSeq::kLF) {

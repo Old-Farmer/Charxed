@@ -1,5 +1,6 @@
 #include "syntax.h"
 
+#include "buffer.h"
 #include "constants.h"
 #include "exception.h"
 #include "options.h"
@@ -374,11 +375,12 @@ const SyntaxParser::TSQueryContext* SyntaxParser::GetQueryContext(
         std::string query_file_path = QueryFilePath(filetype);
         try {
             File f(query_file_path, "r", false);
-            std::string query_str = f.ReadAll();
+            EOLSeq eol_seq;
+            std::string query_str = f.ReadAll(eol_seq);
             // Cpp need C
             if (filetype == "cpp") {
                 std::string query_str_c =
-                    File(QueryFilePath("c"), "r", false).ReadAll();
+                    File(QueryFilePath("c"), "r", false).ReadAll(eol_seq);
                 query_str = query_str_c + kTSNewLine + query_str;
             }
             uint32_t error_offset;

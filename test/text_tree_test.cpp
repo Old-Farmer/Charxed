@@ -79,7 +79,8 @@ TEST_CASE("TextTree test") {
         buffer.Load();
 
         rewind(f.file());
-        auto str = f.ReadAll();
+        EOLSeq eol_seq;
+        auto str = f.ReadAll(eol_seq);
 
         tree2.BulkLoad(str);
         Pos hint;

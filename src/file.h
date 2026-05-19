@@ -24,8 +24,7 @@ class File {
     // "w" for writeonly
     // create_if_not_exist only meaningful to read
     // throws IOException, FileCreateException
-    File(const std::string& path, const char* mode,
-         bool create_if_not_exist = false);
+    File(const std::string& path, const char* mode, bool create_if_not_exist);
     ~File();
 
     CHX_DELETE_COPY(File);
@@ -60,8 +59,9 @@ class File {
     Result ReadLine(std::string& buf, EOLSeq& eol_seq);
 
     // Dump the raw file contents to a string.
+    // EOLSeq will be stored as the eol seq, default is kLF
     // throw IOException
-    std::string ReadAll();
+    std::string ReadAll(EOLSeq& eol_seq);
 
     // throws IOException
     void Truncate(size_t size);

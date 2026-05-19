@@ -18,7 +18,7 @@
 
 namespace charxed {
 
-constexpr const char* kSwapSuffix = ".charxed_swap";
+constexpr std::string_view kSwapSuffix = ".charxed_swap";
 
 struct Cursor;
 struct Options;
@@ -68,6 +68,10 @@ class Buffer {
     // throws IOException, FileCreateException, CodingException, FSException
     // if it is a no file backup buffer, any of above exceptions won't throw.
     void Load();
+
+    // throws IOException, CodingException, FSException
+    // two args is similar to Add/Delete/Replace
+    void Reload(Pos* cursor_pos, Pos& cursor_pos_hint);
 
     void Clear();
 
@@ -171,11 +175,12 @@ class Buffer {
     // cursor_pos_hint will be set to the suggest cursor pos if
     // use_given_pos_hint is false or no such parameter
     // NOTE:
-    // We use string_view here because:
-    // 1. we always want to copy the string and don't care about whether it is a
-    // rvalue.
-    // 2. Usually we want to insert a char[] to a buffer, use string_view can
-    // eliminate a string ctor.
+    // 1. We use string_view here because:
+    //      1) we always want to copy the string and don't care about whether it
+    //      is a rvalue. 2) Usually we want to insert a char[] to a buffer, use
+    //      string_view can eliminate a string ctor.
+    // 2. cursor_pos and cursor_pos_hint should point to the same address,
+    // otherwise behavior is undefined.
     Result Add(Pos pos, std::string_view str, const Pos* cursor_pos,
                bool use_given_pos_hint, Pos& cursor_pos_hint);
     Result Delete(const Range& range, const Pos* cursor_pos,
@@ -200,6 +205,7 @@ class Buffer {
                state_ == BufferState::kReadOnly;
     }
     bool read_only() const noexcept { return read_only_; }
+    bool& read_only() noexcept { return read_only_; }
     int64_t version() const noexcept { return version_; }
     // -1 means not stored
     zstring_view filetype() const noexcept { return filetype_; }

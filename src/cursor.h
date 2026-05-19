@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <string_view>
 
 #include "pos.h"
 
@@ -58,5 +59,9 @@ struct CursorState {
     }
     void DontHoldColWant() { b_view_col_want.reset(); }
 };
+
+// put the pos to a new str, and try to fix it to a valid pos.
+// NOTE: Just a tmp solution
+Pos FixCursorPos(Pos pos, std::string_view str);
 
 }  // namespace charxed

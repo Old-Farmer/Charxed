@@ -212,6 +212,8 @@ target_sources(
   "${SRC_DIR}/text_area.cpp"
   "${SRC_DIR}/fs.h"
   "${SRC_DIR}/fs.cpp"
+  "${SRC_DIR}/fs_monitor.h"
+  "${SRC_DIR}/fs_monitor.cpp"
   "${SRC_DIR}/history.h"
   "${SRC_DIR}/json.h"
   "${SRC_DIR}/keyseq_manager.h"

@@ -78,10 +78,9 @@ void CmpMenu::Draw() {
         size_t offset = 0;
         size_t menu_col = 0;
         Character character;
-        Codepoint space = kSpaceChar;
         // leading space
         if (width_ >= 1) {
-            term_->SetCell(col_, r + row_, &space, 1, attr);
+            term_->SetCell(col_, r + row_, &kSpaceChar, 1, attr);
             menu_col++;
         }
         // content
@@ -108,7 +107,7 @@ void CmpMenu::Draw() {
         }
         // make paddings because menu have different bg color
         while (menu_col < width_) {
-            term_->SetCell(menu_col + col_, r + row_, &space, 1, attr);
+            term_->SetCell(menu_col + col_, r + row_, &kSpaceChar, 1, attr);
             menu_col++;
         }
     }

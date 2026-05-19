@@ -1715,10 +1715,8 @@ Result TextArea::AddStringAtCursorNoSelection(std::string_view str,
 
 Result TextArea::ReplaceSelection(std::string_view str, const Pos* cursor_pos) {
     CHX_ASSERT(IsSelectionActive());
-    if (Result res;
-        // FIXME: ToSelectRange?
-        (res = Replace(selection_->ToSelectRange(buffer_), str, cursor_pos)) !=
-        kOk) {
+    if (Result res; (res = Replace(selection_->ToDeleteRange(buffer_), str,
+                                   cursor_pos)) != kOk) {
         return res;
     }
     StopSelection();

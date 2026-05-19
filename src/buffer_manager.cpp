@@ -57,6 +57,16 @@ Buffer* BufferManager::FindBuffer(const std::string& name) {
     }
     return nullptr;
 }
+
+Buffer* BufferManager::FindBuffer(std::string_view absolute_path) {
+    for (auto b = Begin(); b != End(); b = b->next_) {
+        if (b->path().AbsolutePath() == absolute_path) {
+            return b;
+        }
+    }
+    return nullptr;
+}
+
 Buffer* BufferManager::FindBuffer(int64_t id) {
     auto iter = buffers_.find(id);
     if (iter == buffers_.end()) {

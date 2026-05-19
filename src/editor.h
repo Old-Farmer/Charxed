@@ -9,6 +9,7 @@
 #include "cursor.h"
 #include "editor_event_manager.h"
 #include "event_loop.h"
+#include "fs_monitor.h"
 #include "keyseq_manager.h"
 #include "layout_manager.h"
 #include "mango_peel.h"
@@ -113,6 +114,7 @@ class Editor {
     std::unique_ptr<SyntaxParser> syntax_parser_;
     EditorEventManager editor_event_manager_;
     std::unique_ptr<LayoutManager> layout_manager_;
+    std::unique_ptr<BufferFSMonitor> buffer_monitor_;
 
     enum class ContextID : int {};
     class ContextManager {
@@ -172,6 +174,8 @@ class Editor {
 
     std::unique_ptr<SingleTimer> autocmp_trigger_timer_;
     std::unique_ptr<SingleTimer> search_on_type_timer_;
+
+    bool need_redraw_ = true;
 
     std::unique_ptr<GlobalOpts> global_opts_;
 

@@ -84,7 +84,8 @@ Result File::ReadLine(std::string& buf, EOLSeq& eol_seq) {
     return res;
 }
 
-std::string File::ReadAll() {
+std::string File::ReadAll(EOLSeq& eol_seq) {
+    eol_seq = EOLSeq::kLF;
     constexpr size_t size = 4096;
     char buf[size];
     std::string ret;
@@ -116,6 +117,7 @@ std::string File::ReadAll() {
         }
     }
 
+    eol_seq = EOLSeq::kCRLF;
     // Is crlf, we delete the '\r' before '\n'
     for (size_t i = 0; i < str_size;) {
         if (ret[i] == '\n') {

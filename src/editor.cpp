@@ -6,6 +6,7 @@
 #include "fs.h"
 #include "inttypes.h"  // IWYU pragma: keep
 #include "options.h"
+#include "subprocess.h"
 #include "term.h"
 
 // TODO: show sth. to users if modify the readonly buffer.
@@ -23,22 +24,6 @@ constexpr std::string_view kSmile = R"(
   \           /
    '-._____.-'
 )";
-
-// constexpr const char* kStartup[] = {
-//     R"( __  __   ____   ___)",
-//     R"(|  \/  | / ___| / _ \)",
-//     R"(| |\/| || |  _ | | | |    MANGO EDITOR)",
-//     R"(| |  | || |_| || |_| |)",
-//     R"(|_|  |_| \____| \___/    BY SHIXIN CHAI)",
-//     "",
-//     "",
-//     R"(tips:   :help [doc]<ENTER>   open docs)",
-//     R"(        :edit <file><ENTER>  edit files)",
-//     R"(        :quit<ENTER>         quit)",
-//     R"(        :smile<ENTER>        :))",
-//     "",
-//     "",
-//     R"(      Press any key to continue...)"};
 
 constexpr const char* kStartup[] = {
     R"(  ______ _    _ __   __)",
@@ -83,11 +68,18 @@ void Editor::Init(std::unique_ptr<GlobalOpts> global_opts,
     cmp_menu_ = std::make_unique<CmpMenu>(&cursor_, global_opts_.get());
 
     syntax_parser_ = std::make_unique<SyntaxParser>(global_opts_.get());
+    buffer_monitor_ = std::make_unique<BufferFSMonitor>(
+        buffer_manager_.get(), &cursor_, syntax_parser_.get());
 
     // Create all buffers
     for (const char* path : init_opts->begin_files) {
-        buffer_manager_->AddBuffer(
+        auto b = buffer_manager_->AddBuffer(
             Buffer(global_opts_.get(), std::string(path)));
+        try {
+            buffer_monitor_->MonitorBuffer(b);
+        } catch (OSException& e) {
+            NotifyUser(fmt::format("Monitor buffer error: {}", e.what()));
+        }
     }
 
     // Create the first window.
@@ -130,7 +122,10 @@ void Editor::Init(std::unique_ptr<GlobalOpts> global_opts,
 void Editor::RegisterEditorEventHandlers() {
     editor_event_manager_.AddHandler(
         EditorEvent::kBufferRemoved, [this](void* arg) {
-            auto buffer = reinterpret_cast<const Buffer*>(arg);
+            auto buffer = reinterpret_cast<Buffer*>(arg);
+            if (!buffer->path().Empty()) {
+                buffer_monitor_->UnmonitorBuffer(buffer);
+            }
             window_->OnBufferDelete(buffer);
             syntax_parser_->OnBufferDelete(buffer);
         });
@@ -156,6 +151,11 @@ void Editor::Loop() {
     std::string bracketed_paste_buffer;
 
     auto before_poll = [this] {
+        if (!need_redraw_) {
+            need_redraw_ = true;
+            return;
+        }
+
         // When the screen is too small, rendering is hard to cope with,
         // so we just don't do anything, swallow all events except resize
         // until the screen is bigger again.
@@ -253,17 +253,33 @@ void Editor::Loop() {
         }
     };
 
+    auto buffer_fs_event_handler = [this](Event e) {
+        if (e & (kEventClose | kEventError)) {
+            throw FSException("{}", "Poll event close or event error");
+        }
+
+        CHX_ASSERT(e & kEventRead);
+        if (!buffer_monitor_->HandleFsEvents()) {
+            need_redraw_ = false;
+        }
+    };
+
     EventInfo term_tty;
     EventInfo term_resize;
+    EventInfo buffer_fs;
     term_.GetFDs(term_tty.fd, term_resize.fd);
+    buffer_fs.fd = buffer_monitor_->fd();
     term_tty.Interesting_events |= kEventRead;
     term_resize.Interesting_events |= kEventRead;
+    buffer_fs.Interesting_events |= kEventRead;
     term_tty.handler = term_handler;
     term_resize.handler = std::move(term_handler);
+    buffer_fs.handler = std::move(buffer_fs_event_handler);
 
     loop_->BeforePoll(std::move(before_poll));
     loop_->AddEventHandler(std::move(term_tty));
     loop_->AddEventHandler(std::move(term_resize));
+    loop_->AddEventHandler(std::move(buffer_fs));
 
     loop_->Loop();
 }
@@ -593,9 +609,11 @@ void Editor::InitKeymaps() {
                    pending_operator_ = Operator::kYank;
                }},
                {Mode::kNormal});
-    CHX_KEYMAP("p", {[this] { cursor_.in_window->Paste(Count()); }},
-               {Mode::kNormal});
-    // TODO: p in visual mode
+    CHX_KEYMAP("p", {[this] {
+                   cursor_.in_window->Paste(Count());
+                   ExitFromMode();
+               }},
+               {CHX_DEFAULT_MODES});
     CHX_KEYMAP("d", {[this] {
                    cursor_.in_window->Cut();
                    ExitFromMode();
@@ -604,6 +622,39 @@ void Editor::InitKeymaps() {
     CHX_KEYMAP("d", {[this] {
                    mode_ = Mode::kOperatorPending;
                    pending_operator_ = Operator::kDelete;
+               }},
+               {Mode::kNormal});
+
+    // A inner format, not exposed
+    CHX_KEYMAP("<space>f", {[this] {
+                   auto& path = cursor_.in_window->area_.buffer_->path();
+                   if (path.Empty()) {
+                       return;
+                   }
+                   try {
+                       const char* const argv[] = {
+                           "clang-format", "--assume-filename",
+                           path.AbsolutePath().c_str(), nullptr};
+                       Buffer* b = cursor_.in_window->area_.buffer_;
+                       int exit_code;
+                       std::string stdout;
+                       std::string stdin =
+                           TextTree::TextView{b->Begin(), b->End()}.ToString();
+                       Exec(argv, &stdin, &stdout, nullptr, exit_code);
+                       if (exit_code != 0 || !CheckUtf8Valid(stdout)) {
+                           return;
+                       }
+                       window_->area_.b_view_->make_cursor_visible = true;
+                       Pos pos = FixCursorPos(cursor_.pos, stdout);
+                       // TODO: diff
+                       window_->area_.Replace(
+                           {{0, 0},
+                            {b->LineCnt() - 1,
+                             b->GetLineView(b->LineCnt() - 1).Size()}},
+                           stdout, &pos);
+                   } catch (OSException& e) {
+                       // TODO: notify
+                   }
                }},
                {Mode::kNormal});
 
@@ -684,8 +735,15 @@ void Editor::InitCommands() {
                      cursor_.in_window->AttachBuffer(b);
                      return;
                  }
-                 cursor_.in_window->AttachBuffer(buffer_manager_->AddBuffer(
-                     Buffer(global_opts_.get(), std::move(p))));
+                 b = buffer_manager_->AddBuffer(
+                     Buffer(global_opts_.get(), std::move(p)));
+                 try {
+                     buffer_monitor_->MonitorBuffer(b);
+                 } catch (OSException& e) {
+                     NotifyUser(
+                         fmt::format("Monitor buffer error: {}", e.what()));
+                 }
+                 cursor_.in_window->AttachBuffer(b);
              },
              1});
     CHX_CMD({"buffer",
@@ -1027,6 +1085,7 @@ void Editor::PreProcess() {
             // TODO: Not init if file is too big.
             syntax_parser_->SyntaxInit(window_->area_.buffer_);
         } catch (Exception& e) {
+            NotifyUser(fmt::format("buffer {} load error"));
             CHX_LOG_ERROR("buffer {} : {}", window_->area_.buffer_->Name(),
                           e.what());
             // TODO: Maybe Notify the user
