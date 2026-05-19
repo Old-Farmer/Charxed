@@ -205,6 +205,7 @@ class TextTree {
     };
 
     // if pos can't be found, return End()
+    // if pos.line >= line cnt, behavior is undefined.
     Iterator Find(Pos pos) const;
 
    private:

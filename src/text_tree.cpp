@@ -876,9 +876,10 @@ void TextTree::MergeLeafNode(LeafNode* node, size_t index) {
 
     // tweak the parent
     p->infos[merged_i] = {merged_leaf->lines, merged_leaf->bytes};
-    std::move(p->infos + merged_i + 2, p->infos + p->size, p->infos + 1);
+    std::move(p->infos + merged_i + 2, p->infos + p->size,
+              p->infos + merged_i + 1);
     std::move(p->children + merged_i + 2, p->children + p->size,
-              p->children + 1);
+              p->children + merged_i + 1);
     p->size--;
 }
 
@@ -954,7 +955,7 @@ void TextTree::MergeInternalNode(InternalNode* node, size_t index) {
         merged_i = index - 1;
     }
     // Then try right sibling
-    if (merged_i != -1 && index != node->parent->size - 1 &&
+    if (merged_i == -1 && index != node->parent->size - 1 &&
         static_cast<InternalNode*>(p->children[index + 1])->size + node->size <=
             kChildSize) {
         merged_i = index;
@@ -975,9 +976,10 @@ void TextTree::MergeInternalNode(InternalNode* node, size_t index) {
 
     // tweak the parent
     p->infos[merged_i] = {merged_internal->lines, merged_internal->bytes};
-    std::move(p->infos + merged_i + 2, p->infos + p->size, p->infos + 1);
+    std::move(p->infos + merged_i + 2, p->infos + p->size,
+              p->infos + merged_i + 1);
     std::move(p->children + merged_i + 2, p->children + p->size,
-              p->children + 1);
+              p->children + merged_i + 1);
     p->size--;
 }
 
