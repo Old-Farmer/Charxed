@@ -85,7 +85,13 @@ Result KeyseqManager::ParseKeyseq(const std::string& seq,
                                   std::vector<Terminal::KeyInfo>& keys) {
     int start = -1;
     for (size_t i = 0; i < seq.size(); i++) {
-        if (seq[i] == '<') {
+        if (seq[i] == '\\') {
+            if (i == seq.size() - 1) {
+                throw DanglingEscapeException("Dangling esc at {}", seq);
+            }
+            i++;
+            keys.push_back(Terminal::KeyInfo::CreateNormalKey(seq[i]));
+        } else if (seq[i] == '<') {
             if (start != -1) {
                 return kError;
             }

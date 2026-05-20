@@ -39,7 +39,8 @@ constexpr const char* kStartup[] = {
     R"(        :quit<ENTER>         quit)",
     R"(        :smile<ENTER>        :))",
     "",
-    R"(      Press any key to continue...)"};
+    R"(      Press any key to continue...)",
+};
 
 constexpr size_t kStartupWidth = 39;
 constexpr size_t kStartupHeight = std::size(kStartup);
@@ -90,7 +91,7 @@ void Editor::Init(std::unique_ptr<GlobalOpts> global_opts,
     } else {
         buf = buffer_manager_->AddBuffer({global_opts_.get()});
     }
-    CHX_LOG_DEBUG("buffer {}", buf->Name());
+    // CHX_LOG_DEBUG("buffer {}", buf->Name());
     window_ = std::make_unique<Window>(&cursor_, global_opts_.get(),
                                        syntax_parser_.get(), clipboard_.get(),
                                        buffer_manager_.get());
@@ -624,6 +625,26 @@ void Editor::InitKeymaps() {
                    pending_operator_ = Operator::kDelete;
                }},
                {Mode::kNormal});
+    CHX_KEYMAP("\\>", {[this] {
+                   cursor_.in_window->IndentSelection(Count());
+                   ExitFromMode();
+               }},
+               {CHX_SELECT_MODES});
+    CHX_KEYMAP("\\>", {[this] {
+                   mode_ = Mode::kOperatorPending;
+                   pending_operator_ = Operator::kIndent;
+               }},
+               {Mode::kNormal});
+    CHX_KEYMAP("\\<", {[this] {
+                   cursor_.in_window->UnindentSelection(Count());
+                   ExitFromMode();
+               }},
+               {CHX_SELECT_MODES});
+    CHX_KEYMAP("\\<", {[this] {
+                   mode_ = Mode::kOperatorPending;
+                   pending_operator_ = Operator::kUnindent;
+               }},
+               {Mode::kNormal});
 
     // A inner format, not exposed
     CHX_KEYMAP(
@@ -1087,7 +1108,9 @@ void Editor::PreProcess() {
         try {
             window_->area_.buffer_->Load();
             // TODO: Not init if file is too big.
-            syntax_parser_->SyntaxInit(window_->area_.buffer_);
+            TSTree* ts_tree =
+                syntax_parser_->SyntaxInit(window_->area_.buffer_);
+            window_->area_.buffer_->ts_tree() = ts_tree;
         } catch (Exception& e) {
             NotifyUser(fmt::format("buffer {} load error"));
             CHX_LOG_ERROR("buffer {} : {}", window_->area_.buffer_->Name(),

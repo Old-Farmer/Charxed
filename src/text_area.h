@@ -114,6 +114,9 @@ class TextArea {
     Result Paste(size_t count);
     void Cut();
 
+    Result IndentSelection(size_t count);
+    Result UnindentSelection(size_t count);
+
     void CopyRange(Range range, bool lines);
     void CutRange(Range range, bool lines);
 
@@ -124,6 +127,11 @@ class TextArea {
                                         const Pos* cursor_pos = nullptr);
     Result ReplaceSelection(std::string_view str,
                             const Pos* cursor_pos = nullptr);
+
+    Result IndentAtCurLine(size_t count);
+    Result UnindentAtCurLine(size_t count);
+    Result IndentRange(size_t count, const Range& range);
+    Result UnindentRange(size_t count, const Range& range);
 
     // Search relevant
     BufferSearchState CursorGoSearchResultState(BufferSearchContext& context,

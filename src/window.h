@@ -77,6 +77,13 @@ class Window {
     Result Paste(size_t count) { return area_.Paste(count); }
     void Cut() { area_.Cut(); }
 
+    Result IndentSelection(size_t count) {
+        return area_.IndentSelection(count);
+    }
+    Result UnindentSelection(size_t count) {
+        return area_.UnindentSelection(count);
+    }
+
     void NextBuffer();
     void PrevBuffer();
 

@@ -12,6 +12,7 @@
 #include "draw.h"
 #include "options.h"
 #include "search.h"
+#include "str.h"
 #include "syntax.h"
 
 namespace charxed {
@@ -1466,7 +1467,7 @@ Result TextArea::DeleteWordBeforeCursor() {
     }
     Pos pos;
     if (Result res; (res = buffer_->Delete({deleted_until, cursor_->pos},
-                                           nullptr, pos)) != kOk) {
+                                           nullptr, false, pos)) != kOk) {
         return res;
     }
     AfterModify(pos);
@@ -1656,9 +1657,19 @@ void TextArea::Cut() {
             range.end.line++;
             range.end.byte_offset = 0;
         }
-        buffer_->Delete(range, &cur_pos, pos);
+        buffer_->Delete(range, &cur_pos, false, pos);
         AfterModify(pos);
     }
+}
+
+Result TextArea::IndentSelection(size_t count) {
+    CHX_ASSERT(IsSelectionActive());
+    return IndentRange(count, selection_->ToSelectRange(buffer_));
+}
+
+Result TextArea::UnindentSelection(size_t count) {
+    CHX_ASSERT(IsSelectionActive());
+    return UnindentRange(count, selection_->ToSelectRange(buffer_));
 }
 
 Result TextArea::DeleteCharacterBeforeCursor() {
@@ -1679,7 +1690,8 @@ Result TextArea::DeleteCharacterBeforeCursor() {
                  cursor_->pos};
     }
     Pos pos;
-    if (Result res; (res = buffer_->Delete(range, nullptr, pos)) != kOk) {
+    if (Result res;
+        (res = buffer_->Delete(range, nullptr, false, pos)) != kOk) {
         return res;
     }
     AfterModify(pos);
@@ -1689,7 +1701,7 @@ Result TextArea::DeleteCharacterBeforeCursor() {
 Result TextArea::DeleteSelection() {
     Pos pos;
     if (Result res; (res = buffer_->Delete(selection_->ToDeleteRange(buffer_),
-                                           &cursor_->pos, pos)) != kOk) {
+                                           &cursor_->pos, false, pos)) != kOk) {
         return res;
     }
     AfterModify(pos);
@@ -1721,6 +1733,68 @@ Result TextArea::ReplaceSelection(std::string_view str, const Pos* cursor_pos) {
     }
     StopSelection();
     return kOk;
+}
+
+Result TextArea::IndentRange(size_t count, const Range& range) {
+    if (range.begin == range.end && range.begin == Pos{0, 0}) {
+        return kFail;
+    }
+
+    BufferEditBatch edit_batch;
+    size_t end =
+        range.end.byte_offset == 0 ? range.end.line - 1 : range.end.line;
+    std::string str;
+    if (GetOpt<bool>(kOptTabSpace)) {
+        str = std::string(count * GetOpt<int64_t>(kOptTabStop), kSpaceChar);
+    } else {
+        str = std::string(count, '\t');
+    }
+    for (size_t i = range.begin.line; i <= end; i++) {
+        auto line = buffer_->GetLineView(i);
+        if (line.Size() == 0) {
+            continue;
+        }
+        edit_batch.PushBack({{{i, 0}, {i, 0}}, str});
+    }
+    Pos pos = cursor_->pos;
+    Result res = buffer_->BatchEdit(edit_batch, &cursor_->pos, true, pos);
+    if (res == kOk) {
+        AfterModify(pos);
+    }
+    return res;
+}
+
+Result TextArea::UnindentRange(size_t count, const Range& range) {
+    if (range.begin == range.end && range.begin == Pos{0, 0}) {
+        return kFail;
+    }
+
+    BufferEditBatch edit_batch;
+    size_t end =
+        range.end.byte_offset == 0 ? range.end.line - 1 : range.end.line;
+    Pos pos = cursor_->pos;
+    auto tabstop = GetOpt<int64_t>(kOptTabStop);
+    for (size_t i = range.begin.line; i <= end; i++) {
+        auto line = buffer_->GetLineView(i);
+        if (line.Size() == 0) {
+            continue;
+        }
+        auto iter = IndentationEnd(count, line, tabstop);
+        if (iter == line.begin) {
+            continue;
+        }
+        Range range = {{i, 0}, {i, iter.offset() - line.begin.offset()}};
+        edit_batch.PushBack({range, ""});
+        if (i == cursor_->pos.line) {
+            size_t cur_line_end = line.Size() - range.end.byte_offset;
+            pos.byte_offset = std::min(cursor_->pos.byte_offset, cur_line_end);
+        }
+    }
+    Result res = buffer_->BatchEdit(edit_batch, &cursor_->pos, true, pos);
+    if (res == kOk) {
+        AfterModify(pos);
+    }
+    return res;
 }
 
 BufferSearchState TextArea::CursorGoSearchResultState(

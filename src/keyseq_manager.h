@@ -29,7 +29,7 @@ class KeyseqManager {
 
     // Add/Remove a keyseq, a keyseq is a key sequence for triggering a defined
     // handler. a keyseq prefixed with another keyseq will be hidden.
-    // only ascii charset seq is supported.
+    // only ascii charset seq is supported. use \\ to escape < and >
 
     // throws KeyNotPredefinedException if key str is not pre-defined
     // this is always considered a bug and should fixed emidiately
@@ -59,6 +59,7 @@ class KeyseqManager {
 
     // For simplicity, only ascii charset seq is supported.
     // throws KeyNotPredefinedException if key str is not pre-defined
+    // throws DanglingEscapeException
     // return kError if keymap is not well formed by users
     Result ParseKeyseq(const std::string& seq,
                        std::vector<Terminal::KeyInfo>& keys);

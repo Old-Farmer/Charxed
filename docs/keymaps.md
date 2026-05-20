@@ -90,6 +90,8 @@ NOTE: Don't support self-defined keymaps now.
 | `<c-w>` | Delete word before cursor | Insert |
 | `<c-r>` | Paste from clipboard | Insert |
 | `<space>f` | Call clang-format to format the current buffer(really unstable) | Normal |
+| `>` | Indent | Select, Select-L |
+| `<` | Unindent | Select-L, Select-L |
 
 ## Completion & History
 

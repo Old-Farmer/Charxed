@@ -128,4 +128,32 @@ TextTree::TextView FindPath(const TextTree::TextView& line,
     return {left, right};
 }
 
+TextTree::Iterator IndentationEnd(size_t count, const TextTree::TextView& line,
+                                  int tabstop) {
+    int64_t spaces = 0;
+    auto iter = line.begin;
+    while (iter != line.end && count != 0) {
+        if (iter.ThisByte() == kSpaceChar) {
+            spaces++;
+            if (spaces == tabstop) {
+                count--;
+            }
+        } else if (iter.ThisByte() == '\t') {
+            if (spaces != 0) {
+                count--;
+                if (count == 0) {
+                    iter.NextByte();
+                    break;
+                }
+            } else {
+                count--;
+            }
+        } else {
+            break;
+        }
+        iter.NextByte();
+    }
+    return iter;
+}
+
 }  // namespace charxed

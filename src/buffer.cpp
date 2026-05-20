@@ -282,6 +282,9 @@ void Buffer::Edit(const BufferEdit& edit, Pos& cursor_pos_hint) {
         // replace
         ReplaceInner(edit.range, edit.str, cursor_pos_hint, false);
     }
+    if (ts_tree_) {
+        ts_tree_edit(ts_tree_, &ts_edit_);
+    }
 }
 
 void Buffer::AddInner(Pos pos, std::string_view str, Pos& cursor_pos_hint,
@@ -368,23 +371,31 @@ bool Buffer::TryRecordMerge(const BufferEditHistoryItem& item) {
         return false;
     }
     BufferEditHistoryItem& last_item = *last_item_optional;
-    if (last_item.origin.str.empty() && item.origin.str.empty() &&
-        last_item.origin.range.begin == item.origin.range.end) {
+    if (last_item.origin.Size() != 1 || item.origin.Size() != 1) {
+        return false;
+    }
+
+    auto& last_item_origin = *last_item.origin.Data();
+    auto& last_item_reverse = *last_item.reverse.Data();
+    auto& item_origin = *item.origin.Data();
+    auto& item_reverse = *item.reverse.Data();
+    if (last_item_origin.str.empty() && item_origin.str.empty() &&
+        last_item_origin.range.begin == item_origin.range.end) {
         // adjacent deletes
-        last_item.origin.range.begin = item.origin.range.begin;
+        last_item_origin.range.begin = item_origin.range.begin;
         last_item.origin_pos_hint = item.origin_pos_hint;
 
-        last_item.reverse.range.begin = item.reverse.range.begin;
-        last_item.reverse.range.end = item.reverse.range.end;
-        last_item.reverse.str.insert(0, item.reverse.str);
+        last_item_reverse.range.begin = item_reverse.range.begin;
+        last_item_reverse.range.end = item_reverse.range.end;
+        last_item_reverse.str.insert(0, item_reverse.str);
         return true;
-    } else if (last_item.origin.range.begin == last_item.origin.range.end &&
-               item.origin.range.begin == item.origin.range.end &&
-               last_item.reverse.range.end == item.reverse.range.begin) {
+    } else if (last_item_origin.range.begin == last_item_origin.range.end &&
+               item_origin.range.begin == item_origin.range.end &&
+               last_item_reverse.range.end == item_reverse.range.begin) {
         // adjacent adds
-        last_item.reverse.range.end = item.reverse.range.end;
+        last_item_reverse.range.end = item_reverse.range.end;
 
-        last_item.origin.str.append(item.origin.str);
+        last_item_origin.str.append(item_origin.str);
         last_item.origin_pos_hint = item.origin_pos_hint;
         return true;
     }
@@ -423,6 +434,9 @@ Result Buffer::Add(Pos pos, std::string_view str, const Pos* cursor_pos,
     }
     Pos origin_pos_hint;
     AddInner(pos, str, origin_pos_hint, true);
+    if (ts_tree_) {
+        ts_tree_edit(ts_tree_, &ts_edit_);
+    }
     if (!use_given_pos_hint) {
         cursor_pos_hint = origin_pos_hint;
     }
@@ -431,35 +445,41 @@ Result Buffer::Add(Pos pos, std::string_view str, const Pos* cursor_pos,
     }
 
     BufferEditHistoryItem item;
-    item.origin.range = {pos, pos};
-    item.origin.str = str;
+    item.origin.PushBack({{pos, pos}, std::string(str)});
     item.origin_pos_hint = cursor_pos_hint;
 
-    item.reverse.range = {pos, origin_pos_hint};
+    item.reverse.PushBack({{pos, origin_pos_hint}, ""});
     item.reverse_pos_hint = cursor_pos ? *cursor_pos : pos;
     Record(std::move(item));
     return kOk;
 }
 
 Result Buffer::Delete(const Range& range, const Pos* cursor_pos,
-                      Pos& cursor_pos_hint) {
+                      bool use_given_pos_hint, Pos& cursor_pos_hint) {
     if (!IsLoad()) {
         return kBufferCannotLoad;
     }
     if (read_only()) {
         return kBufferReadOnly;
     }
-    std::string old_str = DeleteInner(range, cursor_pos_hint, true, true);
+    Pos origin_pos_hint;
+    std::string old_str = DeleteInner(range, origin_pos_hint, true, true);
+    if (ts_tree_) {
+        ts_tree_edit(ts_tree_, &ts_edit_);
+    }
+    if (!use_given_pos_hint) {
+        cursor_pos_hint = origin_pos_hint;
+    }
     if (GetOpt<int64_t>(kOptMaxEditHistory) <= 0) {
         return kOk;
     }
 
     BufferEditHistoryItem item;
-    item.origin.range = range;
+    item.origin.PushBack({range, ""});
     item.origin_pos_hint = cursor_pos_hint;
 
-    item.reverse.range = {cursor_pos_hint, cursor_pos_hint};
-    item.reverse.str = std::move(old_str);
+    item.reverse.PushBack(
+        {{origin_pos_hint, origin_pos_hint}, std::move(old_str)});
     item.reverse_pos_hint = cursor_pos ? *cursor_pos : range.end;
     Record(std::move(item));
     return kOk;
@@ -477,6 +497,9 @@ Result Buffer::Replace(const Range& range, std::string_view str,
 
     Pos origin_pos_hint;
     std::string old_str = ReplaceInner(range, str, origin_pos_hint, true);
+    if (ts_tree_) {
+        ts_tree_edit(ts_tree_, &ts_edit_);
+    }
     if (!use_given_pos_hint) {
         cursor_pos_hint = origin_pos_hint;
     }
@@ -485,14 +508,70 @@ Result Buffer::Replace(const Range& range, std::string_view str,
     }
 
     BufferEditHistoryItem item;
-    item.origin.range = range;
-    item.origin.str = str;
+    item.origin.PushBack({range, std::string(str)});
     item.origin_pos_hint = cursor_pos_hint;
 
-    item.reverse.range = {range.begin, origin_pos_hint};
-    item.reverse.str = std::move(old_str);
+    item.reverse.PushBack({{range.begin, origin_pos_hint}, std::move(old_str)});
     item.reverse_pos_hint = cursor_pos ? *cursor_pos : range.end;
     Record(std::move(item));
+    return kOk;
+}
+
+Result Buffer::BatchEdit(const BufferEditBatch& edit_batch,
+                         const Pos* cursor_pos, bool use_given_pos_hint,
+                         Pos& cursor_pos_hint) {
+    if (!IsLoad()) {
+        return kBufferCannotLoad;
+    }
+    if (read_only()) {
+        return kBufferReadOnly;
+    }
+
+    CHX_ASSERT(edit_batch.Size() != 0);
+    int64_t max_edit_history = GetOpt<int64_t>(kOptMaxEditHistory);
+
+    Pos origin_pos_hint;
+    BufferEditHistoryItem item;
+    std::string str;
+    for (int64_t i = edit_batch.Size() - 1; i >= 0; i--) {
+        const auto& edit = edit_batch.Data()[i];
+        if (edit.str.empty()) {
+            // Delete
+            str = DeleteInner(edit.range, origin_pos_hint, true, true);
+            if (max_edit_history > 1) {
+                item.reverse.PushBack(
+                    {{origin_pos_hint, origin_pos_hint}, str});
+            }
+        } else if (edit.range.begin == edit.range.end) {
+            // Add
+            AddInner(edit.range.begin, edit.str, origin_pos_hint, true);
+            if (max_edit_history > 1) {
+                item.reverse.PushBack(
+                    {{edit.range.begin, origin_pos_hint}, ""});
+            }
+        } else {
+            // Replace
+            str = ReplaceInner(edit.range, edit.str, origin_pos_hint, true);
+            if (max_edit_history > 1) {
+                item.reverse.PushBack(
+                    {{edit.range.begin, origin_pos_hint}, str});
+            }
+        }
+        if (ts_tree_) {
+            ts_tree_edit(ts_tree_, &ts_edit_);
+        }
+    }
+    if (max_edit_history > 1) {
+        item.origin_pos_hint =
+            use_given_pos_hint ? cursor_pos_hint : origin_pos_hint;
+        item.reverse_pos_hint =
+            cursor_pos ? *cursor_pos : edit_batch.Data()[0].range.end;
+        // TODO: Not reverse it.
+        item.origin = edit_batch;
+        std::reverse(item.reverse.Data(),
+                     item.reverse.Data() + edit_batch.Size());
+        Record(std::move(item));
+    }
     return kOk;
 }
 
@@ -503,7 +582,9 @@ Result Buffer::Redo(Pos& cursor_pos_hint) {
 
     CHX_ASSERT(edit_history_.GetItemJustBeforeCursor().has_value());
     BufferEditHistoryItem& item = *edit_history_.GetItemJustBeforeCursor();
-    Edit(item.origin, cursor_pos_hint);
+    for (int64_t i = item.origin.Size() - 1; i >= 0; i--) {
+        Edit(item.origin.Data()[i], cursor_pos_hint);
+    }
     cursor_pos_hint = item.origin_pos_hint;
     return kOk;
 }
@@ -515,7 +596,10 @@ Result Buffer::Undo(Pos& cursor_pos_hint) {
 
     CHX_ASSERT(edit_history_.GetItemAtCursor().has_value());
     BufferEditHistoryItem& item = *edit_history_.GetItemAtCursor();
-    Edit(item.reverse, cursor_pos_hint);
+    size_t sz = item.reverse.Size();
+    for (size_t i = 0; i < sz; i++) {
+        Edit(item.reverse.Data()[i], cursor_pos_hint);
+    }
     cursor_pos_hint = item.reverse_pos_hint;
     if (edit_history_.IsCursorBegin() && havent_wrap_history_ &&
         state_ == BufferState::kModified) {

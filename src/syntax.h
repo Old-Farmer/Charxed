@@ -13,6 +13,7 @@ struct TSQuery;
 struct TSLanguage;
 struct TSQueryCursor;
 struct TSQueryCapture;
+struct TSInputEdit;
 
 namespace charxed {
 
@@ -23,8 +24,8 @@ struct Highlight {
     ColorSchemeType hl_type;
 };
 
+// TODO: maybe we don't need pre buffer hl context? remove it?
 struct SyntaxContext {
-    TSTree* tree;
     std::vector<Highlight> syntax_highlight;
     std::vector<int64_t> syntax_priority;
 };
@@ -36,7 +37,8 @@ class SyntaxParser {
     CHX_DELETE_COPY(SyntaxParser);
     CHX_DELETE_MOVE(SyntaxParser);
 
-    void SyntaxInit(const Buffer* buffer);
+    // return nullptr means init fail
+    TSTree* SyntaxInit(const Buffer* buffer);
     void ParseSyntaxAfterEdit(Buffer* buffer);
     void OnBufferDelete(const Buffer* buffer);
     // Get buffer Syntax Context: Current is Buffer syntax hl info.

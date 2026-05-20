@@ -160,6 +160,8 @@ class Editor {
     enum class Operator {
         kYank,
         kDelete,
+        kIndent,
+        kUnindent,
     };
 
     size_t count_;

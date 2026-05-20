@@ -93,7 +93,7 @@ Result Window::DeleteAtCursor() {
     }
 
     Pos pos;
-    if (Result res; (res = buffer->Delete(range, nullptr, pos)) != kOk) {
+    if (Result res; (res = buffer->Delete(range, nullptr, false, pos)) != kOk) {
         return res;
     }
     cursor_->pos = pos;

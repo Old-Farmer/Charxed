@@ -33,4 +33,9 @@ bool StrFuzzyMatchInBytes(const TextTree::TextView& sub,
 TextTree::TextView FindPath(const TextTree::TextView& line,
                             TextTree::Iterator iter);
 
+// work on codepoint
+// from begin of the line, count x indetentations and stop, return the iter.
+TextTree::Iterator IndentationEnd(size_t count, const TextTree::TextView& line,
+                                  int tabstop);
+
 }  // namespace charxed

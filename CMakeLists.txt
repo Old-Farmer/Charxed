@@ -194,6 +194,8 @@ target_sources(
   "${SRC_DIR}/completer.cpp"
   "${SRC_DIR}/cursor.h"
   "${SRC_DIR}/cursor.cpp"
+  "${SRC_DIR}/diff.h"
+  "${SRC_DIR}/diff.cpp"
   "${SRC_DIR}/draw.h"
   "${SRC_DIR}/draw.cpp"
   "${SRC_DIR}/editor.h"

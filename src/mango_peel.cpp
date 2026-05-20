@@ -105,7 +105,7 @@ void MangoPeel::ClearUserInput() {
     CHX_ASSERT(user_inputing_);
     area_.b_view_->make_cursor_visible = true;
     auto end = buffer_.End();
-    buffer_.Delete({{0, prefix_len_}, {0, end.offset()}}, nullptr,
+    buffer_.Delete({{0, prefix_len_}, {0, end.offset()}}, nullptr, false,
                    area_.cursor_->pos);
 }
 
@@ -147,7 +147,7 @@ Result MangoPeel::DeleteWordBeforeCursor() {
 
     Pos pos;
     if (Result res; (res = buffer_.Delete({deleted_until, area_.cursor_->pos},
-                                          nullptr, pos)) != kOk) {
+                                          nullptr, false, pos)) != kOk) {
         return res;
     }
     area_.AfterModify(pos);

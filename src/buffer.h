@@ -23,7 +23,7 @@ constexpr std::string_view kSwapSuffix = ".charxed_swap";
 struct Cursor;
 struct Options;
 
-// This class reprensents edit operations to the buffer.
+// This class reprensents a single-range edit operations to the buffer.
 // It can represent 3 OPs:
 // 1. insert: range.begin == range.end && str.empty(), '\n's in str represent
 // new lines.
@@ -32,6 +32,68 @@ struct Options;
 struct BufferEdit {
     Range range;
     std::string str;
+};
+
+// A batch(>=1) of edit operations applied atomically.
+// All edit operations are based on the single buffer state.
+// Edit operations shouldn't overlap with others, and should be sorted by range
+// ascendly.
+class BufferEditBatch {
+    std::vector<BufferEdit> edits_;
+    BufferEdit edit_;  // Because a lot of batches only have one edit, to avoid
+                       // dynamic memory allocation, we have a inline one.
+    size_t size_ = 0;
+
+   public:
+    CHX_DEFAULT_CONSTRUCT_DESTRUCT(BufferEditBatch);
+    CHX_DEFAULT_COPY(BufferEditBatch);
+    CHX_DEFAULT_MOVE(BufferEditBatch);
+
+    BufferEdit* Data() {
+        CHX_ASSERT(size_ != 0);
+        if (size_ == 1) {
+            return &edit_;
+        } else {
+            return edits_.data();
+        }
+    }
+    const BufferEdit* Data() const {
+        CHX_ASSERT(size_ != 0);
+        if (size_ == 1) {
+            return &edit_;
+        } else {
+            return edits_.data();
+        }
+    }
+    size_t Size() const { return size_; }
+    void Clear() {
+        edits_.clear();
+        size_ = 0;
+    }
+    void PushBack(const BufferEdit& edit) {
+        if (size_ == 0) {
+            edit_ = edit;
+        } else if (size_ == 1) {
+            edits_.resize(2);
+            edits_[0] = std::move(edit_);
+            edits_[1] = edit;
+        } else {
+            edits_.push_back(edit);
+        }
+        size_++;
+    }
+    void PushBack(BufferEdit&& edit) {
+        if (size_ == 0) {
+            edit_ = std::move(edit);
+        } else if (size_ == 1) {
+            edits_.resize(2);
+            edits_[0] = std::move(edit_);
+            edits_[1] = std::move(edit);
+        } else {
+            edits_.push_back(std::move(edit));
+        }
+        size_++;
+    }
 };
 
 // A class which represents a file contents in memory.
@@ -44,11 +106,11 @@ struct BufferEdit {
 class Buffer {
     struct BufferEditHistoryItem {
         // For redo
-        BufferEdit origin;
+        BufferEditBatch origin;
         Pos origin_pos_hint;
 
         // For undo
-        BufferEdit reverse;
+        BufferEditBatch reverse;
         Pos reverse_pos_hint;
     };
 
@@ -184,10 +246,14 @@ class Buffer {
     Result Add(Pos pos, std::string_view str, const Pos* cursor_pos,
                bool use_given_pos_hint, Pos& cursor_pos_hint);
     Result Delete(const Range& range, const Pos* cursor_pos,
-                  Pos& cursor_pos_hint);
+                  bool use_given_pos_hint, Pos& cursor_pos_hint);
     Result Replace(const Range& range, std::string_view str,
                    const Pos* cursor_pos, bool use_given_pos_hint,
                    Pos& cursor_pos_hint);
+
+    // Requirement: batch size != 0
+    Result BatchEdit(const BufferEditBatch& edit_batch, const Pos* cursor_pos,
+                     bool use_given_pos_hint, Pos& cursor_pos_hint);
 
     // return kNoHistoryAvailable if no action can be done
     // else return kOk
@@ -219,6 +285,9 @@ class Buffer {
         return path_.Empty() ? new_file_info_->name : path_.ThisPath();
     }
     Path& path() noexcept { return path_; }
+
+    TSTree*& ts_tree() noexcept { return ts_tree_; }
+    const TSTree* ts_tree() const noexcept { return ts_tree_; }
 
     // Buffer list op
     void AppendToList(Buffer* tail) noexcept;
@@ -259,6 +328,7 @@ class Buffer {
 
     // Just for tree-sitter
     TSInputEdit ts_edit_;
+    TSTree* ts_tree_ = nullptr;
     // bool after_get_edit_modified = false;
 
     std::unique_ptr<BufferBasicWordCompleter> basic_word_completer_;

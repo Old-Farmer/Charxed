@@ -156,7 +156,7 @@ void SyntaxParser::GenerateHighlight(const Buffer* buffer, const Range& range) {
     CHX_ASSERT(buffer_context_.count(buffer->id()) == 1);
     SyntaxContext& context = buffer_context_[buffer->id()];
 
-    TSNode root = ts_tree_root_node(context.tree);
+    TSNode root = ts_tree_root_node(buffer->ts_tree());
     TSPoint query_start, query_end;
     query_start.row = range.begin.line;
     query_start.column = range.begin.byte_offset;
@@ -251,18 +251,18 @@ void SyntaxParser::GenerateHighlight(const Buffer* buffer, const Range& range) {
     }
 }
 
-void SyntaxParser::SyntaxInit(const Buffer* buffer) {
+TSTree* SyntaxParser::SyntaxInit(const Buffer* buffer) {
     auto filetype = buffer->filetype();
     const TSQueryContext* query_context = GetQueryContext(filetype);
     if (query_context == nullptr) {
-        return;
+        return nullptr;
     }
 
     if (!ts_parser_set_language(parser_,
                                 filetype_to_language_.at(buffer->filetype()))) {
         CHX_LOG_ERROR("ts_parser_set_language error: filetype {}",
                       buffer->filetype());
-        return;
+        return nullptr;
     }
 
     TSInput input = {const_cast<Buffer*>(buffer), my_ts_read,
@@ -270,9 +270,10 @@ void SyntaxParser::SyntaxInit(const Buffer* buffer) {
     TSTree* tree = ts_parser_parse(parser_, nullptr, input);
     if (tree == nullptr) {
         CHX_LOG_ERROR("ts_parser_parse error: filetype {}", buffer->filetype());
-        return;
+        return nullptr;
     }
-    buffer_context_[buffer->id()].tree = tree;
+    buffer_context_[buffer->id()] = {};
+    return tree;
 }
 
 void SyntaxParser::ParseSyntaxAfterEdit(Buffer* buffer) {
@@ -280,13 +281,12 @@ void SyntaxParser::ParseSyntaxAfterEdit(Buffer* buffer) {
     if (iter == buffer_context_.end()) {
         return;
     }
-    SyntaxContext& context = iter->second;
-    TSInputEdit ts_edit = buffer->GetEditForTreeSitter();
-    ts_tree_edit(context.tree, &ts_edit);
     TSInput input = {const_cast<Buffer*>(buffer), my_ts_read,
                      TSInputEncodingUTF8, nullptr};
-    context.tree = ts_parser_parse(parser_, context.tree, input);
-    if (context.tree == nullptr) {
+    TSTree* new_tree = ts_parser_parse(parser_, buffer->ts_tree(), input);
+    ts_tree_delete(buffer->ts_tree());
+    buffer->ts_tree() = new_tree;
+    if (buffer->ts_tree() == nullptr) {
         CHX_LOG_ERROR("ts_parser_parse error: filetype {}", buffer->filetype());
     }
 }
@@ -297,7 +297,6 @@ void SyntaxParser::OnBufferDelete(const Buffer* buffer) {
         return;
     }
 
-    ts_tree_delete(iter->second.tree);
     buffer_context_.erase(iter);
 }
 
