@@ -57,12 +57,8 @@ std::string XClipBoard::GetContent(bool& lines) const {
     const char* const argv[] = {"xsel", "--clipboard", nullptr};
     std::string content;
     int exit_code;
-    try {
-        Result res = Exec(argv, nullptr, &content, nullptr, exit_code);
-        if (exit_code != 0 || res != kOk) {
-            return "";
-        }
-    } catch (OSException& e) {
+    Result res = Exec(argv, nullptr, &content, nullptr, exit_code);
+    if (exit_code != 0 || res != kOk) {
         return "";
     }
 
@@ -96,12 +92,8 @@ void XClipBoard::SetContent(const std::string& content, bool lines) {
     }
     const char* const argv[] = {"xsel", "--clipboard", nullptr};
     int exit_code;
-    try {
-        Result res = Exec(argv, final_content, nullptr, nullptr, exit_code);
-        if (exit_code != 0 || res != kOk) {
-            return;
-        }
-    } catch (OSException& e) {
+    Result res = Exec(argv, final_content, nullptr, nullptr, exit_code);
+    if (exit_code != 0 || res != kOk) {
         return;
     }
 }
@@ -113,12 +105,8 @@ void XClipBoard::SetContent(std::string&& content, bool lines) {
     }
     const char* const argv[] = {"xsel", "--clipboard", nullptr};
     int exit_code;
-    try {
-        Result res = Exec(argv, &content, nullptr, nullptr, exit_code);
-        if (exit_code != 0 || res != kOk) {
-            return;
-        }
-    } catch (OSException& e) {
+    Result res = Exec(argv, &content, nullptr, nullptr, exit_code);
+    if (exit_code != 0 || res != kOk) {
         return;
     }
 }

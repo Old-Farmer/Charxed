@@ -626,41 +626,41 @@ void Editor::InitKeymaps() {
                {Mode::kNormal});
 
     // A inner format, not exposed
-    CHX_KEYMAP("<space>f", {[this] {
-                   auto& path = cursor_.in_window->area_.buffer_->path();
-                   if (path.Empty()) {
-                       return;
-                   }
-                   try {
-                       const char* const argv[] = {
-                           "clang-format", "--assume-filename",
-                           path.AbsolutePath().c_str(), nullptr};
-                       Buffer* b = cursor_.in_window->area_.buffer_;
-                       int exit_code;
-                       std::string stdout;
-                       std::string stdin =
-                           TextTree::TextView{b->Begin(), b->End()}.ToString();
-                       Exec(argv, &stdin, &stdout, nullptr, exit_code);
-                       if (exit_code != 0 || !CheckUtf8Valid(stdout)) {
-                           return;
-                       }
-                       if (stdin == stdout) {
-                           return;
-                       }
-                       cursor_.in_window->area_.b_view_->make_cursor_visible =
-                           true;
-                       Pos pos = FixCursorPos(cursor_.pos, stdout);
-                       // TODO: diff
-                       cursor_.in_window->area_.Replace(
-                           {{0, 0},
-                            {b->LineCnt() - 1,
-                             b->GetLineView(b->LineCnt() - 1).Size()}},
-                           stdout, &pos);
-                   } catch (OSException& e) {
-                       // TODO: notify
-                   }
-               }},
-               {Mode::kNormal});
+    CHX_KEYMAP(
+        "<space>f", {[this] {
+            auto& path = cursor_.in_window->area_.buffer_->path();
+            if (path.Empty()) {
+                return;
+            }
+            try {
+                const char* const argv[] = {"clang-format", "--assume-filename",
+                                            path.AbsolutePath().c_str(),
+                                            nullptr};
+                Buffer* b = cursor_.in_window->area_.buffer_;
+                int exit_code;
+                std::string stdout;
+                std::string stdin =
+                    TextTree::TextView{b->Begin(), b->End()}.ToString();
+                Result res = Exec(argv, &stdin, &stdout, nullptr, exit_code);
+                if (res != kOk || exit_code != 0 || !CheckUtf8Valid(stdout)) {
+                    return;
+                }
+                if (stdin == stdout) {
+                    return;
+                }
+                cursor_.in_window->area_.b_view_->make_cursor_visible = true;
+                Pos pos = FixCursorPos(cursor_.pos, stdout);
+                // TODO: diff
+                cursor_.in_window->area_.Replace(
+                    {{0, 0},
+                     {b->LineCnt() - 1,
+                      b->GetLineView(b->LineCnt() - 1).Size()}},
+                    stdout, &pos);
+            } catch (OSException& e) {
+                // TODO: notify
+            }
+        }},
+        {Mode::kNormal});
 
     // Operator Pending motion / text object
     CHX_KEYMAP("d", {[this] {
@@ -1341,9 +1341,10 @@ void Editor::EditFile() {
 }
 
 void Editor::CommandHitEnter() {
+    std::string_view input = peel_->GetUserInput();
     CommandArgs args;
     Command* c;
-    Result res = command_manager_.EvalCommand(peel_->GetUserInput(), args, c);
+    Result res = command_manager_.EvalCommand(input, args, c);
     if (res == kCommandEmpty) {
         ExitFromMode();
         return;

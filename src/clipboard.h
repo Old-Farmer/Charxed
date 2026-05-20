@@ -42,7 +42,9 @@ class XClipBoard : public ClipBoard {
     CHX_DELETE_COPY(XClipBoard);
     CHX_DELETE_MOVE(XClipBoard);
     virtual std::string GetContent(bool& lines) const override;
+    // throw OSException
     virtual void SetContent(const std::string& content, bool lines) override;
+    // throw OSException
     virtual void SetContent(std::string&& content, bool lines) override;
 
     static bool DetectUsable();
