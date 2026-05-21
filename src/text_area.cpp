@@ -1664,12 +1664,22 @@ void TextArea::Cut() {
 
 Result TextArea::IndentSelection(size_t count) {
     CHX_ASSERT(IsSelectionActive());
-    return IndentRange(count, selection_->ToSelectRange(buffer_));
+    auto range = selection_->ToSelectRange(buffer_);
+    size_t begin_line = range.begin.line;
+    size_t end_line = range.end.byte_offset == 0 && range.end.line != 0
+                          ? range.end.line - 1
+                          : range.end.line;
+    return IndentLines(count, begin_line, end_line);
 }
 
 Result TextArea::UnindentSelection(size_t count) {
     CHX_ASSERT(IsSelectionActive());
-    return UnindentRange(count, selection_->ToSelectRange(buffer_));
+    auto range = selection_->ToSelectRange(buffer_);
+    size_t begin_line = range.begin.line;
+    size_t end_line = range.end.byte_offset == 0 && range.end.line != 0
+                          ? range.end.line - 1
+                          : range.end.line;
+    return UnindentLines(count, begin_line, end_line);
 }
 
 Result TextArea::DeleteCharacterBeforeCursor() {
@@ -1735,26 +1745,24 @@ Result TextArea::ReplaceSelection(std::string_view str, const Pos* cursor_pos) {
     return kOk;
 }
 
-Result TextArea::IndentRange(size_t count, const Range& range) {
-    if (range.begin == range.end && range.begin == Pos{0, 0}) {
-        return kFail;
-    }
-
+Result TextArea::IndentLines(size_t count, size_t begin_line, size_t end_line) {
+    b_view_->make_cursor_visible = true;
     BufferEditBatch edit_batch;
-    size_t end =
-        range.end.byte_offset == 0 ? range.end.line - 1 : range.end.line;
     std::string str;
     if (GetOpt<bool>(kOptTabSpace)) {
         str = std::string(count * GetOpt<int64_t>(kOptTabStop), kSpaceChar);
     } else {
         str = std::string(count, '\t');
     }
-    for (size_t i = range.begin.line; i <= end; i++) {
+    for (size_t i = begin_line; i <= end_line; i++) {
         auto line = buffer_->GetLineView(i);
         if (line.Size() == 0) {
             continue;
         }
         edit_batch.PushBack({{{i, 0}, {i, 0}}, str});
+    }
+    if (edit_batch.Size() == 0) {
+        return kFail;
     }
     Pos pos = cursor_->pos;
     Result res = buffer_->BatchEdit(edit_batch, &cursor_->pos, true, pos);
@@ -1764,17 +1772,13 @@ Result TextArea::IndentRange(size_t count, const Range& range) {
     return res;
 }
 
-Result TextArea::UnindentRange(size_t count, const Range& range) {
-    if (range.begin == range.end && range.begin == Pos{0, 0}) {
-        return kFail;
-    }
-
+Result TextArea::UnindentLines(size_t count, size_t begin_line,
+                               size_t end_line) {
+    b_view_->make_cursor_visible = true;
     BufferEditBatch edit_batch;
-    size_t end =
-        range.end.byte_offset == 0 ? range.end.line - 1 : range.end.line;
     Pos pos = cursor_->pos;
     auto tabstop = GetOpt<int64_t>(kOptTabStop);
-    for (size_t i = range.begin.line; i <= end; i++) {
+    for (size_t i = begin_line; i <= end_line; i++) {
         auto line = buffer_->GetLineView(i);
         if (line.Size() == 0) {
             continue;
@@ -1789,6 +1793,9 @@ Result TextArea::UnindentRange(size_t count, const Range& range) {
             size_t cur_line_end = line.Size() - range.end.byte_offset;
             pos.byte_offset = std::min(cursor_->pos.byte_offset, cur_line_end);
         }
+    }
+    if (edit_batch.Size() == 0) {
+        return kFail;
     }
     Result res = buffer_->BatchEdit(edit_batch, &cursor_->pos, true, pos);
     if (res == kOk) {

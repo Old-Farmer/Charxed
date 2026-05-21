@@ -128,10 +128,9 @@ class TextArea {
     Result ReplaceSelection(std::string_view str,
                             const Pos* cursor_pos = nullptr);
 
-    Result IndentAtCurLine(size_t count);
-    Result UnindentAtCurLine(size_t count);
-    Result IndentRange(size_t count, const Range& range);
-    Result UnindentRange(size_t count, const Range& range);
+    // inclusice end_line
+    Result IndentLines(size_t count, size_t begin_line, size_t end_line);
+    Result UnindentLines(size_t count, size_t begin_line, size_t end_line);
 
     // Search relevant
     BufferSearchState CursorGoSearchResultState(BufferSearchContext& context,
