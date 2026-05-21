@@ -25,6 +25,8 @@ class StatusLine {
     size_t row_ = 0;  // top left corner x related to the whole screen
 
    private:
+    std::string left_str_;
+    std::string right_str_;
     Cursor* cursor_;
     GlobalOpts* global_opts_;
     Mode* mode_;
