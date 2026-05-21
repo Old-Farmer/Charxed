@@ -1108,14 +1108,15 @@ void Editor::PreProcess() {
         try {
             window_->area_.buffer_->Load();
             // TODO: Not init if file is too big.
+            // Or just schedule the init.
             TSTree* ts_tree =
                 syntax_parser_->SyntaxInit(window_->area_.buffer_);
             window_->area_.buffer_->ts_tree() = ts_tree;
         } catch (Exception& e) {
-            NotifyUser(fmt::format("buffer {} load error"));
+            NotifyUser(fmt::format("buffer {} load error",
+                                   window_->area_.buffer_->Name()));
             CHX_LOG_ERROR("buffer {} : {}", window_->area_.buffer_->Name(),
                           e.what());
-            // TODO: Maybe Notify the user
         }
     }
 
@@ -1215,6 +1216,7 @@ void Editor::ExitFromMode() {
             break;
         }
         case Mode::kSelect:
+            [[fallthrough]];
         case Mode::kSelectLine: {
             cursor_.in_window->area_.StopSelection();
             break;
@@ -1223,9 +1225,11 @@ void Editor::ExitFromMode() {
             break;
         }
         case Mode::kPeelCommand:
+            [[fallthrough]];
         case Mode::kPeelSearch:
             term_.SetCursorStyle(Terminal::CursorStyle::kBlock);
             peel_->SetHistoryCursorToEnd();
+            [[fallthrough]];
         case Mode::kPeelShow: {
             CHX_ASSERT(cursor_.restore_from_peel);
             cursor_.in_window = cursor_.restore_from_peel;
@@ -1247,7 +1251,9 @@ void Editor::GotoMode(Mode mode) {
     }
     switch (mode) {
         case Mode::kInsert:
+            [[fallthrough]];
         case Mode::kPeelCommand:
+            [[fallthrough]];
         case Mode::kPeelSearch:
             term_.SetCursorStyle(Terminal::CursorStyle::kLine);
             break;

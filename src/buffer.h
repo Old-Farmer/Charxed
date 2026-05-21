@@ -264,6 +264,7 @@ class Buffer {
     int64_t id() const noexcept { return id_; }
     // Must always >= 1
     size_t LineCnt() const noexcept { return tree_.LineCnt(); }
+    size_t Size() const noexcept { return tree_.Size(); }
     BufferState& state() { return state_; };
     bool IsLoad() const noexcept {
         return state_ == BufferState::kModified ||

@@ -23,7 +23,7 @@ void StatusLine::Draw() {
     } else {
         b = cursor_->in_window->area_.buffer_;
     }
-    left_str_ = fmt::format("{:<" CHX_VIM_MODE_WIDTH "} {}{}",
+    left_str_ = fmt::format("{:<" CHX_MODE_WIDTH "} {}{}",
                             kModeString[static_cast<int>(*mode_)], b->Name(),
                             kBufferStateString[static_cast<int>(b->state())]);
 

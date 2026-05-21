@@ -316,6 +316,11 @@ class TextTree {
         return root_->lines + 1;
     }
 
+    size_t Size() const {
+        CHX_ASSERT(root_);
+        return root_->bytes;
+    }
+
     // For test
     // TODO: maybe not compile it in release?
 

@@ -51,7 +51,7 @@ constexpr std::string_view kModeString[] = {
     "COMMAND", "SEARCH", "SHOW",   "",         "",
 };
 
-#define CHX_VIM_MODE_WIDTH "8"  // WIDTH for showing mode
+#define CHX_MODE_WIDTH "8"  // WIDTH for showing mode
 
 inline bool IsPeel(Mode mode) {
     return mode == Mode::kPeelCommand || mode == Mode::kPeelShow ||

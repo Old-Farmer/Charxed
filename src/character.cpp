@@ -381,66 +381,168 @@ TextTree::Iterator PrevCharacter(TextTree::Iterator iter,
     return iter_reverse[last_break];
 }
 
-TextTree::Iterator NextWordBegin(TextTree::Iterator iter,
-                                 TextTree::Iterator end) {
-    Character character;
-    bool found_non_word_character = false;
+namespace {
+constexpr int kCTypeWord = 1 << 0;
+constexpr int kCTypeNonWordNonBlank = 1 << 1;
+constexpr int kCTypeNonWordBlank = 1 << 2;
+
+inline int GetCharacterType(const Character& c) {
+    char ascii_c;
+    if (c.Ascii(ascii_c) && IsWordSeperator(ascii_c)) {
+        return ascii_c == kSpaceChar || ascii_c == '\t' ? kCTypeNonWordBlank
+                                                        : kCTypeNonWordNonBlank;
+    } else {
+        return kCTypeWord;
+    }
+}
+
+// return this, next, type
+// if this == end, next will be end to and type will be unknown
+inline std::tuple<TextTree::Iterator, TextTree::Iterator, int>
+FindNextTargetType(TextTree::Iterator iter, TextTree::Iterator end,
+                   int target) {
+    Character c;
+    int type;
     while (iter != end) {
-        auto next = NextCharacter(iter, end, character);
-        char c;
-        if (character.Ascii(c) && IsWordSeperator(c)) {
-            found_non_word_character = true;
-        } else {
-            if (found_non_word_character) {
-                return iter;
-            }
+        auto next = NextCharacter(iter, end, c);
+        type = GetCharacterType(c);
+        if (type & target) {
+            return {iter, next, type};
         }
         iter = next;
     }
-    return iter;
+    return {iter, iter, type};
 }
 
+// return prev' next, prev and type
+// return prev' next == begin, then prev = begin and type will be unknown
+inline std::tuple<TextTree::Iterator, TextTree::Iterator, int>
+FindPrevTargetType(TextTree::Iterator iter, TextTree::Iterator begin,
+                   int target) {
+    Character c;
+    int type;
+    while (iter != begin) {
+        auto prev = PrevCharacter(iter, begin, c);
+        type = GetCharacterType(c);
+        if (type & target) {
+            return {iter, prev, type};
+        }
+        iter = prev;
+    }
+    return {iter, iter, type};
+}
+
+}  // namespace
+
+// cur is word, find next non-blank non-word;
+// cur is non-word and blank, find next word or non-blank non-word;
+// cur is non-word non-blank, find next word or blank non-word, if is word done,
+// else find next word or non-blank non-word
+TextTree::Iterator NextWordBegin(TextTree::Iterator iter,
+                                 TextTree::Iterator end) {
+    if (iter == end) {
+        return iter;
+    }
+
+    Character c;
+    auto next = NextCharacter(iter, end, c);
+    int type;
+    switch (GetCharacterType(c)) {
+        case kCTypeWord:
+            return std::get<0>(
+                FindNextTargetType(next, end, kCTypeNonWordNonBlank));
+        case kCTypeNonWordNonBlank: {
+            std::tie(iter, next, type) =
+                FindNextTargetType(next, end, kCTypeWord | kCTypeNonWordBlank);
+            if (iter == end || type == kCTypeWord) {
+                return iter;
+            }
+            return std::get<0>(FindNextTargetType(
+                next, end, kCTypeWord | kCTypeNonWordNonBlank));
+        }
+        case kCTypeNonWordBlank:
+            return std::get<0>(FindNextTargetType(
+                next, end, kCTypeWord | kCTypeNonWordNonBlank));
+    }
+    return iter;  // make compiler happy
+}
+
+// cur is word, find next non-blank non-word or blank non-word;
+// cur is non-word and blank, first find next word, then find non-word non-blank
+// or non-word blank or first find next non-blank non-word, then find next word
+// or non-word non-blank;
+// cur is non-word non-blank, find next word or blank non-word
 TextTree::Iterator NextWordEnd(TextTree::Iterator iter,
                                TextTree::Iterator end) {
     if (iter == end) {
         return iter;
     }
 
-    Character character;
-    bool found_word_character = false;
-    iter = NextCharacter(iter, end, character);
-    while (iter != end) {
-        auto next = NextCharacter(iter, end, character);
-        char c;
-        if (character.Ascii(c) && IsWordSeperator(c)) {
-            if (found_word_character) {
+    Character c;
+    auto next = NextCharacter(iter, end, c);
+    int type;
+    switch (GetCharacterType(c)) {
+        case kCTypeWord:
+            return std::get<0>(FindNextTargetType(
+                next, end, kCTypeNonWordNonBlank | kCTypeNonWordBlank));
+        case kCTypeNonWordNonBlank:
+            return std::get<0>(
+                FindNextTargetType(next, end, kCTypeWord | kCTypeNonWordBlank));
+        case kCTypeNonWordBlank:
+            std::tie(iter, next, type) = FindNextTargetType(
+                next, end, kCTypeWord | kCTypeNonWordNonBlank);
+            if (iter == end) {
                 return iter;
             }
-        } else {
-            found_word_character = true;
-        }
-        iter = next;
+            if (type == kCTypeWord) {
+                return std::get<0>(FindNextTargetType(
+                    next, end, kCTypeNonWordNonBlank | kCTypeNonWordBlank));
+            } else if (type == kCTypeNonWordNonBlank) {
+                return std::get<0>(FindNextTargetType(
+                    next, end, kCTypeWord | kCTypeNonWordBlank));
+            } else {
+                CHX_ASSERT(false);
+            }
     }
-    return iter;
+    return iter;  // make compiler happy
 }
 
+// prev is word, find prev non-blank non-word or blank non-word;
+// prev is non-word and blank, first find prev word, then find non-word
+// non-blank or non-word blank or first prev next non-blank non-word, then find
+// prev word or non-word non-blank;
+// prev is non-word non-blank, find prev word or blank non-word
 TextTree::Iterator PrevWordBegin(TextTree::Iterator iter,
                                  TextTree::Iterator begin) {
-    Character character;
-    bool found_word_character = false;
-    while (iter != begin) {
-        auto prev = PrevCharacter(iter, begin, character);
-        char c;
-        if (character.Ascii(c) && IsWordSeperator(c)) {
-            if (found_word_character) {
+    if (iter == begin) {
+        return iter;
+    }
+
+    Character c;
+    auto prev = PrevCharacter(iter, begin, c);
+    int type;
+    switch (GetCharacterType(c)) {
+        case kCTypeWord:
+            return std::get<0>(FindPrevTargetType(
+                prev, begin, kCTypeNonWordNonBlank | kCTypeNonWordBlank));
+        case kCTypeNonWordNonBlank:
+            return std::get<0>(FindPrevTargetType(
+                prev, begin, kCTypeWord | kCTypeNonWordBlank));
+        case kCTypeNonWordBlank:
+            std::tie(iter, prev, type) = FindPrevTargetType(
+                prev, begin, kCTypeWord | kCTypeNonWordNonBlank);
+            if (iter == begin) {
                 return iter;
             }
-        } else {
-            found_word_character = true;
-        }
-        iter = prev;
+            if (type == kCTypeWord) {
+                return std::get<0>(FindPrevTargetType(
+                    prev, begin, kCTypeNonWordNonBlank | kCTypeNonWordBlank));
+            } else if (type == kCTypeNonWordNonBlank) {
+                return std::get<0>(FindPrevTargetType(
+                    prev, begin, kCTypeWord | kCTypeNonWordBlank));
+            }
     }
-    return iter;
+    return iter;  // make compiler happy
 }
 
 size_t StringWidth(const std::string& str) {

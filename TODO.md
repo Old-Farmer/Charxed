@@ -42,6 +42,7 @@
     - Option API
     - Keymap API
     - Command API
+- Mode -> Context
 
 ## Performance
 

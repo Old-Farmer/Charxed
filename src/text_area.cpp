@@ -1608,7 +1608,7 @@ Result TextArea::Paste(size_t count) {
             for (size_t i = 0; i < count - 1; i++) {
                 content += tmp_content;
             }
-        } catch (std::bad_alloc) {
+        } catch (std::bad_alloc&) {
             return kError;  // TODO: more specific Result?
         }
     }
