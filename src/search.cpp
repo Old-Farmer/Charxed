@@ -26,9 +26,10 @@ std::vector<Range> BufferSearch(const Buffer* buffer,
         return {};
     }
 
+    std::string buf;
     size_t line_cnt = buffer->LineCnt();
     for (size_t line = 0; line < line_cnt; line++) {
-        const auto& line_str = buffer->GetLine(line);
+        const auto& line_str = buffer->GetLine(line, buf);
         regmatch_t m;
         for (size_t pos = 0; pos < line_str.size();) {
             m.rm_so = pos;

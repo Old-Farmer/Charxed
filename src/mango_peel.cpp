@@ -113,7 +113,8 @@ std::string_view MangoPeel::GetUserInput() {
     if (!user_inputing_) {
         return {};
     }
-    return buffer_.GetLine(0).substr(prefix_len_);
+    std::string buf;
+    return buffer_.GetLine(0, buf).substr(prefix_len_);
 }
 
 Result MangoPeel::DeleteCharacterBeforeCursor() {

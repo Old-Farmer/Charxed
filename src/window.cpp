@@ -211,7 +211,8 @@ Result Window::TryAutoIndent(Pos pos) {
 
     // TODO: use regex patterns for autoindent
 
-    auto line = area_.buffer_->GetLine(pos.line);
+    std::string buf;
+    auto line = area_.buffer_->GetLine(pos.line, buf);
     std::string indent = "";
     size_t cur_indent = 0;
     // Same as this line's indent

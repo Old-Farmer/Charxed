@@ -161,10 +161,10 @@ class Buffer {
     // Make sure that line, Range or Pos is valid, otherwise behavir
     // is undefined.
 
-    std::string_view GetLine(size_t line) const {
+    std::string_view GetLine(size_t line, std::string& buf) const {
         CHX_ASSERT(LineCnt() > line);
         auto line_view = tree_.GetLine(line);
-        auto line_str = line_view.ToStringView(line_buf_);
+        auto line_str = line_view.ToStringView(buf);
         return line_str;
     }
 
@@ -310,7 +310,6 @@ class Buffer {
 
    private:
     TextTree tree_;
-    mutable std::string line_buf_;
 
     Path path_;
     struct NewFileInfo {

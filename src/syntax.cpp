@@ -111,6 +111,7 @@ bool SyntaxParser::QueryPredicate(const TSQueryContext& query_context,
     if (predicates_steps == 0) {
         return true;
     }
+    std::string buf;
     for (uint32_t i = 0; i < predicates_steps;) {
         uint32_t str_size;
         CHX_ASSERT(predicates[i].type == TSQueryPredicateStepTypeString);
@@ -122,7 +123,7 @@ bool SyntaxParser::QueryPredicate(const TSQueryContext& query_context,
                 query_context.pattern_context[capture->index]->match;
 
             if (range.begin.line == range.end.line) {
-                auto str = buffer->GetLine(range.begin.line);
+                auto str = buffer->GetLine(range.begin.line, buf);
                 regmatch_t m;
                 // We use m.rm_so = 0 and str.data() + range.begin.byte_offset
                 // to make '^' have effect
