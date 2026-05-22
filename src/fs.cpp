@@ -15,8 +15,13 @@
 
 namespace charxed {
 
-static constexpr const char* kXDGConfigHomeEnv = "XDG_CONFIG_HOME";
-static constexpr const char* kXDGCacheHomeEnv = "XDG_CACHE_HOME";
+namespace {
+constexpr const char* kXDGConfigHomeEnv = "XDG_CONFIG_HOME";
+constexpr const char* kXDGCacheHomeEnv = "XDG_CACHE_HOME";
+
+constexpr mode_t kDefaultCreateMode = 0644;
+constexpr mode_t kDefaultMkDirMode = 0755;
+}  // namespace
 
 Path::Path() {}
 
@@ -187,13 +192,15 @@ std::vector<std::string> Path::ListUnderPath(const std::string& path) {
         }
 
         if (ent->d_type == DT_DIR) {
-            auto child_path = std::string(ent->d_name) + kPathSeperator;
+            auto child_path = std::string(ent->d_name);
+            child_path.append(1, kPathSeperator);
             ret.push_back(std::move(child_path));
         } else if (ent->d_type == DT_REG) {
             auto child_path = std::string(ent->d_name);
             ret.push_back(std::move(child_path));
         }
         // We ignore other type file.
+        // TODO: maybe we shouldn't ignore them?
     }
     closedir(dir);  // If dir is not bad, closedir will never fail, so it will
                     // not effect errno.
@@ -248,6 +255,43 @@ Result GetFileStat(const std::string& path, FileStat& file_stat) {
     if (sta.st_mode & S_IXUSR) file_stat.mode |= kFMExec;
     file_stat.size = sta.st_size;
     return kOk;
+}
+
+void Create(const std::string& path) {
+    int fd = open(path.c_str(), O_CREAT, kDefaultCreateMode);
+    if (fd == -1) {
+        throw OSException(errno, "open {} error: {}", path, strerror(errno));
+    }
+    close(fd);
+}
+
+void Remove(const std::string& path) {
+    if (unlink(path.c_str()) == -1) {
+        throw OSException(errno, "unlink {} error: {}", path, strerror(errno));
+    }
+}
+
+void MakeDirectory(const std::string& path) {
+    if (mkdir(path.c_str(), kDefaultMkDirMode) == -1) {
+        throw OSException(errno, "mkdir {} error: {}", path, strerror(errno));
+    }
+}
+
+void RemoveDirectory(const std::string& path) {
+    CHX_ASSERT(!path.empty());
+    CHX_ASSERT(path.back() == kPathSeperator);
+
+    auto entries = Path::ListUnderPath(path);
+    if (entries.empty()) {
+        rmdir(path.c_str());
+    }
+    for (auto& e : entries) {
+        if (e.back() == kPathSeperator) {
+            RemoveDirectory(path + e);
+        } else {
+            Remove(e);
+        }
+    }
 }
 
 }  // namespace charxed

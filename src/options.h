@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "cursor.h"
+#include "filetype.h"
 #include "json.h"
 #include "term.h"
 
@@ -19,33 +20,37 @@ enum class Type {
     kPtr,      // void*
 };
 
+#define CHX_COLOR_SCHEME_TABLE        \
+    X(kNormal, normal)                \
+    X(kSelection, selection)          \
+    X(kMenu, menu)                    \
+    X(kMenuSelection, menu_selection) \
+    X(kSidebar, sidebar)              \
+    X(kStatusLine, statusline)        \
+    X(kSearch, search)                \
+    X(kSearchCurrent, search_current) \
+    X(kTrailingWhite, trailing_white) \
+    X(kCursorLine, cursor_line)       \
+                                      \
+    X(kKeyword, keyword)              \
+    X(kTypeBuiltin, typebuiltin)      \
+    X(kOperator, operator)            \
+    X(kString, string)                \
+    X(kComment, comment)              \
+    X(kNumber, number)                \
+    X(kConstant, constant)            \
+    X(kFunction, function)            \
+    X(kType, type)                    \
+    X(kVariable, variable)            \
+    X(kDelimiter, delimiter)          \
+    X(kProperty, property)            \
+    X(kLabel, label)
+
 enum ColorSchemeType : int {
-    kNormal = 0,
-    kNormalFg, // Will be extract from kNormal
-    kSelection,
-    kMenu,
-    kMenuSelection,
-    kSidebar,
-    kStatusLine,
-    kSearch,
-    kSearchCurrent,
-    kTrailingWhite,
-    kCursorLine,
-
-    kKeyword,
-    kTypeBuiltin,
-    kOperator,
-    kString,
-    kComment,
-    kNumber,
-    kConstant,
-    kFunction,
-    kType,
-    kVariable,
-    kDelimiter,
-    kProperty,
-    kLabel,
-
+#define X(t, str) t,
+    CHX_COLOR_SCHEME_TABLE
+#undef X
+        kNormalFg,  // Will be extract from kNormal
     __kColorSchemeTypeCount,
 };
 
@@ -55,41 +60,43 @@ enum class LineNumberType {
     kRelative,
 };
 
+#define CHX_BUFFER_OPT_TABLE                          \
+    X(kOptAutoIndent, auto_indent, kBool)             \
+    X(kOptAutoPair, auto_pair, kBool)                 \
+    X(kOptMaxEditHistory, max_edit_history, kInteger) \
+    X(kOptTabSpace, tab_space, kBool)                 \
+    X(kOptTabStop, tab_stop, kInteger)                \
+    X(kOptWrap, wrap, kBool)
+
+#define CHX_WINDOW_OPT_TABLE                                 \
+    X(kOptEndOfBufferMark, end_of_buffer_mark, kBool)        \
+    X(kOptHighlightCursorLine, highlight_cursor_line, kBool) \
+    X(kOptLineNumber, line_number, kInteger)                 \
+    X(kOptScrollOff, scroll_off, kInteger)                   \
+    X(kOptTrailingWhite, trailing_white, kBool)
+
+#define CHX_GLOBAL_OPT_TABLE                                 \
+    X(kOptBasicWordCompletion, basic_word_completion, kBool) \
+    X(kOptCmpMenuMaxHeight, cmp_menu_max_height, kInteger)   \
+    X(kOptCmpMenuMaxWidth, cmp_menu_max_width, kInteger)     \
+    X(kOptColorScheme, __color_scheme, kPtr)                 \
+    X(kOptHighlightOnSearch, highlight_on_search, kBool)     \
+    X(kOptInputIdleTimeout, input_idle_timeout, kInteger)    \
+    X(kOptLogVerbose, logverbose, kBool)                     \
+    X(kOptMaxJumpHistory, max_jump_history, kInteger)        \
+    X(kOptMaxPeelHistory, max_peel_history, kInteger)        \
+    X(kOptScrollRows, scroll_rows, kInteger)                 \
+    X(kOptSearchIgnoreCase, search_ignore_case, kBool)       \
+    X(kOptTrueColor, truecolor, kBool)                       \
+    /* private */                                            \
+    X(kOptCursorStartHoldingInterval, cursor_start_holding_interval, kInteger)
+
 // NOTE: The unit of time related opts is ms.
 enum OptKey {
-    // buffer
-    kOptAutoIndent,
-    kOptAutoPair,
-    kOptMaxEditHistory,
-    kOptTabSpace,
-    kOptTabStop,
-    kOptWrap,
-
-    // window
-    kOptEndOfBufferMark,
-    kOptHighlightCursorLine,
-    kOptLineNumber,
-    kOptScrollOff,
-    kOptTrailingWhite,
-
-    // global
-    kOptBasicWordCompletion,
-    kOptCmpMenuMaxHeight,
-    kOptCmpMenuMaxWidth,
-    kOptColorScheme,
-    kOptHighlightOnSearch,
-    kOptInputIdleTimeout,
-    kOptLogVerbose,
-    kOptMaxJumpHistory,
-    kOptMaxPeelHistory,
-    kOptScrollRows,
-    kOptSearchIgnoreCase,
-    kOptTrueColor,
-
-    // private
-    kOptCursorStartHoldingInterval,
-
-    __kOptKeyCount,
+#define X(t, ...) t,
+    CHX_BUFFER_OPT_TABLE CHX_WINDOW_OPT_TABLE CHX_GLOBAL_OPT_TABLE
+#undef X
+        __kOptKeyCount,
 };
 
 // Options have scope.
@@ -141,11 +148,11 @@ class GlobalOpts {
     template <typename T>
     constexpr T GetOpt(OptKey key) const {
         if constexpr (std::is_same_v<T, bool>) {
-            CHX_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kBool);
+            CHX_IF_TYPE_MISMATCH_THROW(GetOptInfo(key).type == Type::kBool);
         } else if constexpr (std::is_same_v<T, int64_t>) {
-            CHX_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kInteger);
+            CHX_IF_TYPE_MISMATCH_THROW(GetOptInfo(key).type == Type::kInteger);
         } else if constexpr (std::is_pointer_v<T>) {
-            CHX_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kPtr);
+            CHX_IF_TYPE_MISMATCH_THROW(GetOptInfo(key).type == Type::kPtr);
         } else {
             static_assert(kAlwaysFalseV<>,
                           "GetOpt<T> only supports T = bool, int64_t, or "
@@ -162,11 +169,11 @@ class GlobalOpts {
     template <typename T>
     void SetOpt(OptKey key, T value) {
         if constexpr (std::is_same_v<T, bool>) {
-            CHX_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kBool);
+            CHX_IF_TYPE_MISMATCH_THROW(GetOptInfo(key).type == Type::kBool);
         } else if constexpr (std::is_same_v<T, int64_t>) {
-            CHX_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kInteger);
+            CHX_IF_TYPE_MISMATCH_THROW(GetOptInfo(key).type == Type::kInteger);
         } else if constexpr (std::is_pointer_v<T>) {
-            CHX_IF_TYPE_MISMATCH_THROW(opt_info_[key].type == Type::kPtr);
+            CHX_IF_TYPE_MISMATCH_THROW(GetOptInfo(key).type == Type::kPtr);
         } else {
             static_assert(kAlwaysFalseV<>,
                           "GetOpt<T> only supports T = bool, int64_t, or "
@@ -176,20 +183,19 @@ class GlobalOpts {
         opts_[key] = reinterpret_cast<void*>(value);
     }
 
+    static OptInfo GetOptInfo(OptKey key);
+
    private:
     // throw OptionLoadException
     void TryApply(const Json& config, const Json& colorscheme_config);
 
    private:
     void* opts_[__kOptKeyCount];
-    std::unordered_map<zstring_view, std::unordered_map<OptKey, void*>>
-        filetype_opts_;
+    std::unordered_map<OptKey, void*>
+        filetype_opts_[static_cast<int>(FileType::__kCount)];
 
     bool user_config_valid_ = false;
     std::string user_config_error_reason_;
-
-   public:
-    const OptInfo* opt_info_;
 };
 
 // Opts is a option table that store some local opts.
@@ -203,19 +209,19 @@ class Opts {
     void InitAfterBufferLoad(const Buffer* buffer);
 
     OptScope GetScope(OptKey key) const {
-        return global_opts_->opt_info_[key].scope;
+        return GlobalOpts::GetOptInfo(key).scope;
     }
 
     template <typename T>
     T GetOpt(OptKey key) const {
         if constexpr (std::is_same_v<T, bool>) {
-            CHX_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
+            CHX_IF_TYPE_MISMATCH_THROW(GlobalOpts::GetOptInfo(key).type ==
                                        Type::kBool);
         } else if constexpr (std::is_same_v<T, int64_t>) {
-            CHX_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
+            CHX_IF_TYPE_MISMATCH_THROW(GlobalOpts::GetOptInfo(key).type ==
                                        Type::kInteger);
         } else if constexpr (std::is_pointer_v<T>) {
-            CHX_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
+            CHX_IF_TYPE_MISMATCH_THROW(GlobalOpts::GetOptInfo(key).type ==
                                        Type::kPtr);
         } else {
             static_assert(kAlwaysFalseV<>,
@@ -240,13 +246,13 @@ class Opts {
     template <typename T>
     void SetOpt(OptKey key, T value, bool global = false) {
         if constexpr (std::is_same_v<T, bool>) {
-            CHX_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
+            CHX_IF_TYPE_MISMATCH_THROW(GlobalOpts::GetOptInfo(key).type ==
                                        Type::kBool);
         } else if constexpr (std::is_same_v<T, int64_t>) {
-            CHX_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
+            CHX_IF_TYPE_MISMATCH_THROW(GlobalOpts::GetOptInfo(key).type ==
                                        Type::kInteger);
         } else if constexpr (std::is_pointer_v<T>) {
-            CHX_IF_TYPE_MISMATCH_THROW(global_opts_->opt_info_[key].type ==
+            CHX_IF_TYPE_MISMATCH_THROW(GlobalOpts::GetOptInfo(key).type ==
                                        Type::kPtr);
         } else {
             static_assert(kAlwaysFalseV<>,

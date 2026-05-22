@@ -18,113 +18,17 @@ static const std::string kUserColorschemePath =
     std::string(Path::GetConfig()) + "charxed/colorscheme.json";
 
 static const std::unordered_map<std::string_view, OptKey> kStrRepToOptKey{
-    // buffer
-    {"auto_indent", kOptAutoIndent},
-    {"auto_pair", kOptAutoPair},
-    {"max_edit_history", kOptMaxEditHistory},
-    {"tab_space", kOptTabSpace},
-    {"tab_stop", kOptTabStop},
-    {"wrap", kOptWrap},
-    // window
-    {"end_of_buffer_mark", kOptEndOfBufferMark},
-    {"highlight_cursor_line", kOptHighlightCursorLine},
-    {"line_number", kOptLineNumber},
-    {"scroll_off", kOptScrollOff},
-    {"trailing_white", kOptTrailingWhite},
-    // global
-    {"basic_word_completion", kOptBasicWordCompletion},
-    {"cmp_menu_max_height", kOptCmpMenuMaxHeight},
-    {"cmp_menu_max_width", kOptCmpMenuMaxWidth},
-    {"highlight_on_search", kOptHighlightOnSearch},
-    {"input_idle_timeout", kOptInputIdleTimeout},
-    {"logverbose", kOptLogVerbose},
-    {"max_jump_history", kOptMaxJumpHistory},
-    {"max_peel_history", kOptMaxPeelHistory},
-    {"search_ignore_case", kOptSearchIgnoreCase},
-    {"scroll_rows", kOptScrollRows},
-    {"truecolor", kOptTrueColor},
-    // private
-    {"cursor_start_holding_interval", kOptCursorStartHoldingInterval},
+#define X(t, str, ...) {#str, t},
+    CHX_BUFFER_OPT_TABLE CHX_WINDOW_OPT_TABLE CHX_GLOBAL_OPT_TABLE
+#undef X
 };
 
-// throw OptionInfoInitException if option info init count is not correct.
-static void OptStaticInit(const OptInfo*& opt_info) {
-    static const auto static_opt_info = [] {
-        auto static_opt_info = new OptInfo[__kOptKeyCount];
-        size_t cnt = 0;
-        auto set_opt_info = [&cnt, static_opt_info](OptKey key,
-                                                    OptInfo info) mutable {
-            static_opt_info[key] = info;
-            cnt++;
-        };
-        // buffer
-        set_opt_info(kOptAutoIndent, {OptScope::kBuffer, Type::kBool});
-        set_opt_info(kOptAutoPair, {OptScope::kBuffer, Type::kBool});
-        set_opt_info(kOptMaxEditHistory, {OptScope::kBuffer, Type::kInteger});
-        set_opt_info(kOptTabSpace, {OptScope::kBuffer, Type::kBool});
-        set_opt_info(kOptTabStop, {OptScope::kBuffer, Type::kInteger});
-        set_opt_info(kOptWrap, {OptScope::kBuffer, Type::kBool});
-        // window
-        set_opt_info(kOptEndOfBufferMark, {OptScope::kWindow, Type::kBool});
-        set_opt_info(kOptHighlightCursorLine, {OptScope::kWindow, Type::kBool});
-        set_opt_info(kOptLineNumber, {OptScope::kWindow, Type::kInteger});
-        set_opt_info(kOptScrollOff, {OptScope::kWindow, Type::kInteger});
-        set_opt_info(kOptTrailingWhite, {OptScope::kWindow, Type::kBool});
-        // global
-        set_opt_info(kOptBasicWordCompletion, {OptScope::kGlobal, Type::kBool});
-        set_opt_info(kOptCmpMenuMaxWidth, {OptScope::kGlobal, Type::kInteger});
-        set_opt_info(kOptCmpMenuMaxHeight, {OptScope::kGlobal, Type::kInteger});
-        set_opt_info(kOptColorScheme, {OptScope::kGlobal, Type::kPtr});
-        set_opt_info(kOptHighlightOnSearch, {OptScope::kGlobal, Type::kBool});
-        set_opt_info(kOptInputIdleTimeout, {OptScope::kGlobal, Type::kInteger});
-        set_opt_info(kOptLogVerbose, {OptScope::kGlobal, Type::kBool});
-        set_opt_info(kOptMaxJumpHistory, {OptScope::kGlobal, Type::kInteger});
-        set_opt_info(kOptMaxPeelHistory, {OptScope::kGlobal, Type::kInteger});
-        set_opt_info(kOptSearchIgnoreCase, {OptScope::kGlobal, Type::kBool});
-        set_opt_info(kOptScrollRows, {OptScope::kGlobal, Type::kInteger});
-        set_opt_info(kOptTrueColor, {OptScope::kGlobal, Type::kBool});
-        // private
-        set_opt_info(kOptCursorStartHoldingInterval,
-                     {OptScope::kGlobal, Type::kInteger});
-        if (cnt != __kOptKeyCount) {
-            throw OptionInfoInitException("Option count: {}, but {} info init",
-                                          static_cast<size_t>(__kOptKeyCount),
-                                          cnt);
-        }
-        return const_cast<OptInfo*>(static_opt_info);
-    }();
-    opt_info = static_opt_info;
-}
-
-// clang-format off
 static std::unordered_map<std::string_view, ColorSchemeType>
     kStrToColorSchemeType{
-    {"normal", kNormal},
-    {"selection", kSelection},
-    {"menu", kMenu},
-    {"menu_selection", kMenuSelection},
-    {"sidebar", kSidebar},
-    {"statusline", kStatusLine},
-    {"search", kSearch},
-    {"search_current", kSearchCurrent},
-    {"trailing_white", kTrailingWhite},
-    {"cursor_line", kCursorLine},
-
-    {"keyword", kKeyword},
-    {"typebuiltin", kTypeBuiltin},
-    {"operator", kOperator},
-    {"string", kString},
-    {"comment", kComment},
-    {"number", kNumber},
-    {"constant", kConstant},
-    {"function", kFunction},
-    {"type", kType},
-    {"variable", kVariable},
-    {"delimiter", kDelimiter},
-    {"property", kProperty},
-    {"label", kLabel},
-};
-// clang-format on
+#define X(t, str) {#str, t},
+        CHX_COLOR_SCHEME_TABLE
+#undef X
+    };
 
 static const std::unordered_map<std::string_view, Terminal::Color>
     kBasedColors = {
@@ -255,33 +159,55 @@ static void GetColorScheme(bool truecolor, const Json& colorscheme_json,
     }
 }
 
+OptInfo GlobalOpts::GetOptInfo(OptKey key) {
+    switch (key) {
+#define X(k, str, type) \
+    case k:             \
+        return {OptScope::kBuffer, Type::type};
+        CHX_BUFFER_OPT_TABLE
+#undef X
+#define X(k, str, type) \
+    case k:             \
+        return {OptScope::kWindow, Type::type};
+        CHX_WINDOW_OPT_TABLE
+#undef X
+#define X(k, str, type) \
+    case k:             \
+        return {OptScope::kGlobal, Type::type};
+        CHX_GLOBAL_OPT_TABLE
+#undef X
+        default:
+            CHX_ASSERT(false);
+            return {};
+    }
+}
+
 void GlobalOpts::TryApply(const Json& config, const Json& colorscheme_config) {
     for (const auto& [k, v] : config.items()) {
-        auto filetype = IsFiletype(k);
-        if (!filetype.empty()) {
-            filetype_opts_.insert({filetype, {}});
+        auto filetype = InnerStrRepToFileType(k);
+        if (filetype.has_value()) {
             for (const auto& [inner_k, inner_v] : v.items()) {
                 auto iter = kStrRepToOptKey.find(inner_k);
                 if (iter == kStrRepToOptKey.end()) {
                     continue;
                 }
                 OptKey opt_key = iter->second;
-                const OptInfo& opt_info = opt_info_[opt_key];
+                const OptInfo& opt_info = GetOptInfo(opt_key);
                 if (opt_info.scope != OptScope::kBuffer) {
                     continue;
                 }
 
                 if (opt_info.type == Type::kBool && inner_v.is_boolean()) {
-                    filetype_opts_[filetype][opt_key] =
+                    filetype_opts_[static_cast<int>(*filetype)][opt_key] =
                         reinterpret_cast<void*>(inner_v.get<bool>());
                 } else if (opt_info.type == Type::kInteger &&
                            inner_v.is_number_integer()) {
-                    filetype_opts_[filetype][opt_key] =
+                    filetype_opts_[static_cast<int>(*filetype)][opt_key] =
                         reinterpret_cast<void*>(inner_v.get<int64_t>());
                 } else {
                     throw OptionLoadException(
                         "value type wrong: key: {}, v type: {} {}",
-                        "/" + std::string(filetype) + "/" + inner_k,
+                        "/" + k + "/" + inner_k,
                         static_cast<int>(opt_info.type),
                         static_cast<int>(
                             inner_v.type()));  // flatten rep of key
@@ -295,7 +221,7 @@ void GlobalOpts::TryApply(const Json& config, const Json& colorscheme_config) {
             continue;
         }
         OptKey opt_key = iter->second;
-        const OptInfo& opt_info = opt_info_[opt_key];
+        const OptInfo& opt_info = GetOptInfo(opt_key);
         if (opt_info.type == Type::kBool && v.is_boolean()) {
             opts_[opt_key] = reinterpret_cast<void*>(v.get<bool>());
         } else if (opt_info.type == Type::kInteger && v.is_number_integer()) {
@@ -376,10 +302,7 @@ void GlobalOpts::LoadConfig() {
     TryApply(config, colorscheme);
 }
 
-GlobalOpts::GlobalOpts() {
-    OptStaticInit(opt_info_);
-    LoadConfig();
-}
+GlobalOpts::GlobalOpts() { LoadConfig(); }
 
 GlobalOpts::~GlobalOpts() {
     delete[] reinterpret_cast<ColorScheme*>(opts_[kOptColorScheme]);
@@ -388,14 +311,7 @@ GlobalOpts::~GlobalOpts() {
 Opts::Opts(GlobalOpts* global_options) : global_opts_(global_options) {}
 
 void Opts::InitAfterBufferLoad(const Buffer* buffer) {
-    // check filetype
-    zstring_view ft = buffer->filetype();
-    auto iter = global_opts_->filetype_opts_.find(ft);
-    if (iter == global_opts_->filetype_opts_.end()) {
-        return;
-    }
-
-    opts_ = iter->second;
+    opts_ = global_opts_->filetype_opts_[static_cast<int>(buffer->filetype())];
 }
 
 }  // namespace charxed

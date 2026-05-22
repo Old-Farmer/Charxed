@@ -19,9 +19,12 @@ constexpr const char* kTSNewLine = "\n";
 
 namespace {
 
-std::string QueryFilePath(zstring_view filetype) {
-    return Path::GetAppRoot() + kTSQueryPath + zstring_view_c_str(filetype) +
-           "/highlights.scm";
+std::string QueryFilePath(FileType filetype) {
+    auto p = Path::GetAppRoot();
+    p.append(kTSQueryPath);
+    p.append(FileTypesInnerStrRep(filetype));
+    p.append("/highlights.scm");
+    return p;
 }
 
 const char* my_ts_read(void* payload, uint32_t byte_offset, TSPoint position,
@@ -86,9 +89,10 @@ SyntaxParser::SyntaxParser(GlobalOpts* global_opts)
       global_opts_(global_opts) {
     (void)global_opts_;
     // TODO: refactor here
-    filetype_to_language_["c"] = tree_sitter_c();
-    filetype_to_language_["cpp"] = tree_sitter_cpp();
-    filetype_to_language_["json"] = tree_sitter_json();
+    filetype_to_language_[static_cast<int>(FileType::kC)] = tree_sitter_c();
+    filetype_to_language_[static_cast<int>(FileType::kCpp)] = tree_sitter_cpp();
+    filetype_to_language_[static_cast<int>(FileType::kJson)] =
+        tree_sitter_json();
 
     SyntaxParserStaticInit(ts_query_capture_name_to_character_type_);
 }
@@ -96,10 +100,6 @@ SyntaxParser::SyntaxParser(GlobalOpts* global_opts)
 SyntaxParser::~SyntaxParser() {
     ts_query_cursor_delete(query_cursor_);
     ts_parser_delete(parser_);
-
-    for (auto& item : filetype_to_query_) {
-        ts_query_delete(item.second.query);
-    }
 }
 
 bool SyntaxParser::QueryPredicate(const TSQueryContext& query_context,
@@ -151,8 +151,9 @@ bool SyntaxParser::QueryPredicate(const TSQueryContext& query_context,
 }
 
 void SyntaxParser::GenerateHighlight(const Buffer* buffer, const Range& range) {
-    CHX_ASSERT(filetype_to_query_.count(buffer->filetype()) == 1);
-    TSQueryContext& query_context = filetype_to_query_[buffer->filetype()];
+    CHX_ASSERT(filetype_to_query_[static_cast<int>(buffer->filetype())]->query);
+    TSQueryContext& query_context =
+        *filetype_to_query_[static_cast<int>(buffer->filetype())];
     CHX_ASSERT(buffer_context_.count(buffer->id()) == 1);
     SyntaxContext& context = buffer_context_[buffer->id()];
 
@@ -258,10 +259,11 @@ TSTree* SyntaxParser::SyntaxInit(const Buffer* buffer) {
         return nullptr;
     }
 
-    if (!ts_parser_set_language(parser_,
-                                filetype_to_language_.at(buffer->filetype()))) {
+    if (!ts_parser_set_language(
+            parser_,
+            filetype_to_language_[static_cast<int>(buffer->filetype())])) {
         CHX_LOG_ERROR("ts_parser_set_language error: filetype {}",
-                      buffer->filetype());
+                      FileTypesInnerStrRep(buffer->filetype()));
         return nullptr;
     }
 
@@ -269,7 +271,8 @@ TSTree* SyntaxParser::SyntaxInit(const Buffer* buffer) {
                      TSInputEncodingUTF8, nullptr};
     TSTree* tree = ts_parser_parse(parser_, nullptr, input);
     if (tree == nullptr) {
-        CHX_LOG_ERROR("ts_parser_parse error: filetype {}", buffer->filetype());
+        CHX_LOG_ERROR("ts_parser_parse error: filetype {}",
+                      FileTypesInnerStrRep(buffer->filetype()));
         return nullptr;
     }
     buffer_context_[buffer->id()] = {};
@@ -287,7 +290,8 @@ void SyntaxParser::ParseSyntaxAfterEdit(Buffer* buffer) {
     ts_tree_delete(buffer->ts_tree());
     buffer->ts_tree() = new_tree;
     if (buffer->ts_tree() == nullptr) {
-        CHX_LOG_ERROR("ts_parser_parse error: filetype {}", buffer->filetype());
+        CHX_LOG_ERROR("ts_parser_parse error: filetype {}",
+                      FileTypesInnerStrRep(buffer->filetype()));
     }
 }
 
@@ -309,6 +313,12 @@ const SyntaxContext* SyntaxParser::GetBufferSyntaxContext(const Buffer* buffer,
 
     GenerateHighlight(buffer, range);
     return &iter->second;
+}
+
+SyntaxParser::TSQueryContext::~TSQueryContext() {
+    if (query) {
+        ts_query_delete(query);
+    }
 }
 
 void SyntaxParser::InitQueryContex(TSQueryContext& query_context) {
@@ -363,53 +373,51 @@ void SyntaxParser::InitQueryContex(TSQueryContext& query_context) {
 }
 
 const SyntaxParser::TSQueryContext* SyntaxParser::GetQueryContext(
-    zstring_view filetype) {
-    if (filetype.empty()) {
-        filetype_to_query_[""] = {nullptr, {}};
+    FileType filetype) {
+    auto& lang = filetype_to_language_[static_cast<int>(filetype)];
+    auto& query_context = filetype_to_query_[static_cast<int>(filetype)];
+    if (lang == nullptr) {
+        CHX_LOG_ERROR("tree-sitter TSLanguage create function not defined");
+        query_context = std::make_unique<TSQueryContext>();
         return nullptr;
     }
 
-    auto iter = filetype_to_query_.find(filetype);
-    if (iter == filetype_to_query_.end()) {
+    if (!query_context) {
         std::string query_file_path = QueryFilePath(filetype);
         try {
             File f(query_file_path, "r", false);
             EOLSeq eol_seq;
             std::string query_str = f.ReadAll(eol_seq);
             // Cpp need C
-            if (filetype == "cpp") {
+            if (filetype == FileType::kCpp) {
                 std::string query_str_c =
-                    File(QueryFilePath("c"), "r", false).ReadAll(eol_seq);
+                    File(QueryFilePath(FileType::kC), "r", false)
+                        .ReadAll(eol_seq);
                 query_str = query_str_c + kTSNewLine + query_str;
             }
             uint32_t error_offset;
             TSQueryError error_type;
-            TSQuery* query = ts_query_new(filetype_to_language_.at(filetype),
-                                          query_str.c_str(), query_str.size(),
-                                          &error_offset, &error_type);
+            TSQuery* query =
+                ts_query_new(lang, query_str.c_str(), query_str.size(),
+                             &error_offset, &error_type);
             if (query == nullptr) {
                 CHX_LOG_ERROR("ts query create error: offset {}, error {}",
                               error_offset, static_cast<int>(error_type));
                 return nullptr;
             }
-            TSQueryContext query_context;
-            query_context.query = query;
-            InitQueryContex(query_context);
-            filetype_to_query_[filetype] = std::move(query_context);
-            return &filetype_to_query_[filetype];
+            query_context = std::make_unique<TSQueryContext>();
+            query_context->query = query;
+            InitQueryContex(*query_context);
+            return query_context.get();
         } catch (IOException& e) {
             CHX_LOG_ERROR("TS query file {} cannot read: {}", query_file_path,
                           e.what());
-            filetype_to_query_[filetype] = {nullptr, {}};
-            return nullptr;
-        } catch (std::out_of_range& e) {
-            CHX_LOG_ERROR("tree-sitter TSLanguage create function not defined");
-            filetype_to_query_[filetype] = {nullptr, {}};
+            query_context = std::make_unique<TSQueryContext>();
             return nullptr;
         }
     } else {
-        if (iter->second.query) {
-            return &iter->second;
+        if (query_context->query) {
+            return query_context.get();
         }
         return nullptr;
     }

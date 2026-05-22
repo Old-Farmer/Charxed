@@ -56,8 +56,10 @@ class Path {
 
     static int64_t LastPathSeperator(std::string_view path);
 
+    // list all entries under this path,
+    // if a entry is a directory, append a kPathSeperator.
     // throws FSException
-    // if path is not a dir, return empty vector
+    // if path is not a dir, return empty vector.
     static std::vector<std::string> ListUnderPath(const std::string& path);
 
     static bool IsAbsolutePath(std::string_view path);
@@ -98,5 +100,15 @@ struct FileStat {
 // throws FSException
 // return kOk for success, kNotExist for not exist.
 Result GetFileStat(const std::string& path, FileStat& file_stat);
+
+void Create(const std::string& path);
+
+void Remove(const std::string& path);
+
+void MakeDirectory(const std::string& path);
+
+// Recursively remove directory
+// path must have trailing path sepeator
+void RemoveDirectory(const std::string& path);
 
 }  // namespace charxed

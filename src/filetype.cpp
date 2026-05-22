@@ -7,68 +7,54 @@
 
 namespace charxed {
 
-constexpr zstring_view kDefaultFileType = "text";
+namespace {
+constexpr FileType kDefaultFileType = FileType::kTxt;
 
 // clang-format off
-static const std::unordered_map<zstring_view, zstring_view> kSuffixToFiletype = {
-    {"c", "c"},
-    {"cpp", "cpp"},
-    {"cc", "cpp"},
-    {"cxx", "cpp"},
-    {"h", "cpp"},
-    {"hpp", "cpp"},
-    {"hh", "cpp"},
-    {"hxx", "cpp"},
-    {"rs", "rust"},
-    {"go", "go"},
-    {"java", "java"},
-    {"kt", "kotlin"},
-    {"cs", "csharp"},
-    {"py", "python"},
-    {"lua", "lua"},
-    {"js", "javascript"},
-    {"ts", "typescript"},
-    {"bash", "bash"},
-    {"sh", "shell"},
+const std::unordered_map<zstring_view, FileType> kSuffixToFiletype = {
+    {"c", FileType::kC},
+    {"cpp", FileType::kCpp},
+    {"cc", FileType::kCpp},
+    {"cxx", FileType::kCpp},
+    {"h", FileType::kCpp},
+    {"hpp", FileType::kCpp},
+    {"hh", FileType::kCpp},
+    {"hxx", FileType::kCpp},
+    {"rs", FileType::kRs},
+    {"go", FileType::kGo},
+    {"java", FileType::kJava},
+    {"kt", FileType::kKt},
+    {"cs", FileType::kCs},
+    {"py", FileType::kPy},
+    {"lua", FileType::kLua},
+    {"js", FileType::kJs},
+    {"ts", FileType::kTs},
+    {"bash", FileType::kBash},
+    {"sh", FileType::kSh},
     {"txt", kDefaultFileType},
-    {"json", "json"},
-    {"toml", "toml"},
-    {"yaml", "yaml"},
-    {"md", "markdown"},
-    {"cmake", "cmake"},
-};
-
-static const std::unordered_map<zstring_view, zstring_view> kFileTypesToStrRep = {
-    {"", "None"},
-    {"c", "C"},
-    {"cpp","C++"},
-    {"go","Go"},
-    {"java","Java"},
-    {"kotlin","Kotlin"},
-    {"csharp","C♯"},
-    {"python","Python"},
-    {"lua","Lua"},
-    {"javascript","Javascript"},
-    {"typescript","Typescript"},
-    {"bash","Bash"},
-    {"shell","Shell"},
-    {kDefaultFileType,"txt"},
-    {"json","JSON"},
-    {"toml","TOML"},
-    {"yaml","YAML"},
-    {"markdown","Markdown"},
-    {"cmake","CMake"},
-    {"makefile","Makefile"}
+    {"json", FileType::kJson},
+    {"toml", FileType::kToml},
+    {"yaml", FileType::kYaml},
+    {"md", FileType::kMd},
+    {"cmake", FileType::kCmake},
 };
 
 // file name is prior to suffix
-static const std::unordered_map<zstring_view, zstring_view> kNameToFiletype = {
-    {"CMakeLists.txt", "cmake"},
-    {"Makefile", "makefile"},
+const std::unordered_map<zstring_view, FileType> kNameToFiletype = {
+    {"CMakeLists.txt", FileType::kCmake},
+    {"Makefile", FileType::kMake},
 };
 // clang-format on
 
-zstring_view DecideFiletype(std::string_view file_name) {
+const std::unordered_map<zstring_view, FileType> kInnerStrRepToFileType = {
+#define X(ft, inner, user) {#inner, FileType::ft},
+    CHX_FILE_TYPE_TABLE
+#undef X
+};
+
+}  // namespace
+
+FileType DecideFiletype(std::string_view file_name) {
     auto iter = kNameToFiletype.find(file_name);
     if (iter != kNameToFiletype.end()) {
         return iter->second;
@@ -89,25 +75,38 @@ zstring_view DecideFiletype(std::string_view file_name) {
     return iter2->second;
 }
 
-std::vector<zstring_view> AllFiletypes() {
-    std::vector<zstring_view> filetypes(kSuffixToFiletype.size());
-    size_t i = 0;
-    for (auto [_, filetype] : kSuffixToFiletype) {
-        filetypes[i++] = filetype;
+zstring_view FileTypesInnerStrRep(FileType filetype) {
+    switch (filetype) {
+#define X(ft, inner, user) \
+    case FileType::ft:     \
+        return #inner;
+        CHX_FILE_TYPE_TABLE
+#undef X
+        default:
+            CHX_ASSERT(false);
+            return "";
     }
-    return filetypes;
 }
 
-zstring_view IsFiletype(zstring_view filetype) {
-    auto iter = kFileTypesToStrRep.find(filetype);
-    if (iter == kFileTypesToStrRep.end()) {
+zstring_view FiletypeUserStrRep(FileType filetype) {
+    switch (filetype) {
+#define X(ft, inner, user) \
+    case FileType::ft:     \
+        return #user;
+        CHX_FILE_TYPE_TABLE
+#undef X
+        default:
+            CHX_ASSERT(false);
+            return "";
+    }
+}
+
+std::optional<FileType> InnerStrRepToFileType(std::string_view str) {
+    auto iter = kInnerStrRepToFileType.find(str);
+    if (iter == kInnerStrRepToFileType.end()) {
         return {};
     }
-    return iter->first;
-}
-
-zstring_view FiletypeStrRep(zstring_view filetype) {
-    return kFileTypesToStrRep.at(filetype);
+    return iter->second;
 }
 
 }  // namespace charxed

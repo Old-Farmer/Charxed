@@ -1,6 +1,8 @@
 #pragma once
 
+#include <memory>
 #include <unordered_map>
+#include <vector>
 
 #include "options.h"
 #include "regex.h"
@@ -53,6 +55,7 @@ class SyntaxParser {
         regex_t match;  // for match? predicate
         bool match_init = false;
 
+        TSQueryPatternContext() {};
         ~TSQueryPatternContext() {
             if (match_init) {
                 regfree(&match);
@@ -61,14 +64,20 @@ class SyntaxParser {
     };
 
     struct TSQueryContext {
-        TSQuery* query;
+        TSQuery* query = nullptr;
         std::vector<std::unique_ptr<TSQueryPatternContext>> pattern_context;
+
+        CHX_DELETE_COPY(TSQueryContext);
+        CHX_DELETE_MOVE(TSQueryContext);
+
+        TSQueryContext() {};
+        ~TSQueryContext();
     };
 
     // throw TSQueryPredicateDirectiveNotSupportException
     void InitQueryContex(TSQueryContext& query_context);
     // throw TSQueryPredicateDirectiveNotSupportException
-    const TSQueryContext* GetQueryContext(zstring_view filetype);
+    const TSQueryContext* GetQueryContext(FileType filetype);
 
     // throw TSQueryPredicateDirectiveNotSupportException
     void GenerateHighlight(const Buffer* buffer, const Range& range);
@@ -77,8 +86,10 @@ class SyntaxParser {
                         const TSQueryCapture* capture, const Buffer* buffer,
                         const Range& range);
 
-    std::unordered_map<std::string_view, TSQueryContext> filetype_to_query_;
-    std::unordered_map<zstring_view, const TSLanguage*> filetype_to_language_;
+    std::unique_ptr<TSQueryContext>
+        filetype_to_query_[static_cast<int>(FileType::__kCount)];
+    const TSLanguage* filetype_to_language_[static_cast<int>(
+        FileType::__kCount)] = {};  // all nullptr
     const std::unordered_map<std::string_view, ColorSchemeType>*
         ts_query_capture_name_to_character_type_;
 

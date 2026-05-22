@@ -6,6 +6,7 @@
 
 #include "completer.h"
 #include "file.h"
+#include "filetype.h"
 #include "fs.h"
 #include "history.h"
 #include "options.h"
@@ -275,7 +276,7 @@ class Buffer {
     bool& read_only() noexcept { return read_only_; }
     int64_t version() const noexcept { return version_; }
     // -1 means not stored
-    zstring_view filetype() const noexcept { return filetype_; }
+    FileType filetype() const noexcept { return filetype_; }
     EOLSeq eol_seq() const noexcept { return eol_seq_; }
     Opts& opts() { return opts_; }
     const Opts& opts() const { return opts_; }
@@ -317,7 +318,7 @@ class Buffer {
         int64_t id;
     };
     std::unique_ptr<NewFileInfo> new_file_info_;
-    zstring_view filetype_;
+    FileType filetype_;
     BufferState state_ = BufferState::kHaveNotRead;
     EOLSeq eol_seq_ = EOLSeq::kLF;  // Default LF
     bool read_only_ = false;

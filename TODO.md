@@ -7,6 +7,7 @@
 - Multi-window
 - File explorer
 - Bufferline(low priority)
+- Cursor color
 
 ## LSP
 

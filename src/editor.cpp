@@ -1113,10 +1113,8 @@ void Editor::PreProcess() {
                 syntax_parser_->SyntaxInit(window_->area_.buffer_);
             window_->area_.buffer_->ts_tree() = ts_tree;
         } catch (Exception& e) {
-            NotifyUser(fmt::format("buffer {} load error",
-                                   window_->area_.buffer_->Name()));
-            CHX_LOG_ERROR("buffer {} : {}", window_->area_.buffer_->Name(),
-                          e.what());
+            NotifyUser(fmt::format("buffer {} load error: {}",
+                                   window_->area_.buffer_->Name(), e.what()));
         }
     }
 
