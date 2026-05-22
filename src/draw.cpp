@@ -28,7 +28,7 @@ size_t DrawLine(Terminal& term, std::string_view line, const Pos& begin_pos,
                 const std::vector<const std::vector<Highlight>*>* highlights,
                 ColorScheme scheme, const Terminal::AttrPair& fallback_attr,
                 int64_t trailing_white_begin, int tabstop, bool wrap,
-                bool full_line, size_t& drawn_width) {
+                bool full_line, size_t& end_view_col) {
     std::vector<int64_t> highlights_i;
     if (highlights) {
         highlights_i.resize(highlights->size());
@@ -169,11 +169,7 @@ size_t DrawLine(Terminal& term, std::string_view line, const Pos& begin_pos,
                          fallback_attr);
         }
     }
-    if (begin_render_view_col == -1) {
-        drawn_width = 0;
-    } else {
-        drawn_width = view_col - begin_render_view_col;
-    }
+    end_view_col = view_col;
     return byte_offset;
 }
 
@@ -184,7 +180,7 @@ TextTree::Iterator DrawLine(
     const std::vector<const std::vector<Highlight>*>* highlights,
     ColorScheme scheme, const Terminal::AttrPair& fallback_attr,
     int64_t trailing_white_begin, int tabstop, bool wrap, bool full_line,
-    size_t& drawn_width) {
+    size_t& end_view_col) {
     std::vector<int64_t> highlights_i;
     if (highlights) {
         Pos begin_pos = {line, iter.offset() - line_view.begin.offset()};
@@ -325,11 +321,7 @@ TextTree::Iterator DrawLine(
                          fallback_attr);
         }
     }
-    if (begin_render_view_col == -1) {
-        drawn_width = 0;
-    } else {
-        drawn_width = view_col - begin_render_view_col;
-    }
+    end_view_col = view_col;
     return iter;
 }
 

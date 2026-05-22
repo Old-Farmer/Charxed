@@ -188,19 +188,19 @@ void TextArea::Draw(BufferSearchContext* search_context) {
                     fallback_attr.bg = scheme[kCursorLine].bg;
                 }
             }
-            size_t drawn_width;
+            size_t end_view_col;
             iter = DrawLine(*term_, line, line_view, iter, 0, content_width,
                             i + row_, content_s_col, &highlights, scheme,
                             fallback_attr, trailing_white_begin, tabstop, true,
-                            hl_cur_line_for_cursor, drawn_width);
-            if (IsSelectionActive() && drawn_width == 0 &&
-                selection_hl[0].range.PosInMe({line, line_view.Size()})) {
-                // cursor_line don't hl if selection is active, so just use
-                // kSelection is ok
-                term_->SetCell(content_s_col, i + row_, &kSpaceChar, 1,
-                               scheme[kSelection]);
-            }
+                            hl_cur_line_for_cursor, end_view_col);
             if (iter == line_view.end) {
+                if (IsSelectionActive() && end_view_col < content_width &&
+                    selection_hl[0].range.PosInMe({line, line_view.Size()})) {
+                    // cursor_line don't hl if selection is active, so just use
+                    // kSelection is ok
+                    term_->SetCell(content_s_col + end_view_col, i + row_,
+                                   &kSpaceChar, 1, scheme[kSelection]);
+                }
                 line++;
                 if (line < buffer_->LineCnt()) {
                     line_view = buffer_->GetLineView(line);
@@ -244,17 +244,19 @@ void TextArea::Draw(BufferSearchContext* search_context) {
                     fallback_attr.bg = scheme[kCursorLine].bg;
                 }
             }
-            size_t drawn_width;
-            DrawLine(*term_, line, line_view, line_view.begin, b_view_->col,
-                     content_width, cur_s_row, content_s_col, &highlights,
-                     scheme, fallback_attr, trailing_white_begin, tabstop,
-                     false, hl_cur_line_for_cursor, drawn_width);
-            if (IsSelectionActive() && drawn_width == 0 &&
+            size_t end_view_col;
+            auto iter =
+                DrawLine(*term_, line, line_view, line_view.begin, b_view_->col,
+                         content_width, cur_s_row, content_s_col, &highlights,
+                         scheme, fallback_attr, trailing_white_begin, tabstop,
+                         false, hl_cur_line_for_cursor, end_view_col);
+            if (IsSelectionActive() && iter == line_view.end &&
+                end_view_col - b_view_->col < content_width &&
                 selection_hl[0].range.PosInMe({line, line_view.Size()})) {
                 // cursor_line don't hl if selection is active, so just use
                 // kSelection is ok
-                term_->SetCell(content_s_col, cur_s_row, &kSpaceChar, 1,
-                               scheme[kSelection]);
+                term_->SetCell(content_s_col + end_view_col - b_view_->col,
+                               cur_s_row, &kSpaceChar, 1, scheme[kSelection]);
             }
         }
     }
