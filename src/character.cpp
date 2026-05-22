@@ -434,10 +434,11 @@ FindPrevTargetType(TextTree::Iterator iter, TextTree::Iterator begin,
 
 }  // namespace
 
-// cur is word, find next non-blank non-word;
-// cur is non-word and blank, find next word or non-blank non-word;
-// cur is non-word non-blank, find next word or blank non-word, if is word done,
-// else find next word or non-blank non-word
+// cur is word, find next non-blank non-word, or find next blank non-word, then
+// find next non-blank non-word, or word;
+// cur is non-word and blank, find next
+// word or non-blank non-word; cur is non-word non-blank, find next word or
+// blank non-word, if is word done, else find next word or non-blank non-word
 TextTree::Iterator NextWordBegin(TextTree::Iterator iter,
                                  TextTree::Iterator end) {
     if (iter == end) {
@@ -449,8 +450,13 @@ TextTree::Iterator NextWordBegin(TextTree::Iterator iter,
     int type;
     switch (GetCharacterType(c)) {
         case kCTypeWord:
-            return std::get<0>(
-                FindNextTargetType(next, end, kCTypeNonWordNonBlank));
+            std::tie(iter, next, type) = FindNextTargetType(
+                next, end, kCTypeNonWordNonBlank | kCTypeNonWordBlank);
+            if (iter == end || type == kCTypeNonWordNonBlank) {
+                return iter;
+            }
+            return std::get<0>(FindNextTargetType(
+                next, end, kCTypeNonWordNonBlank | kCTypeWord));
         case kCTypeNonWordNonBlank: {
             std::tie(iter, next, type) =
                 FindNextTargetType(next, end, kCTypeWord | kCTypeNonWordBlank);
