@@ -7,6 +7,7 @@
 namespace charxed {
 
 #define CHX_FILE_TYPE_TABLE        \
+    X(kNone, none, None)           \
     X(kC, c, C)                    \
     X(kCpp, cpp, C++)              \
     X(kRs, rust, Rust)             \

@@ -317,7 +317,7 @@ class Buffer {
         int64_t id;
     };
     std::unique_ptr<NewFileInfo> new_file_info_;
-    FileType filetype_;
+    FileType filetype_ = FileType::kNone;
     BufferState state_ = BufferState::kHaveNotRead;
     EOLSeq eol_seq_ = EOLSeq::kLF;  // Default LF
     bool read_only_ = false;
