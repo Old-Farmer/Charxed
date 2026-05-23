@@ -53,4 +53,4 @@
 
 ## Code Quality
 
-- linter
+- better clang-tidy

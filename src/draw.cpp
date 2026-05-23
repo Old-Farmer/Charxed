@@ -22,13 +22,12 @@ static inline int64_t LocateInPos(const std::vector<Highlight>& highlight,
 
 // TODO: when wrap, do not break word. same as ArrangeLine and
 // Frame::SetCursorByViewCol.
-size_t DrawLine(Terminal& term, std::string_view line, const Pos& begin_pos,
-                size_t begin_view_col, size_t width, size_t screen_row,
-                size_t screen_col,
-                const std::vector<const std::vector<Highlight>*>* highlights,
-                ColorScheme scheme, const Terminal::AttrPair& fallback_attr,
-                int64_t trailing_white_begin, int tabstop, bool wrap,
-                bool full_line, size_t& end_view_col) {
+std::tuple<size_t, size_t> DrawLine(
+    Terminal& term, std::string_view line, const Pos& begin_pos,
+    size_t begin_view_col, size_t width, size_t screen_row, size_t screen_col,
+    const std::vector<const std::vector<Highlight>*>* highlights,
+    ColorScheme scheme, const Terminal::AttrPair& fallback_attr,
+    int64_t trailing_white_begin, int tabstop, bool wrap, bool full_line) {
     std::vector<int64_t> highlights_i;
     if (highlights) {
         highlights_i.resize(highlights->size());
@@ -169,18 +168,16 @@ size_t DrawLine(Terminal& term, std::string_view line, const Pos& begin_pos,
                          fallback_attr);
         }
     }
-    end_view_col = view_col;
-    return byte_offset;
+    return {byte_offset, view_col};
 }
 
-TextTree::Iterator DrawLine(
+std::tuple<TextTree::Iterator, size_t> DrawLine(
     Terminal& term, size_t line, const TextTree::TextView& line_view,
     TextTree::Iterator iter, size_t begin_view_col, size_t width,
     size_t screen_row, size_t screen_col,
     const std::vector<const std::vector<Highlight>*>* highlights,
     ColorScheme scheme, const Terminal::AttrPair& fallback_attr,
-    int64_t trailing_white_begin, int tabstop, bool wrap, bool full_line,
-    size_t& end_view_col) {
+    int64_t trailing_white_begin, int tabstop, bool wrap, bool full_line) {
     std::vector<int64_t> highlights_i;
     if (highlights) {
         Pos begin_pos = {line, iter.offset() - line_view.begin.offset()};
@@ -321,8 +318,7 @@ TextTree::Iterator DrawLine(
                          fallback_attr);
         }
     }
-    end_view_col = view_col;
-    return iter;
+    return {iter, view_col};
 }
 
 size_t ArrangeLine(std::string_view line, size_t begin_byte_offset,

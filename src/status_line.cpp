@@ -27,9 +27,8 @@ void StatusLine::Draw() {
                             kModeString[static_cast<int>(*mode_)], b->Name(),
                             kBufferStateString[static_cast<int>(b->state())]);
 
-    size_t ignore;
     DrawLine(*term_, left_str_, {0, 0}, 0, width_, row_, 0, nullptr, scheme,
-             scheme[t], left_str_.size(), 0, false, true, ignore);
+             scheme[t], left_str_.size(), 0, false, true);
 
     int64_t line, character_in_line;
     if (IsPeel(*mode_)) {

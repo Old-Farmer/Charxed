@@ -13,15 +13,15 @@ namespace charxed {
 constexpr int8_t kMaxCommandArgCnt = 6;
 
 using CommandArg = std::optional<std::variant<bool, int64_t, std::string>>;
-using CommandArgs = CommandArg[kMaxCommandArgCnt];
-using CommandArgTypes = Type[kMaxCommandArgCnt];
+using CommandArgs = std::array<CommandArg, kMaxCommandArgCnt>;
+using CommandArgTypes = std::array<Type, kMaxCommandArgCnt>;
 
 struct Command {
     std::string name;
     std::string short_name;
     std::string description;
     CommandArgTypes types;  // Types of arguments
-    std::function<void(CommandArgs)> f;
+    std::function<void(const CommandArgs&)> f;
     int8_t argc = 0;
     int8_t optional_argc = 0;  // optional argument count, optional args must
                                // all be the righmost ones.
@@ -44,7 +44,7 @@ class CommandManager {
     // kCommandEmpty
     // if return kOk or kCommandInvalidArgs, command will be set.
     // if return kOk, args will also be filled.
-    Result EvalCommand(std::string_view str, CommandArgs args,
+    Result EvalCommand(std::string_view str, CommandArgs& args,
                        Command*& command);
 
     const std::vector<std::unique_ptr<Command>>& commands() {

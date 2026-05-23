@@ -4,6 +4,10 @@
 
 This project uses clang-format to format code.
 
+## Lint
+
+This project use clang-tidy.
+
 ## Best Practice
 
 This project heavily ref [Cpp Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#rf-conventional) and uses the [GSL](https://github.com/microsoft/GSL) library.

@@ -706,16 +706,16 @@ void Editor::InitKeymaps() {
                    GotoMode(Mode::kSelect);
                }},
                {Mode::kNormal});
-#define CHX_CMD command_manager_.AddCommand
 }
 
+#define CHX_CMD command_manager_.AddCommand
 void Editor::InitCommands() {
 #define CHX_ENSURE_ARGEXITS(v) CHX_ASSERT(args[v].has_value())
-    CHX_CMD({"quit", "q", "", {}, [this](CommandArgs args) {
+    CHX_CMD({"quit", "q", "", {}, [this](const CommandArgs& args) {
                  (void)args;
                  Quit(false);
              }});
-    CHX_CMD({"quit!", "q!", "", {}, [this](CommandArgs args) {
+    CHX_CMD({"quit!", "q!", "", {}, [this](const CommandArgs& args) {
                  (void)args;
                  Quit(true);
              }});
@@ -723,11 +723,11 @@ void Editor::InitCommands() {
              "h",
              "",
              {Type::kString},
-             [this](CommandArgs args) {
+             [this](const CommandArgs& args) {
                  if (!args[0].has_value()) {
                      Help(kHelpDoc);
                  } else {
-                     Help(std::get<std::string>(args[0].value()));
+                     Help(std::get<std::string>(*args[0]));
                  }
              },
              1,
@@ -736,9 +736,9 @@ void Editor::InitCommands() {
              "w",
              "",
              {Type::kString},
-             [this](CommandArgs args) {
+             [this](const CommandArgs& args) {
                  if (args[0].has_value()) {
-                     Path p(std::get<std::string>(args[0].value()));
+                     Path p(std::get<std::string>(*args[0]));
                      SaveCurrentBufferAs(p);
                  } else {
                      SaveCurrentBuffer();
@@ -750,42 +750,25 @@ void Editor::InitCommands() {
              "e",
              "",
              {Type::kString},
-             [this](CommandArgs args) {
+             [this](const CommandArgs& args) {
                  CHX_ENSURE_ARGEXITS(0);
-                 const std::string& name_str =
-                     std::get<std::string>(args[0].value());
-                 Path p = Path(name_str);
-                 Buffer* b = buffer_manager_->FindBuffer(p);
-                 if (b) {
-                     cursor_.in_window->AttachBuffer(b);
-                     return;
-                 }
-                 b = buffer_manager_->AddBuffer(
-                     Buffer(global_opts_.get(), std::move(p)));
-                 try {
-                     buffer_monitor_->MonitorBuffer(b);
-                 } catch (OSException& e) {
-                     NotifyUser(
-                         fmt::format("Monitor buffer error: {}", e.what()));
-                 }
-                 cursor_.in_window->AttachBuffer(b);
+                 Edit(std::get<std::string>(*args[0]));
              },
              1});
     CHX_CMD({"buffer",
              "b",
              "",
              {Type::kString},
-             [this](CommandArgs args) {
+             [this](const CommandArgs& args) {
                  CHX_ENSURE_ARGEXITS(0);
-                 const std::string& name_str =
-                     std::get<std::string>(args[0].value());
+                 const std::string& name_str = std::get<std::string>(*args[0]);
                  Buffer* b = buffer_manager_->FindBuffer(name_str);
                  if (b) {
                      cursor_.in_window->AttachBuffer(b);
                  }
              },
              1});
-    CHX_CMD({"bdelete", "bd", "", {}, [this](CommandArgs args) {
+    CHX_CMD({"bdelete", "bd", "", {}, [this](const CommandArgs& args) {
                  (void)args;
                  RemoveCurrentBuffer();
              }});
@@ -793,7 +776,7 @@ void Editor::InitCommands() {
              "",
              "",
              {Type::kString},
-             [this](CommandArgs args) {
+             [this](const CommandArgs& args) {
                  (void)args;
                  NotifyUser(kSmile);
              },
@@ -808,7 +791,7 @@ void Editor::PrintKey(const Terminal::KeyInfo& key_info) {
     bool alt = key_info.mod & Terminal::kAlt;
     bool motion = key_info.mod & Terminal::kMotion;
     (void)ctrl, (void)shift, (void)alt, (void)motion;
-    char c[5];
+    char c[kMaxBytesUtf8Codepoint + 1];
     int len = UnicodeToUtf8(key_info.codepoint, c);
     c[len] = '\0';
     CHX_LOG_DEBUG(
@@ -836,7 +819,7 @@ void Editor::HandleBracketedPaste(std::string& bracketed_paste_buffer) {
         bracketed_paste_buffer.append(kReplacement);
         CHX_LOG_INFO("Unknown Special key in bracketed paste");
     } else {
-        char c[5];
+        char c[kMaxBytesUtf8Codepoint + 1];
         int len = UnicodeToUtf8(key_info.codepoint, c);
         c[len] = '\0';
         CHX_ASSERT(len > 0);
@@ -929,7 +912,7 @@ void Editor::HandleKey() {
 
         if (mode_ == Mode::kInsert || mode_ == Mode::kPeelCommand ||
             mode_ == Mode::kPeelSearch) {
-            char c[5];
+            char c[kMaxBytesUtf8Codepoint + 1];
             int len = UnicodeToUtf8(key_info.codepoint, c);
             c[len] = '\0';
             CHX_ASSERT(len > 0);
@@ -1537,6 +1520,22 @@ void Editor::StartupScreen() {
     if (term_.WhatEvent() == Terminal::EventType::kResize) {
         HandleResize();
     }
+}
+
+void Editor::Edit(const std::string& path) {
+    Path p = Path(path);
+    Buffer* b = buffer_manager_->FindBuffer(p);
+    if (b) {
+        cursor_.in_window->AttachBuffer(b);
+        return;
+    }
+    b = buffer_manager_->AddBuffer(Buffer(global_opts_.get(), std::move(p)));
+    try {
+        buffer_monitor_->MonitorBuffer(b);
+    } catch (OSException& e) {
+        NotifyUser(fmt::format("Monitor buffer error: {}", e.what()));
+    }
+    cursor_.in_window->AttachBuffer(b);
 }
 
 }  // namespace charxed

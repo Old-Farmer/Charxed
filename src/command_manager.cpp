@@ -41,7 +41,7 @@ void CommandManager::RemoveCommand(const std::string& name) {
     }
     name_to_commands_.erase(iter);
 }
-Result CommandManager::EvalCommand(std::string_view str, CommandArgs args,
+Result CommandManager::EvalCommand(std::string_view str, CommandArgs& args,
                                    Command*& command) {
     auto splitted_str = StrSplit(str);
     if (splitted_str.empty()) {

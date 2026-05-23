@@ -189,10 +189,10 @@ void TextArea::Draw(BufferSearchContext* search_context) {
                 }
             }
             size_t end_view_col;
-            iter = DrawLine(*term_, line, line_view, iter, 0, content_width,
-                            i + row_, content_s_col, &highlights, scheme,
-                            fallback_attr, trailing_white_begin, tabstop, true,
-                            hl_cur_line_for_cursor, end_view_col);
+            std::tie(iter, end_view_col) = DrawLine(
+                *term_, line, line_view, iter, 0, content_width, i + row_,
+                content_s_col, &highlights, scheme, fallback_attr,
+                trailing_white_begin, tabstop, true, hl_cur_line_for_cursor);
             if (iter == line_view.end) {
                 if (IsSelectionActive() && end_view_col < content_width &&
                     selection_hl[0].range.PosInMe({line, line_view.Size()})) {
@@ -244,12 +244,11 @@ void TextArea::Draw(BufferSearchContext* search_context) {
                     fallback_attr.bg = scheme[kCursorLine].bg;
                 }
             }
-            size_t end_view_col;
-            auto iter =
+            auto [iter, end_view_col] =
                 DrawLine(*term_, line, line_view, line_view.begin, b_view_->col,
                          content_width, cur_s_row, content_s_col, &highlights,
                          scheme, fallback_attr, trailing_white_begin, tabstop,
-                         false, hl_cur_line_for_cursor, end_view_col);
+                         false, hl_cur_line_for_cursor);
             if (IsSelectionActive() && iter == line_view.end &&
                 end_view_col - b_view_->col < content_width &&
                 selection_hl[0].range.PosInMe({line, line_view.Size()})) {

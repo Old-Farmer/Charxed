@@ -64,6 +64,5 @@ CHX_NORMAL_EXCEPTION(TypeMismatchException)
 CHX_NORMAL_EXCEPTION(OptionLoadException)
 CHX_NORMAL_EXCEPTION(ParseMsgException)
 CHX_NORMAL_EXCEPTION(CommandNameExistException)
-CHX_NORMAL_EXCEPTION(OptionInfoInitException)
 CHX_NORMAL_EXCEPTION(DanglingEscapeException)
 }  // namespace charxed

@@ -70,6 +70,8 @@ class Editor {
 
     void StartupScreen();
 
+    void Edit(const std::string& path);
+
    private:
     // Editor Lifetime
     void InitKeymaps();
