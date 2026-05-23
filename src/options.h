@@ -147,18 +147,7 @@ class GlobalOpts {
     // We can use key as template parameter to eliminate runtime type checking.
     template <typename T>
     constexpr T GetOpt(OptKey key) const {
-        if constexpr (std::is_same_v<T, bool>) {
-            CHX_IF_TYPE_MISMATCH_THROW(GetOptInfo(key).type == Type::kBool);
-        } else if constexpr (std::is_same_v<T, int64_t>) {
-            CHX_IF_TYPE_MISMATCH_THROW(GetOptInfo(key).type == Type::kInteger);
-        } else if constexpr (std::is_pointer_v<T>) {
-            CHX_IF_TYPE_MISMATCH_THROW(GetOptInfo(key).type == Type::kPtr);
-        } else {
-            static_assert(kAlwaysFalseV<>,
-                          "GetOpt<T> only supports T = bool, int64_t, or "
-                          "pointer types");
-        }
-
+        CheckKeyType<T>(key);
         if constexpr (std::is_same_v<T, bool>) {
             return static_cast<bool>(opts_[key]);
         } else {
@@ -168,6 +157,13 @@ class GlobalOpts {
 
     template <typename T>
     void SetOpt(OptKey key, T value) {
+        CheckKeyType<T>(key);
+        opts_[key] = reinterpret_cast<void*>(value);
+    }
+
+    static OptInfo GetOptInfo(OptKey key);
+    template <typename T>
+    static void CheckKeyType(OptKey key) {
         if constexpr (std::is_same_v<T, bool>) {
             CHX_IF_TYPE_MISMATCH_THROW(GetOptInfo(key).type == Type::kBool);
         } else if constexpr (std::is_same_v<T, int64_t>) {
@@ -176,14 +172,10 @@ class GlobalOpts {
             CHX_IF_TYPE_MISMATCH_THROW(GetOptInfo(key).type == Type::kPtr);
         } else {
             static_assert(kAlwaysFalseV<>,
-                          "GetOpt<T> only supports T = bool, int64_t, or "
+                          "Get/SetOpt<T> only supports T = bool, int64_t, or "
                           "pointer types");
         }
-
-        opts_[key] = reinterpret_cast<void*>(value);
     }
-
-    static OptInfo GetOptInfo(OptKey key);
 
    private:
     // throw OptionLoadException
@@ -214,21 +206,7 @@ class Opts {
 
     template <typename T>
     T GetOpt(OptKey key) const {
-        if constexpr (std::is_same_v<T, bool>) {
-            CHX_IF_TYPE_MISMATCH_THROW(GlobalOpts::GetOptInfo(key).type ==
-                                       Type::kBool);
-        } else if constexpr (std::is_same_v<T, int64_t>) {
-            CHX_IF_TYPE_MISMATCH_THROW(GlobalOpts::GetOptInfo(key).type ==
-                                       Type::kInteger);
-        } else if constexpr (std::is_pointer_v<T>) {
-            CHX_IF_TYPE_MISMATCH_THROW(GlobalOpts::GetOptInfo(key).type ==
-                                       Type::kPtr);
-        } else {
-            static_assert(kAlwaysFalseV<>,
-                          "GetOpt<T> only supports T = bool, int64_t, or "
-                          "pointer types");
-        }
-
+        GlobalOpts::CheckKeyType<T>(key);
         CHX_ASSERT(OptScope::kGlobal != GetScope(key));
 
         auto iter = opts_.find(key);
@@ -245,20 +223,7 @@ class Opts {
 
     template <typename T>
     void SetOpt(OptKey key, T value, bool global = false) {
-        if constexpr (std::is_same_v<T, bool>) {
-            CHX_IF_TYPE_MISMATCH_THROW(GlobalOpts::GetOptInfo(key).type ==
-                                       Type::kBool);
-        } else if constexpr (std::is_same_v<T, int64_t>) {
-            CHX_IF_TYPE_MISMATCH_THROW(GlobalOpts::GetOptInfo(key).type ==
-                                       Type::kInteger);
-        } else if constexpr (std::is_pointer_v<T>) {
-            CHX_IF_TYPE_MISMATCH_THROW(GlobalOpts::GetOptInfo(key).type ==
-                                       Type::kPtr);
-        } else {
-            static_assert(kAlwaysFalseV<>,
-                          "SetOpt<T> only supports T = bool, int64_t, or "
-                          "pointer types");
-        }
+        GlobalOpts::CheckKeyType<T>(key);
 
         if (GetScope(key) == OptScope::kGlobal || global) {
             global_opts_->SetOpt(key, value);
