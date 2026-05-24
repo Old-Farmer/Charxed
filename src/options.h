@@ -188,6 +188,9 @@ class GlobalOpts {
 
     bool user_config_valid_ = false;
     std::string user_config_error_reason_;
+
+    const std::string kUserConfigPath;
+    const std::string kUserColorschemePath;
 };
 
 // Opts is a option table that store some local opts.

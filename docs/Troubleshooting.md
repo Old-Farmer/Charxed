@@ -4,4 +4,4 @@ This document records some ways of how users can do troubleshooting when they me
 
 ## Logging
 
-The path of logging file is `%XDG_CACHE_HOME/charxed.log`.
+The path of logging file is `%XDG_STATE_HOME/charxed/charxed.log`.

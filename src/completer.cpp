@@ -26,7 +26,12 @@ static std::vector<std::string> SuggestFilePath(std::string_view hint) {
     if (sep_index == -1) {
         paths = Path::ListUnderPath(".");
     } else {
-        paths = Path::ListUnderPath(std::string(hint.substr(0, sep_index)));
+        auto dir = hint.substr(0, sep_index + 1);
+        if (!Path::HaveHomeSymbol(dir)) {
+            paths = Path::ListUnderPath(std::string(dir));
+        } else {
+            paths = Path::ListUnderPath(Path::ReplaceHomeSymbol(dir));
+        }
     }
     if (paths.empty()) {
         return paths;

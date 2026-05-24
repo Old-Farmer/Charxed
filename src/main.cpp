@@ -37,11 +37,13 @@ int main(int argc, char* argv[]) {
 
     Path::GetCwdSys();
     Path::GetAppRootSys();
+    Path::GetHomeSys();
 
     LogInit();
 
     CHX_LOG_DEBUG("cwd {}", Path::GetCwd());
     CHX_LOG_DEBUG("app root {}", Path::GetAppRoot());
+    CHX_LOG_DEBUG("home {}", Path::GetHome());
 
     auto global_opts = std::make_unique<GlobalOpts>();
     auto init_opts = std::make_unique<InitOpts>();

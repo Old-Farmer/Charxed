@@ -9,13 +9,11 @@
 
 namespace charxed {
 
-static constexpr const char* kDefaultConfigPath = "resource/config/config.json";
-static constexpr const char* kDefaultColorschemePath =
+namespace {
+constexpr const char* kDefaultConfigPath = "resource/config/config.json";
+constexpr const char* kDefaultColorschemePath =
     "resource/config/colorscheme.json";
-static const std::string kUserConfigPath =
-    std::string(Path::GetConfig()) + "charxed/config.json";
-static const std::string kUserColorschemePath =
-    std::string(Path::GetConfig()) + "charxed/colorscheme.json";
+}  // namespace
 
 static const std::unordered_map<std::string_view, OptKey> kStrRepToOptKey{
 #define X(t, str, ...) {#str, t},
@@ -302,7 +300,12 @@ void GlobalOpts::LoadConfig() {
     TryApply(config, colorscheme);
 }
 
-GlobalOpts::GlobalOpts() { LoadConfig(); }
+GlobalOpts::GlobalOpts()
+    : kUserConfigPath(Path::GetXDGPath(XDGPath::kConfig) + "config.json"),
+      kUserColorschemePath(Path::GetXDGPath(XDGPath::kConfig) +
+                           "colorscheme.json") {
+    LoadConfig();
+}
 
 GlobalOpts::~GlobalOpts() {
     delete[] reinterpret_cast<ColorScheme*>(opts_[kOptColorScheme]);

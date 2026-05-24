@@ -11,6 +11,8 @@ namespace charxed {
 
 constexpr char kPathSeperator = '/';
 
+enum class XDGPath { kConfig, kData, kState, kCache };
+
 // TODO: windows support
 class Path {
    public:
@@ -37,22 +39,26 @@ class Path {
     // return a absolute dir path
     std::string_view Dir() const noexcept;
 
-    // Cwd and AppRoot all have a slash at the end
+    // All dirs return from this class all have a slash at the end
 
     // return normalized path.
     static const std::string& GetCwd() noexcept;
     static const std::string& GetAppRoot() noexcept;
+    static const std::string& GetHome() noexcept;
 
+    // config path will not be created,
+    // others will be created if not exist, best effort.
+    // NOTE: must call after GetHomeSys
     // return normalized path.
-    // throw Exception if home can't be detected
-    static std::string GetConfig();
-    static std::string GetCache();
-    static std::string GetHome();
+    static std::string GetXDGPath(XDGPath p);
 
     // return normalized path.
     // throws FSException
     static const std::string& GetCwdSys();
     static const std::string& GetAppRootSys();
+    // return normalized path.
+    // throw Exception if home can't be detected
+    static const std::string& GetHomeSys();
 
     static int64_t LastPathSeperator(std::string_view path);
 
@@ -63,6 +69,17 @@ class Path {
     static std::vector<std::string> ListUnderPath(const std::string& path);
 
     static bool IsAbsolutePath(std::string_view path);
+    static bool HaveHomeSymbol(std::string_view path);
+    // Must have home symbol
+    static std::string ReplaceHomeSymbol(std::string_view path);
+
+    // Join all with kPathSeperator
+    template <typename... Rest>
+    static std::string JoinPath(std::string_view first, Rest&&... rest) {
+        std::string result(first);
+        ((result += kPathSeperator, result += rest), ...);
+        return result;
+    }
 
     // path must be absolute path
     static std::string Normalize(const std::string& path);
@@ -74,6 +91,8 @@ class Path {
     std::string relative_path_;
     size_t file_name_len_;
     int64_t last_cwd_version_;
+
+    static std::string home_;
 
     static std::string cwd_;
     static int64_t cwd_version_;  // changing or getting cwd by syscall need

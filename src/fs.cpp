@@ -1,6 +1,7 @@
 #include "fs.h"
 
 #include <dirent.h>
+#include <pwd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -8,6 +9,7 @@
 #include <algorithm>
 #include <cstring>
 
+#include "constants.h"
 #include "exception.h"
 #include "linux/limits.h"
 #include "str.h"
@@ -16,8 +18,12 @@
 namespace charxed {
 
 namespace {
+const std::string kHomeSymbol = std::string(1, '~') + kPathSeperator;
+
 constexpr const char* kXDGConfigHomeEnv = "XDG_CONFIG_HOME";
 constexpr const char* kXDGCacheHomeEnv = "XDG_CACHE_HOME";
+constexpr const char* kXDGStateHomeEnv = "XDG_STATE_HOME";
+constexpr const char* kXDGDataHomeEnv = "XDG_DATA_HOME";
 
 constexpr mode_t kDefaultCreateMode = 0644;
 constexpr mode_t kDefaultMkDirMode = 0755;
@@ -100,41 +106,46 @@ const std::string& Path::GetCwd() noexcept { return cwd_; }
 
 const std::string& Path::GetAppRoot() noexcept { return app_root_; }
 
-std::string Path::GetConfig() {
-    const char* env = getenv(kXDGConfigHomeEnv);
+std::string Path::GetXDGPath(XDGPath p) {
+    // TODO: win, macos support
+    std::string_view default_p;
+    zstring_view env_name;
+    switch (p) {
+        case XDGPath::kConfig:
+            default_p = ".config/";
+            env_name = kXDGConfigHomeEnv;
+            break;
+        case XDGPath::kData:
+            default_p = ".local/share/";
+            env_name = kXDGDataHomeEnv;
+            break;
+        case XDGPath::kState:
+            default_p = ".local/state/";
+            env_name = kXDGStateHomeEnv;
+            break;
+        case XDGPath::kCache:
+            default_p = ".cache/";
+            env_name = kXDGCacheHomeEnv;
+    }
+    const char* env = getenv(zstring_view_c_str(env_name));
     std::string path;
     if (env == nullptr) {
-        path = GetHome() + kPathSeperator + ".config" + kPathSeperator;
+        path += GetHome();
+        path += default_p;
+        path += kProject;
+        path += kPathSeperator;
     } else {
-        path = std::string(env) + kPathSeperator;
+        path = JoinPath(env, kProject, "");
+        // env may not be normalized.
+        path = Path::Normalize(path);
     }
-    mkdir(path.c_str(), 755);  // best effort, ignore ret
+    if (p != XDGPath::kConfig) {
+        mkdir(path.c_str(), kDefaultMkDirMode);  // best effort, ignore ret
+    }
     return path;
 }
 
-std::string Path::GetCache() {
-    static std::string path = [] {
-        const char* env = getenv(kXDGCacheHomeEnv);
-        std::string path;
-        if (env == nullptr) {
-            path = GetHome() + kPathSeperator + ".cache" + kPathSeperator;
-        } else {
-            path = std::string(env) + kPathSeperator;
-        }
-        mkdir(path.c_str(), 755);  // best effort, ignore ret
-        return path;
-    }();
-    return path;
-}
-
-std::string Path::GetHome() {
-    const char* env = getenv("HOME");
-    // TODO: better home detection?
-    if (env == nullptr) {
-        throw Exception("{}", "HOME detection fail");
-    }
-    return env;
-}
+const std::string& Path::GetHome() noexcept { return home_; }
 
 const std::string& Path::GetCwdSys() {
     cwd_version_++;
@@ -167,6 +178,31 @@ const std::string& Path::GetAppRootSys() {
     }
     app_root_.resize(pos + 1);
     return app_root_;
+}
+
+const std::string& Path::GetHomeSys() {
+    // If we can get HOME env, we won't try pwd db because we trust HOME.
+    const char* env = getenv("HOME");
+    if (env == nullptr) {
+        auto pwd = getpwuid(getuid());
+        if (pwd == nullptr) {
+            throw Exception("HOME detection fail: {}", strerror(errno));
+        }
+        home_ = pwd->pw_dir;
+    } else {
+        home_ = env;
+    }
+    if (home_.empty()) {
+        throw Exception("{}", "HOME shouldn't be empty");
+    }
+    if (home_[0] != kPathSeperator) {
+        throw Exception("{}", "HOME should be an absolute path");
+    }
+    if (home_.back() != kPathSeperator) {
+        home_.push_back(kPathSeperator);
+    }
+    home_ = Path::Normalize(home_);
+    return home_;
 }
 
 int64_t Path::LastPathSeperator(std::string_view path) {
@@ -215,6 +251,20 @@ bool Path::IsAbsolutePath(std::string_view path) {
     return path[0] == kPathSeperator;
 }
 
+bool Path::HaveHomeSymbol(std::string_view path) {
+    return path.size() >= kHomeSymbol.size() &&
+           path.substr(0, kHomeSymbol.size()) == kHomeSymbol;
+}
+
+std::string Path::ReplaceHomeSymbol(std::string_view path) {
+    CHX_ASSERT(HaveHomeSymbol(path));
+    std::string ret;
+    ret.reserve(path.size() - kHomeSymbol.size() + GetHome().size());
+    ret.append(GetHome());
+    ret.append(path.substr(kHomeSymbol.size()));
+    return ret;
+}
+
 void Path::GenRelativePath() {
     size_t i = 0;
     for (; i < absolute_path_.size() && i < cwd_.size(); i++) {
@@ -234,6 +284,8 @@ void Path::GenRelativePath() {
         relative_path_.append(1, kPathSeperator);
     }
 }
+
+std::string Path::home_ = "";
 
 std::string Path::cwd_ = "";
 int64_t Path::cwd_version_ = 0;

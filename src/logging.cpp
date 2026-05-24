@@ -9,7 +9,9 @@
 namespace charxed {
 FILE* logging_file;
 
-std::string GetLoggingFilePath() { return Path::GetCache() + "charxed.log"; }
+std::string GetLoggingFilePath() {
+    return Path::GetXDGPath(XDGPath::kState) + "charxed.log";
+}
 
 void LogInit(const std::string& file) {
     logging_file = fopen(file.c_str(), "a+");
