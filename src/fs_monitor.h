@@ -12,6 +12,8 @@ struct Cursor;
 class SyntaxParser;
 class Buffer;
 
+// FSMonitor is a class that can monitor some directories and run callbacks when
+// some FS event happens.
 class FSMonitor {
    public:
     // throw OSException
@@ -68,7 +70,7 @@ class BufferFSMonitor : public FSMonitor {
     // throw OSException
     BufferFSMonitor(BufferManager* buffer_manager, Cursor* cursor,
                     SyntaxParser* syntax_parser);
-    ~BufferFSMonitor() {}
+    ~BufferFSMonitor() override {}
     CHX_DELETE_COPY(BufferFSMonitor);
     CHX_DELETE_MOVE(BufferFSMonitor);
 

@@ -75,12 +75,15 @@ FileType DecideFiletype(std::string_view file_name) {
     return iter2->second;
 }
 
+// clang-format off
 zstring_view FileTypesInnerStrRep(FileType filetype) {
     switch (filetype) {
-#define X(ft, inner, user) \
-    case FileType::ft:     \
-        return #inner;
+#define X(ft, inner, user)     \
+        case FileType::ft:     \
+            return #inner;
+
         CHX_FILE_TYPE_TABLE
+
 #undef X
         default:
             CHX_ASSERT(false);
@@ -90,16 +93,19 @@ zstring_view FileTypesInnerStrRep(FileType filetype) {
 
 zstring_view FiletypeUserStrRep(FileType filetype) {
     switch (filetype) {
-#define X(ft, inner, user) \
-    case FileType::ft:     \
-        return #user;
+#define X(ft, inner, user)     \
+        case FileType::ft:     \
+            return #user;
+
         CHX_FILE_TYPE_TABLE
+
 #undef X
         default:
             CHX_ASSERT(false);
             return "";
     }
 }
+// clang-format on
 
 std::optional<FileType> InnerStrRepToFileType(std::string_view str) {
     auto iter = kInnerStrRepToFileType.find(str);

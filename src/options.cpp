@@ -13,30 +13,33 @@ namespace {
 constexpr const char* kDefaultConfigPath = "resource/config/config.json";
 constexpr const char* kDefaultColorschemePath =
     "resource/config/colorscheme.json";
-}  // namespace
 
+// clang-format off
 static const std::unordered_map<std::string_view, OptKey> kStrRepToOptKey{
 #define X(t, str, ...) {#str, t},
-    CHX_BUFFER_OPT_TABLE CHX_WINDOW_OPT_TABLE CHX_GLOBAL_OPT_TABLE
+    CHX_BUFFER_OPT_TABLE
+    CHX_WINDOW_OPT_TABLE
+    CHX_GLOBAL_OPT_TABLE
 #undef X
 };
 
 static std::unordered_map<std::string_view, ColorSchemeType>
     kStrToColorSchemeType{
 #define X(t, str) {#str, t},
-        CHX_COLOR_SCHEME_TABLE
+    CHX_COLOR_SCHEME_TABLE
 #undef X
-    };
-
-static const std::unordered_map<std::string_view, Terminal::Color>
-    kBasedColors = {
-        {"default", Terminal::kDefault}, {"black", Terminal::kBlack},
-        {"red", Terminal::kRed},         {"green", Terminal::kGreen},
-        {"yellow", Terminal::kYellow},   {"blue", Terminal::kBlue},
-        {"magenta", Terminal::kMagenta}, {"cyan", Terminal::kCyan},
-        {"white", Terminal::kWhite},
 };
-static const std::unordered_map<std::string_view, Terminal::Effect> kEffects = {
+// clang-format on
+
+const std::unordered_map<std::string_view, Terminal::Color> kBasedColors = {
+    {"default", Terminal::kDefault}, {"black", Terminal::kBlack},
+    {"red", Terminal::kRed},         {"green", Terminal::kGreen},
+    {"yellow", Terminal::kYellow},   {"blue", Terminal::kBlue},
+    {"magenta", Terminal::kMagenta}, {"cyan", Terminal::kCyan},
+    {"white", Terminal::kWhite},
+};
+
+const std::unordered_map<std::string_view, Terminal::Effect> kEffects = {
     {"bold", Terminal::kBold},
     {"underline", Terminal::kUnderline},
     {"reverse", Terminal::kReverse},
@@ -50,19 +53,18 @@ static const std::unordered_map<std::string_view, Terminal::Effect> kEffects = {
     {"invisible", Terminal::kInvisible},
 };
 
-static const std::unordered_set<ColorSchemeType>
-    kColorSchemeTypeFgBgMustAllExist = {
-        kNormal,
-        kStatusLine,
-        kMenu,
-        kSidebar,
+const std::unordered_set<ColorSchemeType> kColorSchemeTypeFgBgMustAllExist = {
+    kNormal,
+    kStatusLine,
+    kMenu,
+    kSidebar,
 };
 
-const Terminal::Attr kTruecolorBegin = 0x000000;
-const Terminal::Attr kTruecolorEnd = 0xFFFFFF;
+constexpr Terminal::Attr kTruecolorBegin = 0x000000;
+constexpr Terminal::Attr kTruecolorEnd = 0xFFFFFF;
 
-static void GetColorScheme(bool truecolor, const Json& colorscheme_json,
-                           ColorSchemeElement* colorscheme) {
+void GetColorScheme(bool truecolor, const Json& colorscheme_json,
+                    ColorSchemeElement* colorscheme) {
     // Every colorscheme type should have fg and bg.
     // Fg and bg should have a color and >=0 effects.
     // We ignore unknown keys and values.
@@ -156,6 +158,8 @@ static void GetColorScheme(bool truecolor, const Json& colorscheme_json,
         throw OptionLoadException("{}", "Colorscheme type cnt wrong");
     }
 }
+
+}  // namespace
 
 OptInfo GlobalOpts::GetOptInfo(OptKey key) {
     switch (key) {

@@ -46,13 +46,15 @@ enum class Type {
     X(kProperty, property)            \
     X(kLabel, label)
 
+// clang-format off
 enum ColorSchemeType : int {
 #define X(t, str) t,
     CHX_COLOR_SCHEME_TABLE
 #undef X
-        kNormalFg,  // Will be extract from kNormal
+    kNormalFg,  // Will be extract from kNormal
     __kColorSchemeTypeCount,
 };
+// clang-format on
 
 enum class LineNumberType {
     kNone = 0,
@@ -92,12 +94,16 @@ enum class LineNumberType {
     X(kOptCursorStartHoldingInterval, cursor_start_holding_interval, kInteger)
 
 // NOTE: The unit of time related opts is ms.
+// clang-format off
 enum OptKey {
 #define X(t, ...) t,
-    CHX_BUFFER_OPT_TABLE CHX_WINDOW_OPT_TABLE CHX_GLOBAL_OPT_TABLE
+    CHX_BUFFER_OPT_TABLE
+    CHX_WINDOW_OPT_TABLE
+    CHX_GLOBAL_OPT_TABLE
 #undef X
-        __kOptKeyCount,
+    __kOptKeyCount,
 };
+// clang-format on
 
 // Options have scope.
 // global scope options only store in a global table.

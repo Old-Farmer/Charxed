@@ -29,12 +29,14 @@ namespace charxed {
     X(kCmake, cmake, CMake)        \
     X(kMake, make, Makefile)
 
+// clang-format off
 enum class FileType : int {
 #define X(ft, ...) ft,
     CHX_FILE_TYPE_TABLE
 #undef X
-        __kCount
+    __kCount
 };
+// clang-format on
 
 FileType DecideFiletype(std::string_view file_name);
 
