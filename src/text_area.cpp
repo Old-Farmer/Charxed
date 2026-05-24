@@ -1164,7 +1164,7 @@ bool TextArea::CursorGoEndState(CursorState& state) {
         return false;
     }
     state.pos.byte_offset = size;
-    state.DontHoldColWant();
+    state.b_view_col_want = SIZE_MAX;
     return true;
 }
 bool TextArea::CursorGoNextWordEndState(size_t count, CursorState& state) {
