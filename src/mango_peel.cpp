@@ -30,10 +30,7 @@ MangoPeel::MangoPeel(Cursor* cursor, GlobalOpts* global_opts,
 
 void MangoPeel::Draw() { area_.Draw(nullptr); }
 
-void MangoPeel::MakeCursorVisible() {
-    CHX_ASSERT(area_.cursor_->in_window == nullptr);
-    area_.MakeCursorVisible();
-}
+void MangoPeel::MakeCursorVisible() { area_.MakeCursorVisible(); }
 
 void MangoPeel::SetCursorPosToAppend() {
     size_t last_l = buffer_.LineCnt() - 1;

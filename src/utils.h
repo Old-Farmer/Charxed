@@ -63,4 +63,34 @@ inline size_t NumberWidth(size_t num) {
 template <typename... T>
 inline constexpr bool kAlwaysFalseV = false;
 
+// An iterator adapter that wrap a smart pointer iterator.
+// Its * and -> now return just raw pointer.
+template <typename Iter>
+class PointerIterator {
+    Iter it_;
+
+   public:
+    PointerIterator(Iter i) : it_(i) {}
+
+    auto operator*() const { return it_->get(); }
+    auto operator->() const { return it_->get(); }
+
+    PointerIterator& operator++() {
+        ++it_;
+        return *this;
+    }
+    PointerIterator operator++(int) {
+        auto tmp = *this;
+        ++it_;
+        return tmp;
+    }
+
+    bool operator==(const PointerIterator& other) const {
+        return it_ == other.it_;
+    }
+    bool operator!=(const PointerIterator& other) const {
+        return it_ != other.it_;
+    }
+};
+
 }  // namespace charxed

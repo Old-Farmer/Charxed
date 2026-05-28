@@ -20,6 +20,8 @@ static inline int64_t LocateInPos(const std::vector<Highlight>& highlight,
     return left;
 }
 
+// TODO: don't main two versions of DrawLine, ArrangeLine, etc.
+
 // TODO: when wrap, do not break word. same as ArrangeLine and
 // Frame::SetCursorByViewCol.
 std::tuple<size_t, size_t> DrawLine(

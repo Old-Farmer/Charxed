@@ -36,6 +36,7 @@
     "search_current": { "fg": [ "#1e1e2e" ], "bg": [ "#89b4fa" ] },
     "trailing_white": { "fg": [ "#585b70" ] },
     "cursor_line": { "bg": [ "#323247" ] },
+    "list_current": { "fg": [ "#e6e9f5" ], "bg": [ "#35384d" ] },
 
     "keyword": { "fg": [ "#b4befe" ] },
     "typebuiltin": { "fg": [ "#f9e2af" ] },

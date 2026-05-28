@@ -1805,9 +1805,10 @@ Result TextArea::UnindentLines(size_t count, size_t begin_line,
     return res;
 }
 
-BufferSearchState TextArea::CursorGoSearchResultState(
-    BufferSearchContext& context, bool next, size_t count,
-    bool keep_current_if_one, CursorState& state) {
+SearchState TextArea::CursorGoSearchResultState(BufferSearchContext& context,
+                                                bool next, size_t count,
+                                                bool keep_current_if_one,
+                                                CursorState& state) {
     if (!context.NearestSearchPos(state.pos, buffer_, next, count,
                                   keep_current_if_one)) {
         return {};
@@ -1818,12 +1819,19 @@ BufferSearchState TextArea::CursorGoSearchResultState(
             context.search_result.size()};
 }
 
+// Just make buffer view move.
+// A little bit ugly, but just make sure we don't modify cursor, and
+// make the cursor state right accroding to the buffer state.
 bool TextArea::BufferViewGoSearchResult(BufferSearchContext& context, bool next,
-                                        size_t count, bool keep_current_if_one,
-                                        CursorState& state) {
-    BufferSearchState s = CursorGoSearchResultState(context, next, count,
-                                                    keep_current_if_one, state);
+                                        size_t count,
+                                        bool keep_current_if_one) {
+    Cursor c;
+    b_view_->RestoreCursorState(&c, buffer_);
+    CursorState state(&c);
+    SearchState s = CursorGoSearchResultState(context, next, count,
+                                              keep_current_if_one, state);
     if (s.total == 0) {
+        b_view_->SaveCursorState(&c);
         return false;
     }
 
@@ -1833,6 +1841,9 @@ bool TextArea::BufferViewGoSearchResult(BufferSearchContext& context, bool next,
     MakeSureViewValid();
     MakeCursorVisible();
     cursor_state.SetCursor(cursor_);
+
+    state.SetCursor(&c);
+    b_view_->SaveCursorState(&c);
     return true;
 }
 

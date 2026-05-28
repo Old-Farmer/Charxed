@@ -8,11 +8,12 @@
 
 namespace charxed {
 
-class Window;
+class TextWindow;
 struct Selection;
 class GlobalOpts;
 class Opts;
 class MangoPeel;
+class Window;
 
 struct Cursor {
     // row and col in screen
@@ -23,7 +24,8 @@ struct Cursor {
     // this is synced with line & byte_offset after Preprocess
     size_t character_in_line = 0;
 
-    // line and byte_offset of the buffer of the specific frame
+    // line and byte_offset of the buffer
+    // or pos in other lists
     Pos pos = {0, 0};
 
     // when cursor move up/down or scroll rows make cursor move,
@@ -32,8 +34,10 @@ struct Cursor {
     // NOTE: wrap, no wrap have different meanings.
     std::optional<size_t> b_view_col_want;
 
-    Window* in_window;  // nullptr means in MangoPeel
-    Window* restore_from_peel = nullptr;
+    Window* focused;
+
+    TextWindow* t_win;  // Cursor is currently in this text window or the
+                        // last text window where cursor is in.
 
     // TODO: other info
 

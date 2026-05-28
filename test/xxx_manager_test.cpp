@@ -13,12 +13,13 @@ TEST_CASE("keyseq_manager test") {
     auto _ = gsl::finally([] { LogDeinit(); });
 
     Mode mode = Mode::kInsert;
-    KeyseqManager manager(mode);
+    Context context = Context::kEditor;
+    KeyseqManager manager(mode, context);
 
     Keyseq h([] { throw "hey"; });
 
     std::string seq = "<c-a><c-b><c-c>";
-    manager.AddKeyseq(seq, h, {mode});
+    manager.AddKeyseq(seq, h, {mode}, {context});
     auto a = Terminal::KeyInfo::CreateSpecialKey(Terminal::SpecialKey::kCtrlA,
                                                  Terminal::kCtrl);
     auto b = Terminal::KeyInfo::CreateSpecialKey(Terminal::SpecialKey::kCtrlB,
@@ -51,8 +52,8 @@ TEST_CASE("keyseq_manager test") {
         res = manager.FeedKey(a, h2);
         REQUIRE(res == kKeyseqError);
 
-        manager.AddKeyseq("<c-a>", h, {mode});
-        manager.AddKeyseq("<c-a><c-b><c-c>", h, {mode});
+        manager.AddKeyseq("<c-a>", h, {mode}, {context});
+        manager.AddKeyseq("<c-a><c-b><c-c>", h, {mode}, {context});
         manager.RemoveKeyseq("<c-a>", {mode});
         res = manager.FeedKey(a, h2);
         REQUIRE(res == kKeyseqMatched);
@@ -64,7 +65,7 @@ TEST_CASE("keyseq_manager test") {
     }
 
     SECTION("override test") {
-        manager.AddKeyseq("<c-a>", h, {mode});
+        manager.AddKeyseq("<c-a>", h, {mode}, {context});
 
         Result res;
         res = manager.FeedKey(a, h2);
@@ -72,8 +73,8 @@ TEST_CASE("keyseq_manager test") {
     }
 
     SECTION("override test 2") {
-        manager.AddKeyseq("<c-k><c-i>", h, {mode});
-        manager.AddKeyseq("<tab>", h, {mode});
+        manager.AddKeyseq("<c-k><c-i>", h, {mode}, {context});
+        manager.AddKeyseq("<tab>", h, {mode}, {context});
 
         auto c_k = Terminal::KeyInfo::CreateSpecialKey(
             Terminal::SpecialKey::kCtrlK, Terminal::kCtrl);

@@ -77,8 +77,13 @@ static const std::unordered_map<std::string_view, Terminal::KeyInfo>
         {"<c-pgdn>", {ki::CreateSpecialKey(sk::kPgdn, tm::kCtrl)}},
 };
 
-KeyseqManager::KeyseqManager(Mode& mode) : mode_(mode) {
-    CHX_ASSERT(roots_.size() == static_cast<size_t>(Mode::_kCount));
+KeyseqManager::KeyseqManager(Mode& mode, Context& context)
+    : mode_(mode), context_(context) {
+    for (auto& roots_in_context : roots_) {
+        for (auto& root : roots_in_context) {
+            root = Node(true);
+        }
+    }
 }
 
 Result KeyseqManager::ParseKeyseq(const std::string& seq,
@@ -118,25 +123,25 @@ Result KeyseqManager::ParseKeyseq(const std::string& seq,
 }
 
 Result KeyseqManager::AddKeyseq(const std::string& seq, const Keyseq& handler,
-                                const std::vector<Mode>& modes) {
+                                const std::vector<Mode>& modes,
+                                const std::vector<Context>& contexts) {
     std::vector<Terminal::KeyInfo> keys;
     Result res = ParseKeyseq(seq, keys);
     if (res != kOk) {
         return res;
     }
-    for (size_t i = 0; i < modes.size(); i++) {
-        Node* node = &roots_[static_cast<size_t>(modes[i])];
-        for (const Terminal::KeyInfo& key_info : keys) {
-            auto iter = node->nexts.find(key_info.ToNumber());
-            if (iter == node->nexts.end()) {
-                node->nexts[key_info.ToNumber()] = new Node;
+    for (auto context : contexts) {
+        for (auto mode : modes) {
+            Node* node =
+                &roots_[static_cast<int>(context)][static_cast<int>(mode)];
+            for (const Terminal::KeyInfo& key_info : keys) {
+                auto iter = node->nexts.find(key_info.ToNumber());
+                if (iter == node->nexts.end()) {
+                    node->nexts[key_info.ToNumber()] = new Node;
+                }
+                node = node->nexts[key_info.ToNumber()];
             }
-            node = node->nexts[key_info.ToNumber()];
-        }
-        node->end = true;
-        if (i == modes.size() - 1) {
-            node->handler = handler;
-        } else {
+            node->end = true;
             node->handler = handler;
         }
     }
@@ -144,48 +149,53 @@ Result KeyseqManager::AddKeyseq(const std::string& seq, const Keyseq& handler,
 }
 
 Result KeyseqManager::RemoveKeyseq(const std::string& seq,
-                                   const std::vector<Mode>& modes) {
+                                   const std::vector<Mode>& modes,
+                                   const std::vector<Context>& contexts) {
     std::vector<Terminal::KeyInfo> keys;
     Result res = ParseKeyseq(seq, keys);
     if (res != kOk) {
         return res;
     }
-    for (Mode mode : modes) {
-        Node* node = &roots_[static_cast<int>(mode)];
-        std::stack<std::pair<Node*, Nexts::iterator>> sta;
-        bool to_end = true;
-        for (const Terminal::KeyInfo& key_info : keys) {
-            auto iter = node->nexts.find(key_info.ToNumber());
-            if (iter == node->nexts.end()) {
-                to_end = false;
-                break;
+    for (auto context : contexts) {
+        for (Mode mode : modes) {
+            Node* node =
+                &roots_[static_cast<int>(context)][static_cast<int>(mode)];
+            std::stack<std::pair<Node*, Nexts::iterator>> sta;
+            bool to_end = true;
+            for (const Terminal::KeyInfo& key_info : keys) {
+                auto iter = node->nexts.find(key_info.ToNumber());
+                if (iter == node->nexts.end()) {
+                    to_end = false;
+                    break;
+                }
+                sta.push({node, iter});
+                node = iter->second;
             }
-            sta.push({node, iter});
-            node = iter->second;
-        }
-        if (!to_end || !node->end) {
-            continue;
-        }
-        node->end = false;
-        if (!node->nexts.empty()) {
-            continue;
-        }
-
-        delete node;
-        while (!sta.empty()) {
-            auto [node, iter] = sta.top();
-            node->nexts.erase(iter);
-            if (node->end) {
-                break;
+            if (!to_end || !node->end) {
+                continue;
             }
+            node->end = false;
             if (!node->nexts.empty()) {
-                break;
+                continue;
             }
 
-            if (node != &roots_[static_cast<int>(mode)]) {
-                delete node;
+            delete node;
+            while (!sta.empty()) {
+                auto [node, iter] = sta.top();
+                node->nexts.erase(iter);
+                if (node->end) {
+                    break;
+                }
+                if (!node->nexts.empty()) {
+                    break;
+                }
+
+                if (node != &roots_[static_cast<int>(context)]
+                                   [static_cast<int>(mode)]) {
+                    delete node;
+                }
+                sta.pop();
             }
-            sta.pop();
         }
     }
     return kOk;
@@ -193,9 +203,10 @@ Result KeyseqManager::RemoveKeyseq(const std::string& seq,
 
 Result KeyseqManager::FeedKey(const Terminal::KeyInfo& key, Keyseq*& handler) {
     if (cur_ == nullptr) {
-        cur_ = &roots_[static_cast<int>(mode_)];
+        cur_ = &roots_[static_cast<int>(context_)][static_cast<int>(mode_)];
         last_mode_ = mode_;
-    } else if (last_mode_ != mode_) {
+        last_context_ = context_;
+    } else if (last_mode_ != mode_ || last_context_ != context_) {
         cur_ = nullptr;
         return kKeyseqError;
     }

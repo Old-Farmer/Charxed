@@ -4,13 +4,16 @@
 
 namespace charxed {
 
-class Window;
+class TextWindow;
 class StatusLine;
 class MangoPeel;
+class Explorer;
+enum class Context;
 
 class LayoutManager {
    public:
-    LayoutManager(Window* window, StatusLine* status_line, MangoPeel* peel);
+    LayoutManager(TextWindow* window, StatusLine* status_line, MangoPeel* peel,
+                  Explorer* explorer, Context* context);
 
     void ArrangeLayout();
 
@@ -18,9 +21,11 @@ class LayoutManager {
     void ArrangeLayoutInner(size_t peel_need_height);
 
    private:
-    Window* window_;
+    TextWindow* window_;
     StatusLine* status_line_;
     MangoPeel* peel_;
+    Explorer* explorer_;
+    Context* context_;
     Terminal* term_ = &Terminal::GetInstance();
 
     size_t peel_height_;

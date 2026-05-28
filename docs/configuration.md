@@ -106,6 +106,11 @@ In `config.json`, Support options:
     default: "default",
     desc: A colorscheme. When truecolor not enabled, default is a clean 8 color colorscheme; Otherwise, Default is a Catpuccin-like colorscheme(See [Colorscheme](./colorscheme.md) for more info).
 
+-  explorer_indent:  
+    type: integer,
+    default: 2,
+    desc: "Number of spaces to indent each directory level in the explorer tree"
+
 - highlight_on_search:  
     type: bool,
     default: true,

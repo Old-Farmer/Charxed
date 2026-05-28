@@ -67,6 +67,15 @@ class Terminal {
         bool bg_exist;  // bg valid?
 
         AttrPair() = default;
+
+        void MergeTo(AttrPair& other) const {
+            if (fg_exist) {
+                other.fg = fg;
+            }
+            if (bg_exist) {
+                other.bg = bg;
+            }
+        }
     };
 
     enum Color : Attr {
@@ -365,7 +374,8 @@ class Terminal {
     // should kept it in left_events and report them later.
     std::deque<tb_event> pendding_events_;
     KeyseqManager* esc_keyseq_manager_ = nullptr;
-    Mode mode_ = Mode::kNone;  // const
+    Mode mode_ = Mode::kNormal;           // const
+    Context context_ = Context::kEditor;  // const
 
     bool init_ = false;
 

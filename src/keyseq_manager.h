@@ -22,7 +22,7 @@ struct Keyseq {
 
 class KeyseqManager {
    public:
-    KeyseqManager(Mode& mode);
+    KeyseqManager(Mode& mode, Context& context);
     ~KeyseqManager() = default;
     CHX_DELETE_COPY(KeyseqManager);
     CHX_DELETE_MOVE(KeyseqManager);
@@ -35,9 +35,13 @@ class KeyseqManager {
     // this is always considered a bug and should fixed emidiately
     // return kError if keymap is not well formed
     Result AddKeyseq(const std::string& seq, const Keyseq& handler,
-                     const std::vector<Mode>& modes = {CHX_DEFAULT_MODES});
+                     const std::vector<Mode>& modes = {CHX_DEFAULT_MODES},
+                     const std::vector<Context>& contexts = {
+                         CHX_DEFAULT_CONTEXTS});
     Result RemoveKeyseq(const std::string& seq,
-                        const std::vector<Mode>& modes = {CHX_DEFAULT_MODES});
+                        const std::vector<Mode>& modes = {CHX_DEFAULT_MODES},
+                        const std::vector<Context>& contexts = {
+                            CHX_DEFAULT_CONTEXTS});
 
     // return kKeyseqError, kKeyseqDone, kKeyseqMatched
     // if kKeyseqDone return, handler will be set to the related handler
@@ -65,14 +69,19 @@ class KeyseqManager {
                        std::vector<Terminal::KeyInfo>& keys);
 
    private:
-    std::vector<Node> roots_{static_cast<size_t>(Mode::_kCount),
-                             Node{true}};  // one tree per mode
+    using KeymapsTrees =
+        std::array<Node,
+                   static_cast<size_t>(Mode::_kCount)>;  // one tree per mode
+
+    std::array<KeymapsTrees, static_cast<size_t>(Context::__kCount)> roots_;
 
     // keyseq state
     Node* cur_ = nullptr;
     Mode last_mode_;
+    Context last_context_;
 
     Mode& mode_;
+    Context& context_;
 };
 
 }  // namespace charxed

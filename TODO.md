@@ -5,7 +5,6 @@
 - syntax highlight on more language(bash, go, java, markdown, markdown_inline, rust, etc.)
 - Soft line break
 - Multi-window
-- File explorer
 - Bufferline(low priority)
 - Cursor color
 
@@ -28,6 +27,7 @@
 - diff algorithm and diff view
 - Better auto indent per laguages
 - SIGTSTP & SIGCONT support
+- Auto saving
 - MacOS support
 - Windows support
 - Low lantency remote development

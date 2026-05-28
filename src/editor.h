@@ -9,6 +9,7 @@
 #include "cursor.h"
 #include "editor_event_manager.h"
 #include "event_loop.h"
+#include "explorer.h"
 #include "fs_monitor.h"
 #include "keyseq_manager.h"
 #include "layout_manager.h"
@@ -17,9 +18,9 @@
 #include "state.h"
 #include "status_line.h"
 #include "syntax.h"
+#include "text_window.h"
 #include "timer_manager.h"
 #include "utils.h"
-#include "window.h"
 
 namespace charxed {
 
@@ -52,14 +53,10 @@ class Editor {
     void TriggerCompletion(bool autocmp);
     void CancellCompletion();
     bool CompletionTriggered();
-    void SearchCurrentBuffer(const std::string& pattern);
-    void PickBuffers();
-    void EditFile();
+    void SearchCurrentWindow(const std::string& pattern);
     void CommandHitEnter();
     void SearchHitEnter();
 
-    void CursorUp(size_t count);
-    void CursorDown(size_t count);
     void CursorGoSearch(bool next, size_t count, bool keep_current_if_one);
 
     void RemoveCurrentBuffer();
@@ -71,6 +68,10 @@ class Editor {
     void StartupScreen();
 
     void Edit(const std::string& path);
+
+    // Make sure not in peel
+    void OpenExplorer();
+    void QuitExplorer();
 
    private:
     // Editor Lifetime
@@ -104,14 +105,17 @@ class Editor {
     // helper methods
     void PrintKey(const Terminal::KeyInfo& key_info);
     Window* LocateWindow(int s_col, int s_row);
+    // Make sure not in peel
+    void EnsureInEditorContext();
 
    private:
     std::unique_ptr<EventLoop> loop_;
 
-    Mode mode_;
+    Mode mode_ = Mode::kNormal;
+    Context context_ = Context::kEditor;
 
     std::unique_ptr<BufferManager> buffer_manager_;
-    KeyseqManager keymap_manager_{mode_};
+    KeyseqManager keymap_manager_{mode_, context_};
     CommandManager command_manager_;
     std::unique_ptr<SyntaxParser> syntax_parser_;
     EditorEventManager editor_event_manager_;
@@ -138,19 +142,17 @@ class Editor {
     Cursor cursor_;
     // Now only support one window in the screen
     // TODO: mutiple window logic
-    std::unique_ptr<Window> window_;
+    std::unique_ptr<TextWindow> text_window_;
     std::unique_ptr<StatusLine> status_line_;
     std::unique_ptr<MangoPeel> peel_;
     std::unique_ptr<CmpMenu> cmp_menu_;
+    std::unique_ptr<Explorer> explorer_;
 
     // Cmp context
     Completer* completer_ = nullptr;
     bool show_cmp_menu_ = false;  // if false, hide cmp menu.
 
     bool multirow_peel_keep_ = false;
-
-    // buffer view stored for peel -> edit
-    BufferView b_view_stored_for_edit;
 
     bool highlight_search_ = false;
 

@@ -11,7 +11,7 @@
 namespace charxed {
 
 class Buffer;
-class Window;
+class TextWindow;
 
 enum class Type {
     kBool,     // bool
@@ -31,6 +31,7 @@ enum class Type {
     X(kSearchCurrent, search_current) \
     X(kTrailingWhite, trailing_white) \
     X(kCursorLine, cursor_line)       \
+    X(kListCurrent, list_current)     \
                                       \
     X(kKeyword, keyword)              \
     X(kTypeBuiltin, typebuiltin)      \
@@ -82,6 +83,7 @@ enum class LineNumberType {
     X(kOptCmpMenuMaxHeight, cmp_menu_max_height, kInteger)   \
     X(kOptCmpMenuMaxWidth, cmp_menu_max_width, kInteger)     \
     X(kOptColorScheme, __color_scheme, kPtr)                 \
+    X(kOptExplorerIndent, explorer_indent, kInteger)         \
     X(kOptHighlightOnSearch, highlight_on_search, kBool)     \
     X(kOptInputIdleTimeout, input_idle_timeout, kInteger)    \
     X(kOptLogVerbose, logverbose, kBool)                     \

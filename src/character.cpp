@@ -62,7 +62,7 @@ static constexpr bool kIsWordSeparator[128] = {
     false,  // 0x00-0x07
     false,
     false,
-    false,
+    true,  // 0xa '\n'
     false,
     false,
     false,

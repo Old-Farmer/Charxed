@@ -1,13 +1,11 @@
 #include "search.h"
 
-#include <regex.h>
-
 #include "buffer.h"
 
 namespace charxed {
 
-std::vector<Range> BufferSearch(const Buffer* buffer,
-                                const std::string& pattern, bool ignore_case) {
+bool BuildRegContext(const std::string& pattern, bool ignore_case,
+                     regex_t& regex) {
     Character c;
     int byte_len;
     char asc;
@@ -18,14 +16,20 @@ std::vector<Range> BufferSearch(const Buffer* buffer,
             break;
         }
     }
-    std::vector<Range> res;
-    regex_t regex;
     int ret = regcomp(&regex, pattern.c_str(),
                       REG_EXTENDED | (ignore_case ? REG_ICASE : 0));
-    if (ret != 0) {
+    // TODO: log?
+    return ret == 0;
+}
+
+std::vector<Range> BufferSearch(const Buffer* buffer,
+                                const std::string& pattern, bool ignore_case) {
+    regex_t regex;
+    if (!BuildRegContext(pattern, ignore_case, regex)) {
         return {};
     }
 
+    std::vector<Range> res;
     std::string buf;
     size_t line_cnt = buffer->LineCnt();
     for (size_t line = 0; line < line_cnt; line++) {
@@ -111,47 +115,40 @@ bool BufferSearchContext::NearestSearchPos(Pos pos, const Buffer* buffer,
     }
 
     // Search an insert pos
-    int64_t left = 0, right = search_result.size() - 1;
-    while (left <= right) {
-        int64_t mid = left + (right - left) / 2;
-        if (pos == search_result[mid].begin) {
-            left = mid;
-            right = left - 1;
-        } else if (pos < search_result[mid].begin) {
-            right = mid - 1;
-        } else {
-            left = mid + 1;
-        }
-    }
+    size_t insert_i =
+        std::lower_bound(
+            search_result.begin(), search_result.end(), pos,
+            [](Range& range, Pos pos) { return range.begin < pos; }) -
+        search_result.begin();
 
+    CHX_ASSERT(search_result.size() != 0);
     if (next) {
-        if (static_cast<size_t>(left) == search_result.size()) {
-            left = 0;
-        } else if (pos == search_result[left].begin &&
+        if (insert_i == search_result.size()) {
+            insert_i = 0;
+        } else if (pos == search_result[insert_i].begin &&
                    !(keep_current_if_one && count == 1)) {
-            left = (left + 1) % search_result.size();
+            insert_i = (insert_i + 1) % search_result.size();
         }
-        left = (left + count - 1) % search_result.size();
+        insert_i = (insert_i + count - 1) % search_result.size();
     } else {
-        if (static_cast<size_t>(left) == search_result.size()) {
-            left--;
-        } else if (search_result[left].begin == pos &&
+        if (insert_i == search_result.size()) {
+            insert_i--;
+        } else if (search_result[insert_i].begin == pos &&
                    (keep_current_if_one && count == 1)) {
             ;
-        } else if (static_cast<size_t>(left) == 0) {
-            left = search_result.size() - 1;
+        } else if (insert_i == 0) {
+            insert_i = search_result.size() - 1;
         } else {
-            left--;
+            insert_i--;
         }
         count = (count - 1) % search_result.size();
-        if (count <= static_cast<size_t>(left)) {
-            left -= count;
+        if (count <= insert_i) {
+            insert_i -= count;
         } else {
-            left = search_result.size() - (count - left);
+            insert_i = search_result.size() - (count - insert_i);
         }
     }
-    pos = search_result[left].begin;
-    current_search = left;
+    current_search = insert_i;
     return true;
 }
 }  // namespace charxed

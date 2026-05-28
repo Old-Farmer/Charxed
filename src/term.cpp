@@ -14,12 +14,12 @@ void Terminal::InitEscKeyseq() {
         "[200~", {[this] {
             event_.type = static_cast<uint8_t>(EventType::kBracketedPasteOpen);
         }},
-        {Mode::kNone});
+        {Mode::kNormal}, {Context::kEditor});
     esc_keyseq_manager_->AddKeyseq(
         "[201~", {[this] {
             event_.type = static_cast<uint8_t>(EventType::kBracketedPasteClose);
         }},
-        {Mode::kNone});
+        {Mode::kNormal}, {Context::kEditor});
 }
 
 int my_tb_wcswidth_fn(uint32_t* ch, size_t nch) {
@@ -30,7 +30,7 @@ int my_tb_wcswidth_fn(uint32_t* ch, size_t nch) {
 void Terminal::Init(GlobalOpts* global_opts) {
     global_opts_ = global_opts;
 
-    esc_keyseq_manager_ = new KeyseqManager(mode_);
+    esc_keyseq_manager_ = new KeyseqManager(mode_, context_);
     InitEscKeyseq();
 
     int ret = tb_init();

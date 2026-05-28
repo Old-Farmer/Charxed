@@ -15,7 +15,7 @@
 #include "cursor.h"
 #include "mango_peel.h"
 #include "str.h"
-#include "window.h"
+#include "text_window.h"
 
 namespace charxed {
 
@@ -285,10 +285,10 @@ void BufferBasicWordCompleter::Suggest(const Pos& cursor_pos,
 }
 
 Result BufferBasicWordCompleter::Accept(size_t index, Cursor* cursor) {
-    CHX_ASSERT(cursor->in_window);
+    CHX_ASSERT(cursor->t_win);
     CHX_ASSERT(index < suggestions_.size());
     Pos cursor_pos = cursor->pos;
-    cursor->in_window->Replace(
+    cursor->t_win->Replace(
         {{cursor_pos.line,
           cursor_pos.byte_offset - bytes_of_word_before_cursor_},
          cursor_pos},

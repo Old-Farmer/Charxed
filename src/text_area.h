@@ -133,14 +133,13 @@ class TextArea {
     Result UnindentLines(size_t count, size_t begin_line, size_t end_line);
 
     // Search relevant
-    BufferSearchState CursorGoSearchResultState(BufferSearchContext& context,
-                                                bool next, size_t count,
-                                                bool keep_current_if_one,
-                                                CursorState& state);
+    SearchState CursorGoSearchResultState(BufferSearchContext& context,
+                                          bool next, size_t count,
+                                          bool keep_current_if_one,
+                                          CursorState& state);
     // Just move buffer view without touch cursor
     bool BufferViewGoSearchResult(BufferSearchContext& context, bool next,
-                                  size_t count, bool keep_current_if_one,
-                                  CursorState& state);
+                                  size_t count, bool keep_current_if_one);
 
     void AfterModify(const Pos& cursor_pos);
 

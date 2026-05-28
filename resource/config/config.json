@@ -16,6 +16,7 @@
   "cmp_menu_max_height": 15,
   "cmp_menu_max_width": 100,
   "colorscheme": "default",
+  "explorer_indent": 2,
   "highlight_on_search": true,
   "input_idle_timeout": 50,
   "logverbose": false,

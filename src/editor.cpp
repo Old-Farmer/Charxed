@@ -61,16 +61,19 @@ void Editor::Init(std::unique_ptr<GlobalOpts> global_opts,
     clipboard_ = ClipBoard::CreateClipBoard(true);
 
     // Component
-    status_line_ =
-        std::make_unique<StatusLine>(&cursor_, global_opts_.get(), &mode_);
+    status_line_ = std::make_unique<StatusLine>(&cursor_, global_opts_.get(),
+                                                &mode_, &context_);
     peel_ = std::make_unique<MangoPeel>(&cursor_, global_opts_.get(),
                                         clipboard_.get(), buffer_manager_.get(),
                                         &command_manager_);
     cmp_menu_ = std::make_unique<CmpMenu>(&cursor_, global_opts_.get());
+    explorer_ = std::make_unique<Explorer>(global_opts_.get(), &cursor_,
+                                           &context_, buffer_manager_.get());
 
     syntax_parser_ = std::make_unique<SyntaxParser>(global_opts_.get());
     buffer_monitor_ = std::make_unique<BufferFSMonitor>(
-        buffer_manager_.get(), &cursor_, syntax_parser_.get());
+        buffer_manager_.get(), &cursor_, syntax_parser_.get(), &mode_,
+        &context_);
 
     // Create all buffers
     for (const char* path : init_opts->begin_files) {
@@ -92,18 +95,21 @@ void Editor::Init(std::unique_ptr<GlobalOpts> global_opts,
         buf = buffer_manager_->AddBuffer({global_opts_.get()});
     }
     // CHX_LOG_DEBUG("buffer {}", buf->Name());
-    window_ = std::make_unique<Window>(&cursor_, global_opts_.get(),
-                                       syntax_parser_.get(), clipboard_.get(),
-                                       buffer_manager_.get());
+    text_window_ = std::make_unique<TextWindow>(
+        &cursor_, global_opts_.get(), syntax_parser_.get(), clipboard_.get(),
+        buffer_manager_.get());
 
     // Set Cursor in the first window
-    cursor_.in_window = window_.get();
-    window_->AttachBuffer(buf);
+    cursor_.t_win = text_window_.get();
+    cursor_.focused = cursor_.t_win;
+    text_window_->AttachBuffer(buf);
 
     // Layout
     layout_manager_ = std::make_unique<LayoutManager>(
-        window_.get(), status_line_.get(), peel_.get());
+        text_window_.get(), status_line_.get(), peel_.get(), explorer_.get(),
+        &context_);
     layout_manager_->ArrangeLayout();
+    explorer_->Init(layout_manager_.get());
 
     // Keymaps & commands
     term_.SetCursorStyle(Terminal::CursorStyle::kBlock);
@@ -127,7 +133,7 @@ void Editor::RegisterEditorEventHandlers() {
             if (!buffer->path().Empty()) {
                 buffer_monitor_->UnmonitorBuffer(buffer);
             }
-            window_->OnBufferDelete(buffer);
+            text_window_->OnBufferDelete(buffer);
             syntax_parser_->OnBufferDelete(buffer);
         });
     editor_event_manager_.AddHandler(EditorEvent::kEditCharEdit,
@@ -226,7 +232,7 @@ void Editor::Loop() {
                             std::move(bracketed_paste_buffer));
                         layout_manager_->ArrangeLayout();
                     } else {
-                        cursor_.in_window->AddStringAtCursor(
+                        cursor_.t_win->AddStringAtCursor(
                             std::move(bracketed_paste_buffer));
                     }
                     bracketed_paste_buffer = "";
@@ -289,131 +295,104 @@ void Editor::Loop() {
 
 void Editor::InitKeymaps() {
     // Navigation
-    CHX_KEYMAP("h", {[this] { cursor_.in_window->CursorGoLeft(Count()); }},
-               {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("h", {[this] { cursor_.t_win->CursorGoLeft(Count()); }});
     CHX_KEYMAP("h", {[this] { peel_->CursorGoLeft(Count()); }},
-               {Mode::kPeelShow});
-    CHX_KEYMAP("l", {[this] { cursor_.in_window->CursorGoRight(Count()); }},
+               {Mode::kPeelShow}, {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP("l", {[this] { cursor_.t_win->CursorGoRight(Count()); }},
                {CHX_DEFAULT_MODES});
     CHX_KEYMAP("l", {[this] { peel_->CursorGoRight(Count()); }},
-               {Mode::kPeelShow});
-    CHX_KEYMAP("b", {[this] { cursor_.in_window->CursorGoWordBegin(Count()); }},
+               {Mode::kPeelShow}, {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP("b", {[this] { cursor_.t_win->CursorGoWordBegin(Count()); }},
                {CHX_DEFAULT_MODES});
     CHX_KEYMAP("b", {[this] { peel_->CursorGoPrevWordBegin(Count()); }},
-               {Mode::kPeelShow});
-    CHX_KEYMAP("e",
-               {[this] { cursor_.in_window->CursorGoNextWordEnd(Count()); }},
+               {Mode::kPeelShow}, {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP("e", {[this] { cursor_.t_win->CursorGoNextWordEnd(Count()); }},
                {CHX_DEFAULT_MODES});
     CHX_KEYMAP("e", {[this] { peel_->CursorGoNextWordEnd(Count()); }},
-               {Mode::kPeelShow});
-    CHX_KEYMAP("w",
-               {[this] { cursor_.in_window->CursorGoNextWordBegin(Count()); }},
+               {Mode::kPeelShow}, {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP("w", {[this] { cursor_.t_win->CursorGoNextWordBegin(Count()); }},
                {CHX_DEFAULT_MODES});
     CHX_KEYMAP("w", {[this] { peel_->CursorGoNextWordBegin(Count()); }},
-               {Mode::kPeelShow});
-    CHX_KEYMAP("k", {[this] { cursor_.in_window->CursorGoUp(Count()); }},
-               {CHX_DEFAULT_MODES});
-    CHX_KEYMAP("k", {[this] { peel_->CursorGoUp(Count()); }},
-               {Mode::kPeelShow});
-    CHX_KEYMAP("j", {[this] { cursor_.in_window->CursorGoDown(Count()); }},
-               {CHX_DEFAULT_MODES});
+               {Mode::kPeelShow}, {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP("k", {[this] { cursor_.focused->CursorGoUp(Count()); }},
+               {CHX_DEFAULT_MODES}, {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP("k", {[this] { peel_->CursorGoUp(Count()); }}, {Mode::kPeelShow},
+               {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP("j", {[this] { cursor_.focused->CursorGoDown(Count()); }},
+               {CHX_DEFAULT_MODES}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("j", {[this] { peel_->CursorGoDown(Count()); }},
-               {Mode::kPeelShow});
-    CHX_KEYMAP("0", {[this] { cursor_.in_window->CursorGoHome(); }},
+               {Mode::kPeelShow}, {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP("0", {[this] { cursor_.t_win->CursorGoHome(); }});
+    CHX_KEYMAP("0", {[this] { peel_->CursorGoHome(); }}, {Mode::kPeelShow},
+               {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP("$", {[this] { cursor_.t_win->CursorGoEnd(); }});
+    CHX_KEYMAP("$", {[this] { peel_->CursorGoEnd(); }}, {Mode::kPeelShow},
+               {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP("<c-f>",
+               {[this] { cursor_.focused->CursorGoPageDown(Count()); }},
                {CHX_DEFAULT_MODES});
-    CHX_KEYMAP("0", {[this] { peel_->CursorGoHome(); }}, {Mode::kPeelShow});
-    CHX_KEYMAP("$", {[this] { cursor_.in_window->CursorGoEnd(); }},
-               {CHX_DEFAULT_MODES});
-    CHX_KEYMAP("$", {[this] { peel_->CursorGoEnd(); }}, {Mode::kPeelShow});
-    CHX_KEYMAP(
-        "<c-f>", {[this] {
-            cursor_.in_window->CursorGoDown(cursor_.in_window->area_.height_);
-        }},
-        {CHX_DEFAULT_MODES});
-    CHX_KEYMAP("<c-f>", {[this] { peel_->CursorGoDown(peel_->area_.height_); }},
-               {Mode::kPeelShow});
-    CHX_KEYMAP(
-        "<c-b>", {[this] {
-            cursor_.in_window->CursorGoUp(cursor_.in_window->area_.height_);
-        }},
-        {CHX_DEFAULT_MODES});
-    CHX_KEYMAP("<c-b>", {[this] {
-                   cursor_.in_window->CursorGoUp(peel_->area_.height_);
-               }},
-               {Mode::kPeelShow});
-    CHX_KEYMAP("<c-d>", {[this] {
-                   cursor_.in_window->CursorGoDown(
-                       cursor_.in_window->area_.height_ / 2);
-               }},
-               {CHX_DEFAULT_MODES});
+    CHX_KEYMAP("<c-f>", {[this] { peel_->CursorGoPageDown(Count()); }},
+               {Mode::kPeelShow}, {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP("<c-b>", {[this] { cursor_.focused->CursorGoPageUp(Count()); }},
+               {CHX_DEFAULT_MODES}, {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP("<c-b>", {[this] { peel_->CursorGoPageUp(Count()); }},
+               {Mode::kPeelShow}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<c-d>",
-               {[this] { peel_->CursorGoDown(peel_->area_.height_ / 2); }},
-               {Mode::kPeelShow});
-    CHX_KEYMAP(
-        "<c-u>", {[this] {
-            cursor_.in_window->CursorGoUp(cursor_.in_window->area_.height_ / 2);
-        }},
-        {CHX_DEFAULT_MODES});
+               {[this] { cursor_.focused->CursorGoHalfPageDown(Count()); }},
+               {CHX_DEFAULT_MODES}, {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP("<c-d>", {[this] { peel_->CursorGoHalfPageDown(Count()); }},
+               {Mode::kPeelShow}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<c-u>",
-               {[this] { peel_->CursorGoUp(peel_->area_.height_ / 2); }},
-               {Mode::kPeelShow});
-    CHX_KEYMAP("<c-o>", {[this] { cursor_.in_window->JumpBackward(); }},
+               {[this] { cursor_.focused->CursorGoHalfPageUp(Count()); }},
+               {CHX_DEFAULT_MODES}, {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP("<c-u>", {[this] { peel_->CursorGoHalfPageUp(Count()); }},
+               {Mode::kPeelShow}, {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP("<c-o>", {[this] { cursor_.t_win->JumpBackward(); }},
                {Mode::kNormal});
-    CHX_KEYMAP("<c-i>", {[this] { cursor_.in_window->JumpForward(); }},
+    CHX_KEYMAP("<c-i>", {[this] { cursor_.t_win->JumpForward(); }},
                {Mode::kNormal});
     CHX_KEYMAP("G", {[this] {
                    size_t l;
                    if (count_ == 0) {
-                       l = cursor_.in_window->area_.buffer_->LineCnt() - 1;
+                       l = cursor_.t_win->area_.buffer_->LineCnt() - 1;
                    } else {
                        l = Count();
                    }
-                   cursor_.in_window->CursorGoLine(l);
-               }},
-               {CHX_DEFAULT_MODES});
-    CHX_KEYMAP("gg", {[this] { cursor_.in_window->CursorGoLine(0); }},
-               {CHX_DEFAULT_MODES});
-    CHX_KEYMAP("gf", {[this] { cursor_.in_window->GotoFile(); }},
-               {CHX_DEFAULT_MODES});
-    CHX_KEYMAP("gf", {[this] { cursor_.in_window->GotoFile(); }},
-               {CHX_DEFAULT_MODES});
+                   cursor_.t_win->CursorGoLine(l);
+               }});
+    CHX_KEYMAP("gg", {[this] { cursor_.t_win->CursorGoLine(0); }});
+    CHX_KEYMAP("gf", {[this] { cursor_.t_win->GotoFile(); }});
     CHX_KEYMAP("f", {[this] {
                    input_state_ = InputState::kFind;
                    find_forward_ = true;
-               }},
-               {CHX_DEFAULT_MODES});
+               }});
     CHX_KEYMAP("F", {[this] {
                    input_state_ = InputState::kFind;
                    find_forward_ = false;
-               }},
-               {CHX_DEFAULT_MODES});
-    CHX_KEYMAP(
-        ";", {[this] {
-            if (find_forward_) {
-                cursor_.in_window->FindNextCharacterAndCursorGoInCurrentLine(
-                    c_to_find_);
-            } else {
-                cursor_.in_window->FindPrevCharacterAndCursorGoInCurrentLine(
-                    c_to_find_);
-            }
-        }},
-        {CHX_DEFAULT_MODES});
-    CHX_KEYMAP(
-        ",", {[this] {
-            if (find_forward_) {
-                cursor_.in_window->FindPrevCharacterAndCursorGoInCurrentLine(
-                    c_to_find_);
-            } else {
-                cursor_.in_window->FindNextCharacterAndCursorGoInCurrentLine(
-                    c_to_find_);
-            }
-        }},
-        {CHX_DEFAULT_MODES});
+               }});
+    CHX_KEYMAP(";", {[this] {
+                   if (find_forward_) {
+                       cursor_.t_win->FindNextCharacterAndCursorGoInCurrentLine(
+                           c_to_find_);
+                   } else {
+                       cursor_.t_win->FindPrevCharacterAndCursorGoInCurrentLine(
+                           c_to_find_);
+                   }
+               }});
+    CHX_KEYMAP(",", {[this] {
+                   if (find_forward_) {
+                       cursor_.t_win->FindPrevCharacterAndCursorGoInCurrentLine(
+                           c_to_find_);
+                   } else {
+                       cursor_.t_win->FindNextCharacterAndCursorGoInCurrentLine(
+                           c_to_find_);
+                   }
+               }});
 
     // Buffer manangement
-    CHX_KEYMAP("]b", {[this] { cursor_.in_window->NextBuffer(); }},
+    CHX_KEYMAP("]b", {[this] { cursor_.t_win->NextBuffer(); }},
                {Mode::kNormal});
-    CHX_KEYMAP("[b", {[this] { cursor_.in_window->PrevBuffer(); }},
+    CHX_KEYMAP("[b", {[this] { cursor_.t_win->PrevBuffer(); }},
                {Mode::kNormal});
 
     // esc
@@ -423,33 +402,34 @@ void Editor::InitKeymaps() {
                    }
                    ExitFromMode();
                }},
-               {CHX_ALL_MODES});
+               {CHX_ALL_MODES}, {CHX_ALL_CONTEXTS});
 
     // command & search
     CHX_KEYMAP("/", {[this] {
                    search_foward_ = true;
                    GotoPeel(Mode::kPeelSearch);
                }},
-               {Mode::kNormal});
+               {Mode::kNormal}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("?", {[this] {
                    search_foward_ = false;
                    GotoPeel(Mode::kPeelSearch);
                }},
-               {Mode::kNormal});
+               {Mode::kNormal}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("N",
                {[this] { CursorGoSearch(!search_foward_, Count(), false); }},
-               {Mode::kNormal});
+               {Mode::kNormal}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("n",
                {[this] { CursorGoSearch(search_foward_, Count(), false); }},
-               {Mode::kNormal});
-    CHX_KEYMAP(":", {[this] { GotoPeel(); }}, {Mode::kNormal});
+               {Mode::kNormal}, {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP(":", {[this] { GotoPeel(); }}, {Mode::kNormal},
+               {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<enter>", {[this] { GotoPeel(Mode::kPeelShow); }},
                {Mode::kNormal});
     CHX_KEYMAP("<c-r>", {[this] {
                    peel_->Paste();
                    layout_manager_->ArrangeLayout();
                }},
-               {Mode::kPeelCommand, Mode::kPeelSearch});
+               {Mode::kPeelCommand, Mode::kPeelSearch}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<bs>", {[this] {
                    if (peel_->DeleteCharacterBeforeCursor() == kOk) {
                        editor_event_manager_.EmitEvent(
@@ -457,7 +437,7 @@ void Editor::InitKeymaps() {
                        layout_manager_->ArrangeLayout();
                    }
                }},
-               {Mode::kPeelCommand});
+               {Mode::kPeelCommand}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<bs>", {[this] {
                    if (peel_->DeleteCharacterBeforeCursor() == kOk) {
                        editor_event_manager_.EmitEvent(
@@ -465,40 +445,53 @@ void Editor::InitKeymaps() {
                        layout_manager_->ArrangeLayout();
                    }
                }},
-               {Mode::kPeelSearch});
+               {Mode::kPeelSearch}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<c-w>", {[this] {
                    peel_->DeleteWordBeforeCursor();
                    layout_manager_->ArrangeLayout();
                }},
-               {Mode::kPeelCommand, Mode::kPeelSearch});
+               {Mode::kPeelCommand, Mode::kPeelSearch}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<enter>", {[this] {
                    CommandHitEnter();
                    multirow_peel_keep_ = true;
                }},
-               {Mode::kPeelCommand});
+               {Mode::kPeelCommand}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<enter>", {[this] {
                    SearchHitEnter();
                    multirow_peel_keep_ = true;
                }},
-               {Mode::kPeelSearch});
+               {Mode::kPeelSearch}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<left>", {[this] { peel_->CursorGoLeft(Count()); }},
-               {Mode::kPeelCommand, Mode::kPeelSearch});
+               {Mode::kPeelCommand, Mode::kPeelSearch}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<right>", {[this] { peel_->CursorGoRight(Count()); }},
-               {Mode::kPeelCommand, Mode::kPeelSearch});
+               {Mode::kPeelCommand, Mode::kPeelSearch}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<c-left>", {[this] { peel_->CursorGoPrevWordBegin(Count()); }},
-               {Mode::kPeelCommand, Mode::kPeelSearch});
+               {Mode::kPeelCommand, Mode::kPeelSearch}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<c-right>", {[this] { peel_->CursorGoNextWordEnd(Count()); }},
-               {Mode::kPeelCommand, Mode::kPeelSearch});
+               {Mode::kPeelCommand, Mode::kPeelSearch}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<home>", {[this] { peel_->CursorGoHome(); }},
-               {Mode::kPeelCommand, Mode::kPeelSearch});
+               {Mode::kPeelCommand, Mode::kPeelSearch}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<end>", {[this] { peel_->CursorGoEnd(); }},
-               {Mode::kPeelCommand, Mode::kPeelSearch});
+               {Mode::kPeelCommand, Mode::kPeelSearch}, {CHX_ALL_CONTEXTS});
 
     // cmp & history
     CHX_KEYMAP("<c-space>", {[this] { TriggerCompletion(false); }},
-               {Mode::kInsert, Mode::kPeelCommand});
+               {Mode::kInsert, Mode::kPeelCommand}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<c-c>", {[this] { TriggerCompletion(false); }},
-               {Mode::kInsert, Mode::kPeelCommand});
+               {Mode::kInsert, Mode::kPeelCommand}, {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP("<tab>", {[this] {
+                   if (CompletionTriggered()) {
+                       if (completer_->Accept(cmp_menu_->Accept(), &cursor_) ==
+                           kRetriggerCmp) {
+                           completer_ = nullptr;
+                           TriggerCompletion(true);
+                           layout_manager_->ArrangeLayout();
+                       } else {
+                           completer_ = nullptr;
+                       }
+                   }
+               }},
+               {Mode::kPeelCommand}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<tab>", {[this] {
                    if (CompletionTriggered()) {
                        if (completer_->Accept(cmp_menu_->Accept(), &cursor_) ==
@@ -510,10 +503,10 @@ void Editor::InitKeymaps() {
                            completer_ = nullptr;
                        }
                    } else {
-                       if (cursor_.in_window) cursor_.in_window->TabAtCursor();
+                       cursor_.t_win->TabAtCursor();
                    }
                }},
-               {Mode::kInsert, Mode::kPeelCommand});
+               {Mode::kInsert});
     CHX_KEYMAP("<c-n>", {[this] {
                    if (CompletionTriggered()) {
                        cmp_menu_->SelectNext(1);
@@ -529,11 +522,11 @@ void Editor::InitKeymaps() {
                        peel_->NextHistoryItem(MangoPeel::HistoryType::kCmd);
                    }
                }},
-               {Mode::kPeelCommand});
+               {Mode::kPeelCommand}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<c-n>", {[this] {
                    peel_->NextHistoryItem(MangoPeel::HistoryType::kSearch);
                }},
-               {Mode::kPeelSearch});
+               {Mode::kPeelSearch}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<c-p>", {[this] {
                    if (CompletionTriggered()) {
                        cmp_menu_->SelectPrev(1);
@@ -549,59 +542,55 @@ void Editor::InitKeymaps() {
                        peel_->PrevHistoryItem(MangoPeel::HistoryType::kCmd);
                    }
                }},
-               {Mode::kPeelCommand});
+               {Mode::kPeelCommand}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<c-p>", {[this] {
                    peel_->PrevHistoryItem(MangoPeel::HistoryType::kSearch);
                }},
-               {Mode::kPeelSearch});
+               {Mode::kPeelSearch}, {CHX_ALL_CONTEXTS});
 
     // Edit
     CHX_KEYMAP("<bs>", {[this] {
-                   if (cursor_.in_window->DeleteAtCursor() == kOk) {
+                   if (cursor_.t_win->DeleteAtCursor() == kOk) {
                        editor_event_manager_.EmitEvent(
                            EditorEvent::kEditCharEdit, nullptr);
                    }
                }},
                {Mode::kInsert});
-    CHX_KEYMAP("<c-w>",
-               {[this] { cursor_.in_window->DeleteWordBeforeCursor(); }},
+    CHX_KEYMAP("<c-w>", {[this] { cursor_.t_win->DeleteWordBeforeCursor(); }},
                {Mode::kInsert});
-    CHX_KEYMAP("<enter>",
-               {[this] { cursor_.in_window->AddStringAtCursor("\n"); }},
+    CHX_KEYMAP("<enter>", {[this] { cursor_.t_win->AddStringAtCursor("\n"); }},
                {Mode::kInsert});
-    CHX_KEYMAP("<c-r>", {[this] { cursor_.in_window->Paste(1); }},
-               {Mode::kInsert});
+    CHX_KEYMAP("<c-r>", {[this] { cursor_.t_win->Paste(1); }}, {Mode::kInsert});
     CHX_KEYMAP("i", {[this] { GotoMode(Mode::kInsert); }}, {Mode::kNormal});
     CHX_KEYMAP("I", {[this] {
-                   cursor_.in_window->CursorGoFirstNonBlank();
+                   cursor_.t_win->CursorGoFirstNonBlank();
                    GotoMode(Mode::kInsert);
                }},
                {Mode::kNormal});  // TODO it
     CHX_KEYMAP("a", {[this] {
-                   cursor_.in_window->CursorGoRight(Count());
+                   cursor_.t_win->CursorGoRight(Count());
                    GotoMode(Mode::kInsert);
                }},
                {Mode::kNormal});
     CHX_KEYMAP("A", {[this] {
-                   cursor_.in_window->CursorGoEnd();
+                   cursor_.t_win->CursorGoEnd();
                    GotoMode(Mode::kInsert);
                }},
                {Mode::kNormal});
     CHX_KEYMAP("o", {[this] {
-                   cursor_.in_window->NewLineUnderCursorline();
+                   cursor_.t_win->NewLineUnderCursorline();
                    GotoMode(Mode::kInsert);
                }},
                {Mode::kNormal});
     CHX_KEYMAP("O", {[this] {
-                   cursor_.in_window->NewLineAboveCursorline();
+                   cursor_.t_win->NewLineAboveCursorline();
                    GotoMode(Mode::kInsert);
                }},
                {Mode::kNormal});
-    CHX_KEYMAP("u", {[this] { cursor_.in_window->Undo(); }}, {Mode::kNormal});
-    CHX_KEYMAP("<c-r>", {[this] { cursor_.in_window->Redo(); }},
-               {Mode::kNormal});
+    CHX_KEYMAP("u", {[this] { cursor_.t_win->Undo(); }}, {Mode::kNormal});
+    CHX_KEYMAP("<c-r>", {[this] { cursor_.t_win->Redo(); }}, {Mode::kNormal});
     CHX_KEYMAP("y", {[this] {
-                   cursor_.in_window->Copy();
+                   cursor_.t_win->Copy();
                    ExitFromMode();
                }},
                {CHX_SELECT_MODES});
@@ -611,12 +600,12 @@ void Editor::InitKeymaps() {
                }},
                {Mode::kNormal});
     CHX_KEYMAP("p", {[this] {
-                   cursor_.in_window->Paste(Count());
+                   cursor_.t_win->Paste(Count());
                    ExitFromMode();
                }},
                {CHX_DEFAULT_MODES});
     CHX_KEYMAP("d", {[this] {
-                   cursor_.in_window->Cut();
+                   cursor_.t_win->Cut();
                    ExitFromMode();
                }},
                {CHX_SELECT_MODES});
@@ -626,7 +615,7 @@ void Editor::InitKeymaps() {
                }},
                {Mode::kNormal});
     CHX_KEYMAP("\\>", {[this] {
-                   cursor_.in_window->IndentSelection(Count());
+                   cursor_.t_win->IndentSelection(Count());
                    ExitFromMode();
                }},
                {CHX_SELECT_MODES});
@@ -636,7 +625,7 @@ void Editor::InitKeymaps() {
                }},
                {Mode::kNormal});
     CHX_KEYMAP("\\<", {[this] {
-                   cursor_.in_window->UnindentSelection(Count());
+                   cursor_.t_win->UnindentSelection(Count());
                    ExitFromMode();
                }},
                {CHX_SELECT_MODES});
@@ -649,7 +638,7 @@ void Editor::InitKeymaps() {
     // A inner format, not exposed
     CHX_KEYMAP(
         "<space>f", {[this] {
-            auto& path = cursor_.in_window->area_.buffer_->path();
+            auto& path = cursor_.t_win->area_.buffer_->path();
             if (path.Empty()) {
                 return;
             }
@@ -657,7 +646,7 @@ void Editor::InitKeymaps() {
                 const char* const argv[] = {"clang-format", "--assume-filename",
                                             path.AbsolutePath().c_str(),
                                             nullptr};
-                Buffer* b = cursor_.in_window->area_.buffer_;
+                Buffer* b = cursor_.t_win->area_.buffer_;
                 int exit_code;
                 std::string stdout;
                 std::string stdin =
@@ -669,10 +658,10 @@ void Editor::InitKeymaps() {
                 if (stdin == stdout) {
                     return;
                 }
-                cursor_.in_window->area_.b_view_->make_cursor_visible = true;
+                cursor_.t_win->area_.b_view_->make_cursor_visible = true;
                 Pos pos = FixCursorPos(cursor_.pos, stdout);
                 // TODO: diff
-                cursor_.in_window->area_.Replace(
+                cursor_.t_win->area_.Replace(
                     {{0, 0},
                      {b->LineCnt() - 1,
                       b->GetLineView(b->LineCnt() - 1).Size()}},
@@ -697,15 +686,28 @@ void Editor::InitKeymaps() {
 
     // Selection
     CHX_KEYMAP("s", {[this] {
-                   cursor_.in_window->area_.StartLineSelection(cursor_.pos);
+                   cursor_.t_win->area_.StartLineSelection(cursor_.pos);
                    GotoMode(Mode::kSelectLine);
                }},
                {Mode::kNormal});
     CHX_KEYMAP("S", {[this] {
-                   cursor_.in_window->area_.StartSelection(cursor_.pos);
+                   cursor_.t_win->area_.StartSelection(cursor_.pos);
                    GotoMode(Mode::kSelect);
                }},
                {Mode::kNormal});
+
+    // Explorer
+    CHX_KEYMAP("<space>e", {[this] { OpenExplorer(); }}, {Mode::kNormal});
+    CHX_KEYMAP("q", {[this] { QuitExplorer(); }}, {Mode::kNormal},
+               {Context::kExplorer});
+    CHX_KEYMAP("<enter>", {[this] {
+                   if (peel_->area_.height_ != 1) {
+                       GotoPeel(Mode::kPeelShow);
+                       return;
+                   }
+                   explorer_->EnterCurrentEntry();
+               }},
+               {Mode::kNormal}, {Context::kExplorer});
 }
 
 #define CHX_CMD command_manager_.AddCommand
@@ -724,6 +726,7 @@ void Editor::InitCommands() {
              "",
              {Type::kString},
              [this](const CommandArgs& args) {
+                 EnsureInEditorContext();
                  if (!args[0].has_value()) {
                      Help(kHelpDoc);
                  } else {
@@ -737,9 +740,9 @@ void Editor::InitCommands() {
              "",
              {Type::kString},
              [this](const CommandArgs& args) {
+                 if (context_ != Context::kEditor) return;
                  if (args[0].has_value()) {
-                     Path p(std::get<std::string>(*args[0]));
-                     SaveCurrentBufferAs(p);
+                     SaveCurrentBufferAs(Path(std::get<std::string>(*args[0])));
                  } else {
                      SaveCurrentBuffer();
                  }
@@ -752,6 +755,7 @@ void Editor::InitCommands() {
              {Type::kString},
              [this](const CommandArgs& args) {
                  CHX_ENSURE_ARGEXITS(0);
+                 EnsureInEditorContext();
                  Edit(std::get<std::string>(*args[0]));
              },
              1});
@@ -761,15 +765,17 @@ void Editor::InitCommands() {
              {Type::kString},
              [this](const CommandArgs& args) {
                  CHX_ENSURE_ARGEXITS(0);
+                 EnsureInEditorContext();
                  const std::string& name_str = std::get<std::string>(*args[0]);
                  Buffer* b = buffer_manager_->FindBuffer(name_str);
                  if (b) {
-                     cursor_.in_window->AttachBuffer(b);
+                     cursor_.t_win->AttachBuffer(b);
                  }
              },
              1});
     CHX_CMD({"bdelete", "bd", "", {}, [this](const CommandArgs& args) {
                  (void)args;
+                 if (context_ != Context::kEditor) return;
                  RemoveCurrentBuffer();
              }});
     CHX_CMD({"smile",
@@ -851,21 +857,22 @@ void Editor::HandleKey() {
         return;
     }
 
+    // TODO: Make KeyseqManager support any key.
     if (input_state_ == InputState::kFind) {
         input_state_ = InputState::kNone;
         if (key_info.IsSpecialKey()) {
             return;
         }
 
+        CHX_ASSERT(context_ == Context::kEditor);
         // For simplicity, currently we only find one codepoint.
         c_to_find_.Clear();
         c_to_find_.Push(key_info.codepoint);
-        CHX_ASSERT(cursor_.in_window);
         if (find_forward_) {
-            cursor_.in_window->FindNextCharacterAndCursorGoInCurrentLine(
+            cursor_.t_win->FindNextCharacterAndCursorGoInCurrentLine(
                 c_to_find_);
         } else {
-            cursor_.in_window->FindPrevCharacterAndCursorGoInCurrentLine(
+            cursor_.t_win->FindPrevCharacterAndCursorGoInCurrentLine(
                 c_to_find_);
         }
         return;
@@ -886,7 +893,6 @@ void Editor::HandleKey() {
             count_ = 0;
             input_state_ = InputState::kNone;
         }
-        return;
     } else if (res == kKeyseqMatched) {
         // CHX_LOG_DEBUG("keymap matched");
 
@@ -894,10 +900,7 @@ void Editor::HandleKey() {
         if (!IsPeel(mode_) && peel_->area_.height_ > 1) {
             multirow_peel_keep_ = true;
         }
-        return;
-    }
-
-    if (res == kKeyseqError) {
+    } else if (res == kKeyseqError) {
         // Pure codepoints that are not handled by the keymap manager.
         // Use single codepoint to edit buffers is quite safe here.
 
@@ -921,7 +924,9 @@ void Editor::HandleKey() {
                 res = peel_->AddStringAtCursor(c);
                 layout_manager_->ArrangeLayout();
             } else {
-                res = cursor_.in_window->AddStringAtCursor(c);
+                // We only support insert mode in kEditor context.
+                CHX_ASSERT(context_ == Context::kEditor);
+                res = cursor_.t_win->AddStringAtCursor(c);
             }
             if (res != kOk) {
                 return;
@@ -948,24 +953,30 @@ void Editor::HandleKey() {
             count_ = count_ * 10 + key_info.codepoint - '0';
             input_state_ = InputState::kCount;
         }
+    } else {
+        CHX_ASSERT(false);
     }
 }
 
 void Editor::HandleLeftClick(int s_row, int s_col) {
     Window* win = LocateWindow(s_col, s_row);
-    Window* prev_win = cursor_.in_window;
-    Pos prev_pos = cursor_.pos;  // TODO: check this logic.
-    if (win) {
-        cursor_.in_window = win;
-        win->SetCursorHint(s_row, s_col);
+    if (!win) {
+        return;
     }
 
+    Window* prev_win = cursor_.focused;
+    Pos prev_pos = cursor_.pos;  // TODO: check this logic.
+    switch (context_) {
+        case Context::kEditor:
+            cursor_.t_win = static_cast<TextWindow*>(win);
+        default:
+            break;
+    }
+    win->SetCursorHint(s_row, s_col);
+
     if (mouse_.state == MouseState::kReleased) {
-        if (!win) {
-            return;
-        }
-        if (cursor_.in_window->area_.IsSelectionActive()) {
-            cursor_.in_window->area_.StopSelection();
+        if (win->IsSelectionActive()) {
+            win->StopSelection();
             ExitFromMode();
         }
 
@@ -975,31 +986,26 @@ void Editor::HandleLeftClick(int s_row, int s_col) {
                 .count() <
             global_opts_->GetOpt<int64_t>(kOptCursorStartHoldingInterval)) {
             mouse_.state = MouseState::kLeftHolding;
+            win->DoubleClick();
         } else {
             mouse_.last_click_time = now;
             mouse_.state = MouseState::kLeftNotReleased;
         }
     } else if (mouse_.state == MouseState::kLeftNotReleased) {
         mouse_.state = MouseState::kLeftHolding;
-        if (win) {
-            if (win == prev_win && !(prev_pos == cursor_.pos)) {
-                cursor_.in_window->area_.StartSelection(prev_pos);
-                GotoMode(Mode::kSelect);
-            }
+        if (win == prev_win && !(prev_pos == cursor_.pos)) {
+            if (!win->StartSelection(prev_pos)) return;
+            GotoMode(Mode::kSelect);
         }
     } else if (mouse_.state == MouseState::kLeftHolding) {
-        if (cursor_.in_window->area_.IsSelectionActive()) {
-            if (win) {
-                cursor_.in_window->area_.SelectionFollowCursor();
-            }
+        if (win->IsSelectionActive()) {
+            win->SelectionFollowCursor();
             return;
         }
 
-        if (win) {
-            if (win == prev_win && !(prev_pos == cursor_.pos)) {
-                cursor_.in_window->area_.StartSelection(prev_pos);
-                GotoMode(Mode::kSelect);
-            }
+        if (win == prev_win && !(prev_pos == cursor_.pos)) {
+            if (!win->StartSelection(prev_pos)) return;
+            GotoMode(Mode::kSelect);
         }
     }
 }
@@ -1024,12 +1030,12 @@ void Editor::HandleMouse() {
         }
         case mk::kRight: {
             mouse_.state = MouseState::kRightNotReleased;
-            cursor_.in_window->area_.StopSelection();
+            cursor_.focused->StopSelection();
             break;
         }
         case mk::kMiddle: {
             mouse_.state = MouseState::kMiddleNotReleased;
-            cursor_.in_window->area_.StopSelection();
+            cursor_.focused->StopSelection();
             break;
         }
         case mk::kRelease: {
@@ -1039,8 +1045,7 @@ void Editor::HandleMouse() {
         case mk::kWheelDown: {
             Window* win = LocateWindow(mouse_info.col, mouse_info.row);
             if (win) {
-                cursor_.in_window->ScrollRows(
-                    global_opts_->GetOpt<int64_t>(kOptScrollRows));
+                win->ScrollRows(global_opts_->GetOpt<int64_t>(kOptScrollRows));
             }
             // Not locate any area, do nothing
             break;
@@ -1048,8 +1053,7 @@ void Editor::HandleMouse() {
         case mk::kWheelUp: {
             Window* win = LocateWindow(mouse_info.col, mouse_info.row);
             if (win) {
-                cursor_.in_window->ScrollRows(
-                    -global_opts_->GetOpt<int64_t>(kOptScrollRows));
+                win->ScrollRows(-global_opts_->GetOpt<int64_t>(kOptScrollRows));
             }
             // Not locate any area, do nothing
             break;
@@ -1067,7 +1071,17 @@ void Editor::Draw() {
     // screen parts
     term_.Clear();
 
-    window_->Draw(highlight_search_);
+    switch (context_) {
+        case Context::kEditor:
+            text_window_->Draw(highlight_search_);
+            break;
+        case Context::kExplorer:
+            explorer_->Draw(highlight_search_);
+            break;
+        default:
+            CHX_ASSERT(false);
+            CHX_LOG_ERROR("Can't reach here");
+    }
     status_line_->Draw();
     peel_->Draw();
 
@@ -1087,32 +1101,58 @@ void Editor::Draw() {
 
 void Editor::PreProcess() {
     // Try Load All Buffers in all windows
-    if (window_->area_.buffer_->state() == BufferState::kHaveNotRead) {
+    if (text_window_->area_.buffer_->state() == BufferState::kHaveNotRead) {
         try {
-            window_->area_.buffer_->Load();
+            text_window_->area_.buffer_->Load();
             // TODO: Not init if file is too big.
             // Or just schedule the init.
             TSTree* ts_tree =
-                syntax_parser_->SyntaxInit(window_->area_.buffer_);
-            window_->area_.buffer_->ts_tree() = ts_tree;
+                syntax_parser_->SyntaxInit(text_window_->area_.buffer_);
+            text_window_->area_.buffer_->ts_tree() = ts_tree;
         } catch (Exception& e) {
             NotifyUser(fmt::format("buffer {} load error: {}",
-                                   window_->area_.buffer_->Name(), e.what()));
+                                   text_window_->area_.buffer_->Name(),
+                                   e.what()));
         }
     }
 
-    window_->area_.MakeSureViewValid();
     peel_->area_.MakeSureViewValid();
-    if (!IsPeel(mode_)) {
-        cursor_.in_window->MakeCursorVisible();
-    } else {
-        peel_->MakeCursorVisible();
+    switch (context_) {
+        case Context::kEditor:
+            text_window_->area_.MakeSureViewValid();
+            if (!IsPeel(mode_)) {
+                cursor_.t_win->MakeCursorVisible();
+            } else {
+                peel_->MakeCursorVisible();
+            }
+            break;
+        case Context::kExplorer:
+            if (!IsPeel(mode_)) {
+                explorer_->MakeCursorVisible();
+            } else {
+                peel_->MakeCursorVisible();
+            }
+            break;
+        default:
+            CHX_ASSERT(false);
+            CHX_LOG_ERROR("Can't reach here");
     }
 }
 
 Window* Editor::LocateWindow(int s_col, int s_row) {
-    if (window_->area_.In(s_col, s_row)) {
-        return window_.get();
+    switch (context_) {
+        case Context::kEditor:
+            if (text_window_->area_.In(s_col, s_row)) {
+                return text_window_.get();
+            }
+            break;
+        case Context::kExplorer:
+            if (explorer_->In(s_col, s_row)) {
+                return explorer_.get();
+            }
+            break;
+        default:
+            CHX_ASSERT(false);
     }
     return nullptr;
 }
@@ -1146,7 +1186,7 @@ void Editor::Help(const std::string& doc_name) {
             return;
         }
     }
-    cursor_.in_window->AttachBuffer(b);
+    cursor_.t_win->AttachBuffer(b);
 }
 
 void Editor::Quit(bool force) {
@@ -1172,10 +1212,7 @@ void Editor::GotoPeel(Mode mode) {
         return;
     }
 
-    cursor_.in_window->area_.b_view_->SaveCursorState(&cursor_);
-    b_view_stored_for_edit = *(cursor_.in_window->area_.b_view_);
-    cursor_.restore_from_peel = cursor_.in_window;
-    cursor_.in_window = nullptr;
+    cursor_.focused->SaveView();
     GotoMode(mode);
 
     if (mode == Mode::kPeelCommand) {
@@ -1199,7 +1236,7 @@ void Editor::ExitFromMode() {
         case Mode::kSelect:
             [[fallthrough]];
         case Mode::kSelectLine: {
-            cursor_.in_window->area_.StopSelection();
+            cursor_.focused->StopSelection();
             break;
         }
         case Mode::kOperatorPending: {
@@ -1212,11 +1249,7 @@ void Editor::ExitFromMode() {
             peel_->SetHistoryCursorToEnd();
             [[fallthrough]];
         case Mode::kPeelShow: {
-            CHX_ASSERT(cursor_.restore_from_peel);
-            cursor_.in_window = cursor_.restore_from_peel;
-            const TextArea& f = cursor_.in_window->area_;
-            *(f.b_view_) = b_view_stored_for_edit;
-            f.b_view_->RestoreCursorState(&cursor_, f.buffer_);
+            cursor_.focused->RestoreView();
             highlight_search_ = false;
             break;
         }
@@ -1244,33 +1277,23 @@ void Editor::GotoMode(Mode mode) {
     mode_ = mode;
 }
 
-void Editor::SearchCurrentBuffer(const std::string& pattern) {
+void Editor::SearchCurrentWindow(const std::string& pattern) {
     // TODO: Maybe we can eliminate duplicate searching?
-    if (cursor_.in_window) {
-        cursor_.in_window->BuildSearchContext(pattern);
+    if (!IsPeel(mode_)) {
+        cursor_.focused->BuildSearchContext(pattern);
         CursorGoSearch(search_foward_, 1, true);
     } else {
-        Window* w = cursor_.restore_from_peel;
+        auto w = cursor_.focused;
         w->BuildSearchContext(pattern);
-        // Just make buffer view move.
-        // A little bit ugly, but just make sure we don't modify cursor, and
-        // make the cursor state right accroding to the buffer state.
-        Cursor c = cursor_;
-        w->area_.b_view_->RestoreCursorState(&c, w->area_.buffer_);
-        CursorState c_state(&c);
-        bool has_result = w->area_.BufferViewGoSearchResult(
-            w->b_search_context_, search_foward_, 1, true, c_state);
-        c_state.SetCursor(&c);
-        w->area_.b_view_->SaveCursorState(&c);
-        highlight_search_ = has_result;
+        highlight_search_ = w->ViewGoSearchResult(search_foward_, 1, true);
     }
 }
 
 void Editor::CursorGoSearch(bool next, size_t count, bool keep_current_if_one) {
     std::stringstream ss;
-    Window* w = cursor_.in_window;
+    auto w = cursor_.focused;
     auto& pattern = w->GetSearchPattern();
-    BufferSearchState state =
+    SearchState state =
         w->CursorGoSearchResult(next, count, keep_current_if_one);
     ss << "Searching \"" << pattern << "\" ";
     if (state.total == 0) {
@@ -1289,7 +1312,7 @@ void Editor::TriggerCompletion(bool autocmp) {
 
     bool in_peel = IsPeel(mode_);
     if (!in_peel) {
-        completer_ = window_->area_.buffer_->completer();
+        completer_ = text_window_->area_.buffer_->completer();
     } else {
         completer_ = &peel_->completer_;
     }
@@ -1338,18 +1361,6 @@ void*& Editor::ContextManager::GetContext(ContextID id) {
 }
 void Editor::ContextManager::FreeContext(ContextID id) { contexts_.erase(id); }
 
-void Editor::PickBuffers() {
-    GotoPeel();
-    peel_->AddStringAtCursor("b ");
-    TriggerCompletion(false);
-}
-
-void Editor::EditFile() {
-    GotoPeel();
-    peel_->AddStringAtCursor("e ");
-    TriggerCompletion(false);
-}
-
 void Editor::CommandHitEnter() {
     std::string_view input = peel_->GetUserInput();
     CommandArgs args;
@@ -1382,38 +1393,20 @@ void Editor::SearchHitEnter() {
     if (!input.empty()) {
         peel_->AppendHistoryItem(MangoPeel::HistoryType::kSearch);
     }
-    SearchCurrentBuffer(std::string(input));
-}
-
-void Editor::CursorUp(size_t count) {
-    if (CompletionTriggered()) {
-        cmp_menu_->SelectPrev(count);
-        show_cmp_menu_ = true;
-    } else if (!IsPeel(mode_)) {
-        cursor_.in_window->CursorGoUp(count);
-    }
-}
-
-void Editor::CursorDown(size_t count) {
-    if (CompletionTriggered()) {
-        cmp_menu_->SelectNext(count);
-        show_cmp_menu_ = true;
-    } else if (!IsPeel(mode_)) {
-        cursor_.in_window->CursorGoDown(count);
-    }
+    SearchCurrentWindow(std::string(input));
 }
 
 void Editor::RemoveCurrentBuffer() {
-    buffer_manager_->RemoveBuffer(cursor_.in_window->area_.buffer_);
+    buffer_manager_->RemoveBuffer(cursor_.t_win->area_.buffer_);
 }
 
 void Editor::SaveCurrentBuffer() {
     try {
-        Result res = cursor_.in_window->area_.buffer_->Write();
+        Result res = cursor_.t_win->area_.buffer_->Write();
         if (res == kOk) {
-            NotifyUser(fmt::format(
-                "\"{}\" saved",
-                cursor_.in_window->area_.buffer_->path().FileName()));
+            NotifyUser(
+                fmt::format("\"{}\" saved",
+                            cursor_.t_win->area_.buffer_->path().FileName()));
         } else if (res == kBufferNoBackupFile) {
             NotifyUser("Buffer no backup file");
         } else if (res == kBufferCannotLoad) {
@@ -1430,7 +1423,7 @@ void Editor::SaveCurrentBuffer() {
 }
 
 void Editor::SaveCurrentBufferAs(const Path& path) {
-    Buffer* cur_b = cursor_.in_window->area_.buffer_;
+    Buffer* cur_b = cursor_.t_win->area_.buffer_;
     // We don't allow saving to the path of another buffer in order to avoid
     // some chaos.
     if (buffer_manager_->FindBuffer(path)) {
@@ -1488,7 +1481,7 @@ void Editor::TrySearchOnType() {
     if (mode_ != Mode::kPeelSearch) {
         return;
     }
-    SearchCurrentBuffer(std::string(peel_->GetUserInput()));
+    SearchCurrentWindow(std::string(peel_->GetUserInput()));
 }
 
 void Editor::StartupScreen() {
@@ -1526,7 +1519,7 @@ void Editor::Edit(const std::string& path) {
     Path p = Path(path);
     Buffer* b = buffer_manager_->FindBuffer(p);
     if (b) {
-        cursor_.in_window->AttachBuffer(b);
+        cursor_.t_win->AttachBuffer(b);
         return;
     }
     b = buffer_manager_->AddBuffer(Buffer(global_opts_.get(), std::move(p)));
@@ -1535,7 +1528,42 @@ void Editor::Edit(const std::string& path) {
     } catch (OSException& e) {
         NotifyUser(fmt::format("Monitor buffer error: {}", e.what()));
     }
-    cursor_.in_window->AttachBuffer(b);
+    cursor_.t_win->AttachBuffer(b);
+}
+
+void Editor::OpenExplorer() {
+    CHX_ASSERT(!IsPeel(mode_));
+    if (context_ != Context::kExplorer) {
+        cursor_.focused->SaveView();
+        context_ = Context::kExplorer;
+        explorer_->RestoreView();
+        cursor_.focused = explorer_.get();
+        layout_manager_->ArrangeLayout();
+    }
+}
+
+void Editor::QuitExplorer() {
+    CHX_ASSERT(!IsPeel(mode_));
+    CHX_ASSERT(context_ == Context::kExplorer);
+    explorer_->SaveView();
+    cursor_.t_win->RestoreView();
+    context_ = Context::kEditor;
+    cursor_.focused = cursor_.t_win;
+    layout_manager_->ArrangeLayout();
+}
+
+void Editor::EnsureInEditorContext() {
+    switch (context_) {
+        case Context::kEditor:
+            break;
+        case Context::kExplorer: {
+            QuitExplorer();
+            break;
+        }
+        default:
+            CHX_ASSERT(false);
+            break;
+    }
 }
 
 }  // namespace charxed

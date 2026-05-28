@@ -28,109 +28,112 @@ NOTE: Don't support self-defined keymaps now.
 - **Search**: Search input mode (`/` or `?` prompt)
 - **Show**: Peel show mode (multirow output display)
 
+
 ---
 
 ## General
 
-| Key | Description | Mode(s) |
-| --- | --- | --- |
-| `<esc>` / `<c-[>` | Exit from current mode / close Peel | All modes |
+| Key | Description | Mode(s) | Context |
+| --- | --- | --- | --- |
+| `<esc>` / `<c-[>` | Exit from current mode / close Peel | All modes | All |
 
 ## Navigation
 
-| Key | Description | Mode(s) |
-| --- | --- | --- |
-| `h` | Move cursor left | Normal, Select, Select-L, Show |
-| `l` | Move cursor right | Normal, Select, Select-L, Show |
-| `k` | Move cursor up | Normal, Select, Select-L, Show |
-| `j` | Move cursor down | Normal, Select, Select-L, Show |
-| `b` | Move to beginning of word | Normal, Select, Select-L, Show |
-| `e` | Move to end of word | Normal, Select, Select-L, Show |
-| `w` | Move to beginning of next word | Normal, Select, Select-L, Show |
-| `0` | Move to beginning of line | Normal, Select, Select-L, Show |
-| `$` | Move to end of line | Normal, Select, Select-L, Show |
-| `<c-f>` | Move down one page | Normal, Select, Select-L, Show |
-| `<c-b>` | Move up one page | Normal, Select, Select-L, Show |
-| `<c-d>` | Move down half page | Normal, Select, Select-L, Show |
-| `<c-u>` | Move up half page | Normal, Select, Select-L, Show |
-| `gg` | Move to beginning of file | Normal, Select, Select-L |
-| `G` | Move to end of file (or go to line {count}) | Normal, Select, Select-L |
-| `gf` | Go to file at cursor | Normal, Select, Select-L |
-| `f<char>` | Go to the next positon of the character in the current line | Normal, Select, Select-L |
-| `F<char>` | Go to the prev positon of the character in the current line | Normal, Select, Select-L |
-| `<c-o>` | Jump to previous cursor position | Normal |
-| `<c-i>` | Jump to next cursor position | Normal |
-| `]b` | Go to next buffer | Normal |
-| `[b` | Go to previous buffer | Normal |
+| Key | Description | Mode(s) | Context |
+| --- | --- | --- | --- |
+| `h` | Move cursor left | Normal, Select, Select-L, Show | Editor |
+| `l` | Move cursor right | Normal, Select, Select-L, Show | Editor |
+| `k` | Move cursor up | Normal, Select, Select-L, Show | All |
+| `j` | Move cursor down | Normal, Select, Select-L, Show | All |
+| `b` | Move to beginning of word | Normal, Select, Select-L, Show | Editor |
+| `e` | Move to end of word | Normal, Select, Select-L, Show | Editor |
+| `w` | Move to beginning of next word | Normal, Select, Select-L, Show | Editor |
+| `0` | Move to beginning of line | Normal, Select, Select-L, Show | Editor |
+| `$` | Move to end of line | Normal, Select, Select-L, Show | Editor |
+| `<c-f>` | Move down one page | Normal, Select, Select-L, Show | All |
+| `<c-b>` | Move up one page | Normal, Select, Select-L, Show | All |
+| `<c-d>` | Move down half page | Normal, Select, Select-L, Show | All |
+| `<c-u>` | Move up half page | Normal, Select, Select-L, Show | All |
+| `gg` | Move to beginning | Normal, Select, Select-L | Editor |
+| `G` | Move to end of file (or go to line {count}) | Normal, Select, Select-L | Editor |
+| `gf` | Go to file at cursor | Normal, Select, Select-L | Editor |
+| `f<char>` | Go to the next positon of the character in the current line | Normal, Select, Select-L | Editor |
+| `F<char>` | Go to the prev positon of the character in the current line | Normal, Select, Select-L | Editor |
+| `<c-o>` | Jump to previous cursor position | Normal | Editor |
+| `<c-i>` | Jump to next cursor position | Normal | Editor |
+| `]b` | Go to next buffer | Normal | Editor |
+| `[b` | Go to previous buffer | Normal | Editor |
+| `q` | Quit explorer | Normal | Explorer |
 
 ## Selection
 
-| Key | Description | Mode(s) |
-| --- | --- | --- |
-| `s` | Start line-wise selection | Normal |
-| `S` | Start character-wise selection | Normal |
+| Key | Description | Mode(s) | Context |
+| --- | --- | --- | --- |
+| `s` | Start line-wise selection | Normal | Editor |
+| `S` | Start character-wise selection | Normal | Editor |
 
-## Edit Operations
+## Editor Operations
 
-| Key | Description | Mode(s) |
-| --- | --- | --- |
-| `y` | Copy selection / prepare yank operation | Select, Select-L, Normal |
-| `d` | Cut selection / prepare delete operation | Select, Select-L, Normal |
-| `p` | Paste | Normal |
-| `u` | Undo | Normal |
-| `<c-r>` | Redo | Normal |
-| `i` | Enter insert mode at cursor | Normal |
-| `I` | Enter insert mode at first non-blank character | Normal |
-| `a` | Enter insert mode after cursor | Normal |
-| `A` | Enter insert mode at end of line | Normal |
-| `o` | Create new line below and enter insert mode | Normal |
-| `O` | Create new line above and enter insert mode | Normal |
-| `<enter>` | Add newline | Insert |
-| `<bs>` | Delete character before cursor | Insert |
-| `<c-w>` | Delete word before cursor | Insert |
-| `<c-r>` | Paste from clipboard | Insert |
-| `<space>f` | Call clang-format to format the current buffer(really unstable) | Normal |
-| `>` | Indent | Select, Select-L |
-| `<` | Unindent | Select-L, Select-L |
+| Key | Description | Mode(s) | Context |
+| --- | --- | --- | --- |
+| `y` | Copy selection / prepare yank operation | Select, Select-L, Normal | Editor |
+| `d` | Cut selection / prepare delete operation | Select, Select-L, Normal | Editor |
+| `p` | Paste | Normal | Editor |
+| `u` | Undo | Normal | Editor |
+| `<c-r>` | Redo | Normal | Editor |
+| `i` | Enter insert mode at cursor | Normal | Editor |
+| `I` | Enter insert mode at first non-blank character | Normal | Editor |
+| `a` | Enter insert mode after cursor | Normal | Editor |
+| `A` | Enter insert mode at end of line | Normal | Editor |
+| `o` | Create new line below and enter insert mode | Normal | Editor |
+| `O` | Create new line above and enter insert mode | Normal | Editor |
+| `<enter>` | Add newline | Insert | Editor |
+| `<bs>` | Delete character before cursor | Insert | Editor |
+| `<c-w>` | Delete word before cursor | Insert | Editor |
+| `<c-r>` | Paste from clipboard | Insert | Editor |
+| `<space>f` | Call clang-format to format the current buffer(really unstable) | Normal | Editor |
+| `>` | Indent | Select, Select-L, Op-Pend | Editor |
+| `<` | Unindent | Select-L, Select-L, Op-Pend | Editor |
 
 ## Completion & History
 
-| Key | Description | Mode(s) |
-| --- | --- | --- |
-| `<c-space>` | Trigger completion | Insert, Command |
-| `<c-c>` | Trigger completion | Insert, Command |
-| `<tab>` | Accept completion or insert tab | Insert, Command |
-| `<c-n>` | Select next completion | Insert, Command |
-| `<c-n>` | Select next history | Command, Search |
-| `<c-p>` | Select prev completion | Insert, Command |
-| `<c-p>` | Select prev history | Command, Search |
+| Key | Description | Mode(s) | Context |
+| --- | --- | --- | --- |
+| `<c-space>` | Trigger completion | Insert, Command | All |
+| `<c-c>` | Trigger completion | Insert, Command | All |
+| `<tab>` | Accept completion or insert tab | Insert, Command | All |
+| `<c-n>` | Select next completion | Insert, Command | All |
+| `<c-n>` | Select next history | Command, Search | All |
+| `<c-p>` | Select prev completion | Insert, Command | All |
+| `<c-p>` | Select prev history | Command, Search | All |
 
 ## Search & Command
 
-| Key | Description | Mode(s) |
-| --- | --- | --- |
-| `/` | Start forward search | Normal |
-| `?` | Start backward search | Normal |
-| `n` | Go to next search match | Normal |
-| `N` | Go to previous search match | Normal |
-| `:` | Enter command mode | Normal |
-| `<enter>` | Open Peel show mode | Normal |
+| Key | Description | Mode(s) | Context |
+| --- | --- | --- | --- |
+| `/` | Start forward search | Normal | All |
+| `?` | Start backward search | Normal | All |
+| `n` | Go to next search match | Normal | All |
+| `N` | Go to previous search match | Normal | All |
+| `:` | Enter command mode | Normal | All |
+| `<enter>` | Open Peel show mode | Normal | Editor |
+| `<enter>` | Open Peel show mode or Expand/Collapse dirs or Open files | Normal | Explorer |
 
 ## Peel Input (Command & Search)
 
-| Key | Description | Mode(s) |
-| --- | --- | --- |
-| `<left>` | Move cursor left | Command, Search |
-| `<right>` | Move cursor right | Command, Search |
-| `<c-left>` | Move to previous word | Command, Search |
-| `<c-right>` | Move to next word | Command, Search |
-| `<home>` | Move to beginning | Command, Search |
-| `<end>` | Move to end | Command, Search |
-| `<bs>` | Delete character before cursor | Command, Search |
-| `<c-w>` | Delete word before cursor | Command, Search |
-| `<c-r>` | Paste from clipboard | Command, Search |
-| `<c-n>` | Next history item | Command, Search |
-| `<c-p>` | Previous history item | Command, Search |
-| `<enter>` | Execute command or search | Command, Search |
+| Key | Description | Mode(s) | Context |
+| --- | --- | --- | --- |
+| `<left>` | Move cursor left | Command, Search | All |
+| `<right>` | Move cursor right | Command, Search | All |
+| `<c-left>` | Move to previous word | Command, Search | All |
+| `<c-right>` | Move to next word | Command, Search | All |
+| `<home>` | Move to beginning | Command, Search | All |
+| `<end>` | Move to end | Command, Search | All |
+| `<bs>` | Delete character before cursor | Command, Search | All |
+| `<c-w>` | Delete word before cursor | Command, Search | All |
+| `<c-r>` | Paste from clipboard | Command, Search | All |
+| `<c-n>` | Next history item | Command, Search | All |
+| `<c-p>` | Previous history item | Command, Search | All |
+| `<enter>` | Execute command or search | Command, Search | All |
 
 

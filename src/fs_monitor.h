@@ -3,6 +3,7 @@
 #include <string>
 
 #include "event_loop.h"
+#include "state.h"
 #include "utils.h"
 
 namespace charxed {
@@ -69,7 +70,7 @@ class BufferFSMonitor : public FSMonitor {
    public:
     // throw OSException
     BufferFSMonitor(BufferManager* buffer_manager, Cursor* cursor,
-                    SyntaxParser* syntax_parser);
+                    SyntaxParser* syntax_parser, Mode* mode, Context* context);
     ~BufferFSMonitor() override {}
     CHX_DELETE_COPY(BufferFSMonitor);
     CHX_DELETE_MOVE(BufferFSMonitor);
@@ -90,6 +91,9 @@ class BufferFSMonitor : public FSMonitor {
     BufferManager* buffer_manager_;
     Cursor* cursor_;
     SyntaxParser* syntax_parser_;
+
+    Mode* mode_;
+    Context* context_;
 };
 
 }  // namespace charxed

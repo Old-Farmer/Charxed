@@ -12,7 +12,7 @@
 #include "exception.h"
 #include "fs.h"
 #include "syntax.h"
-#include "window.h"
+#include "text_window.h"
 
 namespace charxed {
 
@@ -128,10 +128,13 @@ bool FSMonitor::HandleFsEvents() {
 }
 
 BufferFSMonitor::BufferFSMonitor(BufferManager* buffer_manager, Cursor* cursor,
-                                 SyntaxParser* syntax_parser)
+                                 SyntaxParser* syntax_parser, Mode* mode,
+                                 Context* context)
     : buffer_manager_(buffer_manager),
       cursor_(cursor),
-      syntax_parser_(syntax_parser) {}
+      syntax_parser_(syntax_parser),
+      mode_(mode),
+      context_(context) {}
 
 void BufferFSMonitor::MonitorBuffer(Buffer* b) {
     CHX_ASSERT(!b->path().Empty());
@@ -188,8 +191,8 @@ bool BufferFSMonitor::BufferModified(std::string_view path) {
         return false;
     }
 
-    bool is_showed =
-        cursor_->in_window && cursor_->in_window->area_.buffer_ == b;
+    bool is_showed = *context_ == Context::kEditor && !IsPeel(*mode_) &&
+                     cursor_->t_win->area_.buffer_ == b;
 
     try {
         if (is_showed) {
