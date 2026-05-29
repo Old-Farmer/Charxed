@@ -963,6 +963,7 @@ bool TextArea::CursorGoUpStateWrap(size_t count, size_t content_width,
     auto state_iter = iter;
     auto line = buffer_->GetLineView(state.pos.line);
     std::vector<TextTree::Iterator> subline_begin_iters;
+    iter = line.begin;
     while (true) {
         subline_begin_iters.push_back(iter);
         iter = ArrangeLine(line, iter, 0, content_width, tabstop, true);
@@ -1052,7 +1053,7 @@ bool TextArea::CursorGoDownStateWrap(size_t count, size_t content_width,
     auto state_iter = iter;
     auto line = buffer_->GetLineView(state.pos.line);
 
-    auto subline_begin_iter = iter;
+    auto subline_begin_iter = line.begin;
     while (true) {
         iter = ArrangeLine(line, subline_begin_iter, 0, content_width, tabstop,
                            true);

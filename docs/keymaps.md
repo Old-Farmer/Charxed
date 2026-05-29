@@ -101,7 +101,8 @@ NOTE: Don't support self-defined keymaps now.
 | --- | --- | --- | --- |
 | `<c-space>` | Trigger completion | Insert, Command | All |
 | `<c-c>` | Trigger completion | Insert, Command | All |
-| `<tab>` | Accept completion or insert tab | Insert, Command | All |
+| `<tab>` | Accept completion or insert tab | Insert | Editor |
+| `<tab>` | Accept completion | Command | All |
 | `<c-n>` | Select next completion | Insert, Command | All |
 | `<c-n>` | Select next history | Command, Search | All |
 | `<c-p>` | Select prev completion | Insert, Command | All |
