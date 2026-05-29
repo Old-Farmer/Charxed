@@ -1,0 +1,4 @@
+#pragma once
+
+#define CHX_VERSION "@GIT_TAG@"
+#define CHX_COMMIT "@GIT_COMMIT@"

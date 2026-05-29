@@ -6,6 +6,8 @@
 #include <cstdlib>
 #include <vector>
 
+#include "version.h"
+
 namespace charxed {
 
 namespace {
@@ -22,13 +24,21 @@ void PrintUsage(int status = EXIT_SUCCESS) {
     exit(status);
 }
 
+void PrintVersion(int status = EXIT_SUCCESS) {
+    puts("Version: " CHX_VERSION
+         "\n"
+         "Commit: " CHX_COMMIT);
+    exit(status);
+}
+
 }  // namespace
 
 void ParseCmdArgs(int argc, char* argv[], GlobalOpts* options,
                   InitOpts* init_options) {
-    const char* short_opts = "h";
+    const char* short_opts = "hv";
     option long_opts[] = {
         {"help", no_argument, nullptr, 'h'},
+        {"version", no_argument, nullptr, 'v'},
         {},
     };
     bzero(&long_opts[sizeof(long_opts) / sizeof(option) - 1], sizeof(option));
@@ -37,14 +47,15 @@ void ParseCmdArgs(int argc, char* argv[], GlobalOpts* options,
     while ((c = getopt_long(argc, argv, short_opts, long_opts, nullptr)) !=
            -1) {
         switch (c) {
-            case 'h': {
+            case 'h':
                 PrintUsage();
                 break;
-            }
-            case '?': {
+            case 'v':
+                PrintVersion();
+                break;
+            case '?':
                 PrintUsage(EXIT_FAILURE);
                 break;
-            }
         }
     }
 

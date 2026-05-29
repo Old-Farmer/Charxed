@@ -163,8 +163,26 @@ FetchContent_MakeAvailable(fmt)
 # # ICU
 # find_package(ICU REQUIRED COMPONENTS uc i18n data)
 
-# Charxed library
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
+
+# commit hash
+execute_process(
+    COMMAND git rev-parse HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+# tag
+execute_process(
+    COMMAND git describe --tags --abbrev=0
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_TAG
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+configure_file("${SRC_DIR}/version.h.in" "version.h")
+
+# Charxed library
 set(SRC_LSP_DIR "${CMAKE_SOURCE_DIR}/src/lsp")
 add_library(charxed_lib STATIC)
 add_dependencies(charxed_lib build_termbox2 build_treesitter build_utf8proc)
@@ -301,6 +319,7 @@ target_include_directories(
   "${TERMBOX2_INCLUDE_DIR}"
   "${TREESITTER_INCLUDE_DIR}"
   "${UTF8PROC_INCLUDE_DIR}"
+  "${CMAKE_BINARY_DIR}"
 )
 
 target_compile_definitions(charxed_lib PUBLIC TB_OPT_ATTR_W=64 TB_OPT_EGC)

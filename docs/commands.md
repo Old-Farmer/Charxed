@@ -31,5 +31,9 @@ Commands are instructions you can execute in the Charxed Peel. You can use full 
     desc: delete the current buffer
 
 - `smile`
-    short form: None
+    short form: /
     desc: print a smile.
+
+- `about`
+    short form: /
+    desc: show version info.

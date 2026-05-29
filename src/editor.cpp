@@ -8,6 +8,7 @@
 #include "options.h"
 #include "subprocess.h"
 #include "term.h"
+#include "version.h"
 
 // TODO: show sth. to users if modify the readonly buffer.
 
@@ -41,6 +42,9 @@ constexpr const char* kStartup[] = {
     "",
     R"(      Press any key to continue...)",
 };
+
+constexpr const char* kVersionInfo =
+    "Version: " CHX_VERSION "\nCommit: " CHX_COMMIT;
 
 constexpr size_t kStartupWidth = 39;
 constexpr size_t kStartupHeight = std::size(kStartup);
@@ -783,16 +787,14 @@ void Editor::InitCommands() {
                  if (context_ != Context::kEditor) return;
                  RemoveCurrentBuffer();
              }});
-    CHX_CMD({"smile",
-             "",
-             "",
-             {Type::kString},
-             [this](const CommandArgs& args) {
+    CHX_CMD({"smile", "", "", {}, [this](const CommandArgs& args) {
                  (void)args;
                  NotifyUser(kSmile);
-             },
-             0,
-             0});
+             }});
+    CHX_CMD({"about", "", "", {Type::kString}, [this](const CommandArgs& args) {
+                 (void)args;
+                 NotifyUser(kVersionInfo);
+             }});
 #undef CHX_ENSURE_ARGEXITS
 }
 
