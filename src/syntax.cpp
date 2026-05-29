@@ -27,12 +27,17 @@ std::string QueryFilePath(FileType filetype) {
     return p;
 }
 
-const char* my_ts_read(void* payload, uint32_t byte_offset, TSPoint position,
-                       uint32_t* bytes_read) {
-    (void)byte_offset;
+const char* MyTSRead(void* payload, uint32_t byte_offset, TSPoint position,
+                     uint32_t* bytes_read) {
+    (void)position;
     Buffer* buffer = reinterpret_cast<Buffer*>(payload);
 
-    auto iter = buffer->Find({position.row, position.column});
+    auto iter = buffer->Find(byte_offset);
+    if (iter == buffer->End()) {
+        *bytes_read = 0;
+        return nullptr;
+    }
+
     auto sv = iter.MaxContinuousData();
     *bytes_read = sv.size();
     return sv.data();
@@ -268,8 +273,8 @@ TSTree* SyntaxParser::SyntaxInit(const Buffer* buffer) {
         return nullptr;
     }
 
-    TSInput input = {const_cast<Buffer*>(buffer), my_ts_read,
-                     TSInputEncodingUTF8, nullptr};
+    TSInput input = {const_cast<Buffer*>(buffer), MyTSRead, TSInputEncodingUTF8,
+                     nullptr};
     TSTree* tree = ts_parser_parse(parser_, nullptr, input);
     if (tree == nullptr) {
         CHX_LOG_ERROR("ts_parser_parse error: filetype {}",
@@ -285,8 +290,8 @@ void SyntaxParser::ParseSyntaxAfterEdit(Buffer* buffer) {
     if (iter == buffer_context_.end()) {
         return;
     }
-    TSInput input = {const_cast<Buffer*>(buffer), my_ts_read,
-                     TSInputEncodingUTF8, nullptr};
+    TSInput input = {const_cast<Buffer*>(buffer), MyTSRead, TSInputEncodingUTF8,
+                     nullptr};
     TSTree* new_tree = ts_parser_parse(parser_, buffer->ts_tree(), input);
     ts_tree_delete(buffer->ts_tree());
     buffer->ts_tree() = new_tree;

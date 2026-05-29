@@ -45,6 +45,9 @@ Buffer::~Buffer() {
     if (new_file_info_) {
         new_file_alloced_ids_[new_file_info_->id - 1] = false;
     }
+    if (ts_tree_) {
+        ts_tree_delete(ts_tree_);
+    }
 }
 
 void Buffer::Load() {

@@ -208,11 +208,9 @@ class TextTree {
     // if pos.line >= line cnt, behavior is undefined.
     Iterator Find(Pos pos) const;
 
-   private:
     // if offset can't be found, return End()
     Iterator Find(size_t offset) const;
 
-   public:
     Iterator Begin() const {
         Iterator iter;
 #ifndef NDEBUG

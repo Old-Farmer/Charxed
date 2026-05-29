@@ -187,6 +187,7 @@ class Buffer {
     // Please refer TextTree Find and Iterator
     using Iterator = TextTree::Iterator;
     Iterator Find(Pos pos) const { return tree_.Find(pos); }
+    Iterator Find(size_t offset) const { return tree_.Find(offset); }
 
     Iterator LineEnd(size_t line) {
         CHX_ASSERT(LineCnt() > line);
