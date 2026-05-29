@@ -371,7 +371,7 @@ void SyntaxParser::InitQueryContex(TSQueryContext& query_context) {
             } else {
                 throw TSQueryPredicateDirectiveNotSupportException(
                     "TS Query predicate/directive {} is not "
-                    "suppored",
+                    "supported",
                     predicate);
             }
         }
@@ -383,7 +383,8 @@ const SyntaxParser::TSQueryContext* SyntaxParser::GetQueryContext(
     auto& lang = filetype_to_language_[static_cast<int>(filetype)];
     auto& query_context = filetype_to_query_[static_cast<int>(filetype)];
     if (lang == nullptr) {
-        CHX_LOG_ERROR("tree-sitter TSLanguage create function not defined");
+        CHX_LOG_ERROR("tree-sitter TSLanguage {} create function not defined",
+                      FileTypesInnerStrRep(filetype));
         query_context = std::make_unique<TSQueryContext>();
         return nullptr;
     }

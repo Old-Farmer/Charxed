@@ -304,6 +304,8 @@ void Buffer::AddInner(Pos pos, std::string_view str, Pos& cursor_pos_hint,
             cursor_pos_hint.byte_offset++;
         }
     }
+    // CHX_LOG_DEBUG("del cursor line {}, byte_offset {}", cursor_pos_hint.line,
+    //               cursor_pos_hint.byte_offset);
     Modified();
     if (record_ts_edit) {
         ts_edit_.start_point.row = pos.line;
@@ -336,6 +338,8 @@ std::string Buffer::DeleteInner(const Range& range, Pos& cursor_pos_hint,
     tree_.Delete(view.begin, view.end);
 
     cursor_pos_hint = range.begin;
+    // CHX_LOG_DEBUG("del cursor line {}, byte_offset {}", cursor_pos_hint.line,
+    //               cursor_pos_hint.byte_offset);
 
     Modified();
     if (record_ts_edit) {

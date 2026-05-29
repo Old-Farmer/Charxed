@@ -154,6 +154,7 @@ void PeelCompleter::Suggest(const Pos& cursor_pos,
                 suggestions_.push_back(command->name);
             }
         }
+        type_ = SuggestType::kOther;
     } else {
         auto iter = cmd_name_to_cmp_handler_.find(args[0]);
         if (iter != cmd_name_to_cmp_handler_.end()) {
@@ -184,7 +185,7 @@ Result PeelCompleter::Accept(size_t index, Cursor* cursor) {
                 suggestions_[index], nullptr, false, pos);
         }
     } else {
-        CHX_ASSERT("Shouldn't reach here");
+        CHX_ASSERT(false);
     }
     cursor->pos = pos;
     Result res;
@@ -288,11 +289,10 @@ Result BufferBasicWordCompleter::Accept(size_t index, Cursor* cursor) {
     CHX_ASSERT(cursor->t_win);
     CHX_ASSERT(index < suggestions_.size());
     Pos cursor_pos = cursor->pos;
-    cursor->t_win->Replace(
-        {{cursor_pos.line,
-          cursor_pos.byte_offset - bytes_of_word_before_cursor_},
-         cursor_pos},
-        std::move(suggestions_[index]));  // Ignore ret
+    cursor->t_win->Replace({{cursor_pos.line, cursor_pos.byte_offset -
+                                                  bytes_of_word_before_cursor_},
+                            cursor_pos},
+                           std::move(suggestions_[index]));  // Ignore ret
     suggestions_.clear();
     return kOk;
 }
