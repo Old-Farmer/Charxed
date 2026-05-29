@@ -23,7 +23,7 @@ struct Keyseq {
 class KeyseqManager {
    public:
     KeyseqManager(Mode& mode, Context& context);
-    ~KeyseqManager() = default;
+    ~KeyseqManager() = default; // TODO: implement it
     CHX_DELETE_COPY(KeyseqManager);
     CHX_DELETE_MOVE(KeyseqManager);
 
@@ -53,20 +53,15 @@ class KeyseqManager {
     using Nexts = std::unordered_map<size_t, Node*>;
     // use Trie tree to organize keymaps
     struct Node {
-        Keyseq handler;
+        std::unique_ptr<Keyseq> handler;
         Nexts nexts;
+        Node* any_codepoint_next =
+            nullptr;  // If key seq have <any-cp>, this will be set
         bool end = false;
 
         Node() = default;
         explicit Node(bool _end) : end(_end) {}
     };
-
-    // For simplicity, only ascii charset seq is supported.
-    // throws KeyNotPredefinedException if key str is not pre-defined
-    // throws DanglingEscapeException
-    // return kError if keymap is not well formed by users
-    Result ParseKeyseq(const std::string& seq,
-                       std::vector<Terminal::KeyInfo>& keys);
 
    private:
     using KeymapsTrees =

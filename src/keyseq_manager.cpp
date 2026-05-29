@@ -6,13 +6,33 @@
 
 namespace charxed {
 
+namespace {
+
 using tm = Terminal;
 using ki = Terminal::KeyInfo;
 using sk = Terminal::SpecialKey;
 
+// A special wrapper of KeyInfo
+// It can represent two state:
+// 1. specific key
+// 2. any codepoint key
+struct KeyInfoOrAnyCodepoint {
+    tm::KeyInfo key_info;
+    bool any_codepoint;
+
+    // Specific key
+    KeyInfoOrAnyCodepoint(tm::KeyInfo _key_info)
+        : key_info(_key_info), any_codepoint(false) {}
+
+    // Any code point
+    KeyInfoOrAnyCodepoint() : any_codepoint(true) {}
+};
+
 // only support ascii keystr
-static const std::unordered_map<std::string_view, Terminal::KeyInfo>
+const std::unordered_map<std::string_view, KeyInfoOrAnyCodepoint>
     kKeyStrToKeyInfo = {
+        // Any code point
+        {"<any-cp>", {}},
         // esc
         {"<esc>", {ki::CreateSpecialKey(sk::kEsc)}},
         {"<c-[>", {ki::CreateSpecialKey(sk::kCtrlLsqBracket)}},  // same <esc>
@@ -77,17 +97,8 @@ static const std::unordered_map<std::string_view, Terminal::KeyInfo>
         {"<c-pgdn>", {ki::CreateSpecialKey(sk::kPgdn, tm::kCtrl)}},
 };
 
-KeyseqManager::KeyseqManager(Mode& mode, Context& context)
-    : mode_(mode), context_(context) {
-    for (auto& roots_in_context : roots_) {
-        for (auto& root : roots_in_context) {
-            root = Node(true);
-        }
-    }
-}
-
-Result KeyseqManager::ParseKeyseq(const std::string& seq,
-                                  std::vector<Terminal::KeyInfo>& keys) {
+Result ParseKeyseq(const std::string& seq,
+                   std::vector<KeyInfoOrAnyCodepoint>& keys) {
     int start = -1;
     for (size_t i = 0; i < seq.size(); i++) {
         if (seq[i] == '\\') {
@@ -122,10 +133,21 @@ Result KeyseqManager::ParseKeyseq(const std::string& seq,
     return kOk;
 }
 
+}  // namespace
+
+KeyseqManager::KeyseqManager(Mode& mode, Context& context)
+    : mode_(mode), context_(context) {
+    for (auto& roots_in_context : roots_) {
+        for (auto& root : roots_in_context) {
+            root = Node(true);
+        }
+    }
+}
+
 Result KeyseqManager::AddKeyseq(const std::string& seq, const Keyseq& handler,
                                 const std::vector<Mode>& modes,
                                 const std::vector<Context>& contexts) {
-    std::vector<Terminal::KeyInfo> keys;
+    std::vector<KeyInfoOrAnyCodepoint> keys;
     Result res = ParseKeyseq(seq, keys);
     if (res != kOk) {
         return res;
@@ -134,15 +156,22 @@ Result KeyseqManager::AddKeyseq(const std::string& seq, const Keyseq& handler,
         for (auto mode : modes) {
             Node* node =
                 &roots_[static_cast<int>(context)][static_cast<int>(mode)];
-            for (const Terminal::KeyInfo& key_info : keys) {
-                auto iter = node->nexts.find(key_info.ToNumber());
-                if (iter == node->nexts.end()) {
-                    node->nexts[key_info.ToNumber()] = new Node;
+            for (const auto& key : keys) {
+                if (key.any_codepoint) {
+                    if (node->any_codepoint_next == nullptr) {
+                        node->any_codepoint_next = new Node;
+                    }
+                    node = node->any_codepoint_next;
+                } else {
+                    auto iter = node->nexts.find(key.key_info.ToNumber());
+                    if (iter == node->nexts.end()) {
+                        node->nexts[key.key_info.ToNumber()] = new Node;
+                    }
+                    node = node->nexts[key.key_info.ToNumber()];
                 }
-                node = node->nexts[key_info.ToNumber()];
             }
             node->end = true;
-            node->handler = handler;
+            node->handler = std::make_unique<Keyseq>(handler);
         }
     }
     return kOk;
@@ -151,7 +180,7 @@ Result KeyseqManager::AddKeyseq(const std::string& seq, const Keyseq& handler,
 Result KeyseqManager::RemoveKeyseq(const std::string& seq,
                                    const std::vector<Mode>& modes,
                                    const std::vector<Context>& contexts) {
-    std::vector<Terminal::KeyInfo> keys;
+    std::vector<KeyInfoOrAnyCodepoint> keys;
     Result res = ParseKeyseq(seq, keys);
     if (res != kOk) {
         return res;
@@ -161,12 +190,21 @@ Result KeyseqManager::RemoveKeyseq(const std::string& seq,
             Node* node =
                 &roots_[static_cast<int>(context)][static_cast<int>(mode)];
             std::stack<std::pair<Node*, Nexts::iterator>> sta;
-            bool to_end = true;
-            for (const Terminal::KeyInfo& key_info : keys) {
-                auto iter = node->nexts.find(key_info.ToNumber());
-                if (iter == node->nexts.end()) {
-                    to_end = false;
-                    break;
+            bool to_end = true;  // We truly find this key seq in the tree?
+            for (const auto& key : keys) {
+                Nexts::iterator iter;
+                if (key.any_codepoint) {
+                    if (node->any_codepoint_next == nullptr) {
+                        to_end = false;
+                        break;
+                    }
+                    iter = node->nexts.end();  // Mark as end()
+                } else {
+                    iter = node->nexts.find(key.key_info.ToNumber());
+                    if (iter == node->nexts.end()) {
+                        to_end = false;
+                        break;
+                    }
                 }
                 sta.push({node, iter});
                 node = iter->second;
@@ -182,7 +220,11 @@ Result KeyseqManager::RemoveKeyseq(const std::string& seq,
             delete node;
             while (!sta.empty()) {
                 auto [node, iter] = sta.top();
-                node->nexts.erase(iter);
+                if (iter == node->nexts.end()) {
+                    node->any_codepoint_next = nullptr;
+                } else {
+                    node->nexts.erase(iter);
+                }
                 if (node->end) {
                     break;
                 }
@@ -211,15 +253,23 @@ Result KeyseqManager::FeedKey(const Terminal::KeyInfo& key, Keyseq*& handler) {
         return kKeyseqError;
     }
 
+    // First try to find any specific key match,
+    // If we can't find any match, we try any_codepoint_next.
+    // This behavior is aligned to AddKeyseq and RemoveKeyseq.
     auto iter = cur_->nexts.find(key.ToNumber());
     if (iter == cur_->nexts.end()) {
-        cur_ = nullptr;
-        return kKeyseqError;
+        if (cur_->any_codepoint_next == nullptr || key.IsSpecialKey()) {
+            cur_ = nullptr;
+            return kKeyseqError;
+        }
+        cur_ = cur_->any_codepoint_next;
+    } else {
+        cur_ = iter->second;
     }
 
-    cur_ = iter->second;
     if (cur_->end) {
-        handler = &cur_->handler;
+        handler = cur_->handler.get();
+        CHX_ASSERT(handler != nullptr);
         cur_ = nullptr;
         return kKeyseqDone;
     } else {

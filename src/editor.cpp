@@ -362,13 +362,18 @@ void Editor::InitKeymaps() {
                }});
     CHX_KEYMAP("gg", {[this] { cursor_.t_win->CursorGoLine(0); }});
     CHX_KEYMAP("gf", {[this] { cursor_.t_win->GotoFile(); }});
-    CHX_KEYMAP("f", {[this] {
-                   input_state_ = InputState::kFind;
+    CHX_KEYMAP("f<any-cp>", {[this] {
                    find_forward_ = true;
+                   // For simplicity, currently we only find one codepoint.
+                   c_to_find_.Set(term_.EventKeyInfo().codepoint);
+                   cursor_.t_win->FindNextCharacterAndCursorGoInCurrentLine(
+                       c_to_find_);
                }});
-    CHX_KEYMAP("F", {[this] {
-                   input_state_ = InputState::kFind;
+    CHX_KEYMAP("F<any-cp>", {[this] {
                    find_forward_ = false;
+                   c_to_find_.Set(term_.EventKeyInfo().codepoint);
+                   cursor_.t_win->FindPrevCharacterAndCursorGoInCurrentLine(
+                       c_to_find_);
                }});
     CHX_KEYMAP(";", {[this] {
                    if (find_forward_) {
@@ -854,27 +859,6 @@ void Editor::HandleKey() {
     if (input_state_ == InputState::kCount && !key_info.IsSpecialKey() &&
         key_info.codepoint >= '0' && key_info.codepoint <= '9') {
         count_ = count_ * 10 + key_info.codepoint - '0';
-        return;
-    }
-
-    // TODO: Make KeyseqManager support any key.
-    if (input_state_ == InputState::kFind) {
-        input_state_ = InputState::kNone;
-        if (key_info.IsSpecialKey()) {
-            return;
-        }
-
-        CHX_ASSERT(context_ == Context::kEditor);
-        // For simplicity, currently we only find one codepoint.
-        c_to_find_.Clear();
-        c_to_find_.Push(key_info.codepoint);
-        if (find_forward_) {
-            cursor_.t_win->FindNextCharacterAndCursorGoInCurrentLine(
-                c_to_find_);
-        } else {
-            cursor_.t_win->FindPrevCharacterAndCursorGoInCurrentLine(
-                c_to_find_);
-        }
         return;
     }
 

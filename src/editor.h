@@ -159,7 +159,6 @@ class Editor {
     enum class InputState {
         kNone,
         kCount,  // count
-        kFind,
     };
     enum class Operator {
         kYank,

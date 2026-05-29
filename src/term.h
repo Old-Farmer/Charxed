@@ -330,6 +330,9 @@ class Terminal {
 
     // special key xor codepoint
     // and mod
+    // NOTE: currently, NormalKeys don't have mod because we don't use alt +
+    // codepoint. And termbox2 doesn't emit alt + codepoint events because we
+    // use esc mode.
     struct KeyInfo {
         Codepoint codepoint;
         SpecialKey special_key;
@@ -342,10 +345,9 @@ class Terminal {
             return {0, key, mod};
         }
 
-        static constexpr KeyInfo CreateNormalKey(
-            Codepoint codepoint, Mod mod = static_cast<Mod>(0)) {
+        static constexpr KeyInfo CreateNormalKey(Codepoint codepoint) {
             CHX_ASSERT(codepoint != 0);
-            return {codepoint, {}, mod};
+            return {codepoint, {}, static_cast<Mod>(0)};
         }
 
         size_t ToNumber() const {

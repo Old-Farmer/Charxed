@@ -87,6 +87,23 @@ TEST_CASE("keyseq_manager test") {
         res = manager.FeedKey(c_i, h2);
         REQUIRE(res == kKeyseqDone);
     }
+
+    SECTION("any code point test") {
+        manager.AddKeyseq("x<any-cp>", h, {mode}, {context});
+
+        auto x = Terminal::KeyInfo::CreateNormalKey('x');
+        auto y = Terminal::KeyInfo::CreateNormalKey('y');
+        auto z = Terminal::KeyInfo::CreateNormalKey('z');
+        Result res;
+        res = manager.FeedKey(x, h2);
+        REQUIRE(res == kKeyseqMatched);
+        res = manager.FeedKey(y, h2);
+        REQUIRE(res == kKeyseqDone);
+        res = manager.FeedKey(x, h2);
+        REQUIRE(res == kKeyseqMatched);
+        res = manager.FeedKey(z, h2);
+        REQUIRE(res == kKeyseqDone);
+    }
 }
 
 TEST_CASE("command_manager test") {
