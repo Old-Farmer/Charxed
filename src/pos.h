@@ -8,14 +8,15 @@ namespace charxed {
 struct Pos {
     size_t line;
     size_t byte_offset;
+
+    bool operator==(Pos other) const noexcept {
+        return byte_offset == other.byte_offset && line == other.line;
+    }
+    bool operator<(Pos other) const noexcept {
+        return line < other.line ||
+               (line == other.line && byte_offset < other.byte_offset);
+    }
 };
-inline bool operator==(const Pos& pos1, const Pos& pos2) noexcept {
-    return pos1.byte_offset == pos2.byte_offset && pos1.line == pos2.line;
-}
-inline bool operator<(const Pos& pos1, const Pos& pos2) noexcept {
-    return pos1.line < pos2.line ||
-           (pos1.line == pos2.line && pos1.byte_offset < pos2.byte_offset);
-}
 
 // Range represents a text range: [begin, end)
 // NOTE:

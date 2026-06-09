@@ -23,14 +23,19 @@ struct Selection {
 
 // normal selection
 struct NormalSelection : Selection {
+    bool inclusive_end;  // Normally, selection is exclusive end semantic, but
+                         // sometimes we want inclusive end.
+
     NormalSelection() {}
-    NormalSelection(Pos _anchor, Pos _head) : Selection(_anchor, _head) {}
+    NormalSelection(Pos _anchor, Pos _head, bool _inclusive_end = false)
+        : Selection(_anchor, _head), inclusive_end(_inclusive_end) {}
 
     Range ToSelectRange(const Buffer* buffer) const override;
 };
 
 // Line selection
 struct LineSelection : Selection {
+    LineSelection() {}
     LineSelection(Pos _anchor, Pos _head) : Selection(_anchor, _head) {}
 
     Range ToSelectRange(const Buffer* buffer) const override;

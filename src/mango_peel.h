@@ -48,6 +48,8 @@ class MangoPeel {
     void CursorGoNextWordEnd(size_t count);
     void CursorGoNextWordBegin(size_t count);
     void CursorGoPrevWordBegin(size_t count);
+    void CursorGoBracket() { area_.CursorGoBracket(); }
+    void CursorGoLine(size_t line) { area_.CursorGoLine(line); }
     void Copy();
 
     // One line editable peel, Users can input sth to it.

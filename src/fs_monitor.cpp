@@ -18,6 +18,7 @@ namespace charxed {
 
 namespace {
 constexpr uint32_t kWatchedFsEvent = IN_MOVE | IN_MODIFY | IN_DELETE_SELF;
+constexpr size_t kInotifyEventBufSize = 4096;
 
 struct InotifyEvent {
     int wd;
@@ -69,7 +70,9 @@ void FSMonitor::UnmonitorDir(std::string_view dir) {
 }
 
 bool FSMonitor::HandleFsEvents() {
-    alignas(alignof(inotify_event)) char buf[4096];
+    static_assert(kInotifyEventBufSize >= sizeof(inotify_event) + NAME_MAX + 1,
+                  "buf size is not large enough");
+    alignas(alignof(inotify_event)) char buf[kInotifyEventBufSize];
     std::vector<InotifyEvent> events;
 
     while (true) {
@@ -81,11 +84,14 @@ bool FSMonitor::HandleFsEvents() {
             throw OSException(errno, "read error: {}", strerror(errno));
         }
 
+        // According to man inotify(7), inotify_event.len is not the
+        // strlen(inotify_event.name). The len is set to make sure
+        // (sizeof(inotify_event) + inotify_event.len) is properly aligned to
+        // alignof(inotify_event).
         inotify_event* event;
         for (char* ptr = buf; ptr < buf + sz;
              ptr += sizeof(inotify_event) + event->len) {
             event = reinterpret_cast<inotify_event*>(ptr);
-
             events.push_back({event->wd, event->mask, event->cookie,
                               std::string(event->name), false});
         }
@@ -150,6 +156,7 @@ void BufferFSMonitor::UnmonitorBuffer(Buffer* b) {
 
 bool BufferFSMonitor::OnFsEvent(FsEvent event, std::string_view dir,
                                 bool is_dir, std::string_view name) {
+    // CHX_LOG_DEBUG("fs event name: {}", name);
     // Currently we don't consider dir.
     if (is_dir) {
         return false;
@@ -169,6 +176,7 @@ bool BufferFSMonitor::OnFsEvent(FsEvent event, std::string_view dir,
 bool BufferFSMonitor::OnFsRenameEvent(std::string_view dir, bool is_dir,
                                       std::string_view from_name,
                                       std::string_view to_name) {
+    // CHX_LOG_DEBUG("rename event name: from {}, to {}", from_name, to_name);
     // Currently we don't consider dir.
     if (is_dir) {
         return false;

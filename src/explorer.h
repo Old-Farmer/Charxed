@@ -66,7 +66,7 @@ class Explorer : public Window {
         area_.SetCursorHint(s_row, s_col);
     }
 
-    void DoubleClick() override;
+    Result DoubleClick() override;
 
     void ScrollRows(int64_t count) override { area_.ScrollRows(count); }
     void ScrollCols(int64_t count) override { area_.ScrollCols(count); }

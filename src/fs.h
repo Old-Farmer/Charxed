@@ -120,14 +120,18 @@ struct FileStat {
 // return kOk for success, kNotExist for not exist.
 Result GetFileStat(const std::string& path, FileStat& file_stat);
 
+// throw FSException
 void Create(const std::string& path);
 
+// throw FSException
 void Remove(const std::string& path);
 
+// throw FSException
 void MakeDirectory(const std::string& path);
 
 // Recursively remove directory
 // path must have trailing path sepeator
+// throw FSException
 void RemoveDirectory(const std::string& path);
 
 }  // namespace charxed

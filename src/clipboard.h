@@ -4,9 +4,11 @@
 #include <string>
 
 #include "utils.h"
+
 namespace charxed {
 
 // An ClipBoard Interface
+// ClipBoard shoudn't modify the stored content.
 class ClipBoard {
    public:
     virtual std::string GetContent(bool& lines) const = 0;
@@ -31,7 +33,8 @@ class DefaultClipBoard : public ClipBoard {
     virtual void SetContent(std::string&& content, bool lines) override;
 
    private:
-    bool lines_;  // line semantic, means that the content is copied in lines.
+    bool lines_ =
+        false;  // line semantic, means that the content is copied in lines.
     std::string content_;
 };
 
@@ -53,8 +56,8 @@ class XClipBoard : public ClipBoard {
     static void WslFilterCharacter(std::string& content);
 
    private:
-    bool lines_;  // Same in DefaultClipBoard
-    bool in_wsl;
+    bool lines_ = false;  // Same in DefaultClipBoard
+    bool in_wsl_;
 };
 
 }  // namespace charxed

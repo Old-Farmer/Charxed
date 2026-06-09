@@ -25,9 +25,7 @@ void PrintUsage(int status = EXIT_SUCCESS) {
 }
 
 void PrintVersion(int status = EXIT_SUCCESS) {
-    puts("Version: " CHX_VERSION
-         "\n"
-         "Commit: " CHX_COMMIT);
+    puts(kVersionInfo);
     exit(status);
 }
 

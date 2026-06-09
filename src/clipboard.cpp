@@ -1,7 +1,7 @@
 #include "clipboard.h"
 
 #include "constants.h"
-#include "exception.h"
+#include "logging.h"
 #include "subprocess.h"
 #include "utf8.h"
 
@@ -25,40 +25,34 @@ std::string DefaultClipBoard::GetContent(bool& lines) const {
 
 void DefaultClipBoard::SetContent(const std::string& content, bool lines) {
     lines_ = lines;
-    content_ = lines_ ? "\n" + content : content;
+    content_ = content;
 }
 
 void DefaultClipBoard::SetContent(std::string&& content, bool lines) {
     lines_ = lines;
-    if (lines) {
-        content.insert(0, 1, '\n');
-    }
     content_ = std::move(content);
 }
 
 bool XClipBoard::DetectUsable() {
     const char* const argv[] = {"xsel", "--help", nullptr};
     int exit_code;
-    try {
-        Result res = Exec(argv, nullptr, nullptr, nullptr, exit_code);
-        return exit_code == 0 && res == kOk;
-    } catch (OSException& e) {
-        return false;
-    }
+    Result res = Exec(argv, nullptr, nullptr, nullptr, exit_code);
+    return exit_code == 0 && res == kOk;
 }
 
 XClipBoard::XClipBoard() {
     const char* v = getenv(kWSLEnv);
-    in_wsl = v != nullptr;
+    in_wsl_ = v != nullptr;
 }
 
 std::string XClipBoard::GetContent(bool& lines) const {
     lines = lines_;
-    const char* const argv[] = {"xsel", "--clipboard", nullptr};
+    const char* const argv[] = {"xsel", "--clipboard", "--output", nullptr};
     std::string content;
     int exit_code;
     Result res = Exec(argv, nullptr, &content, nullptr, exit_code);
     if (exit_code != 0 || res != kOk) {
+        CHX_LOG_ERROR("xsel --clipboard error, exit code: {}", exit_code);
         return "";
     }
 
@@ -66,33 +60,21 @@ std::string XClipBoard::GetContent(bool& lines) const {
         return "";
     }
 
-    if (in_wsl) WslFilterCharacter(content);
+    if (in_wsl_) WslFilterCharacter(content);
+    // Assume content is utf-8?
+    // TODO: Really?
     if (!CheckUtf8Valid(content)) {
+        CHX_LOG_ERROR("xsel content utf-8 invalid");
         return "";
-    }
-    if (lines_) {
-        // Assume content is utf-8?
-        // TODO: Really?
-        if (content[0] != '\n') {
-            lines = false;
-        }
     }
     return content;
 }
 
 void XClipBoard::SetContent(const std::string& content, bool lines) {
     lines_ = lines;
-    const std::string* final_content;
-    std::string lines_content;
-    if (lines) {
-        lines_content = "\n" + content;
-        final_content = &lines_content;
-    } else {
-        final_content = &content;
-    }
-    const char* const argv[] = {"xsel", "--clipboard", nullptr};
+    const char* const argv[] = {"xsel", "--clipboard", "--input", nullptr};
     int exit_code;
-    Result res = Exec(argv, final_content, nullptr, nullptr, exit_code);
+    Result res = Exec(argv, &content, nullptr, nullptr, exit_code);
     if (exit_code != 0 || res != kOk) {
         return;
     }
@@ -100,10 +82,7 @@ void XClipBoard::SetContent(const std::string& content, bool lines) {
 
 void XClipBoard::SetContent(std::string&& content, bool lines) {
     lines_ = lines;
-    if (lines) {
-        content.insert(0, 1, '\n');
-    }
-    const char* const argv[] = {"xsel", "--clipboard", nullptr};
+    const char* const argv[] = {"xsel", "--clipboard", "--input", nullptr};
     int exit_code;
     Result res = Exec(argv, &content, nullptr, nullptr, exit_code);
     if (exit_code != 0 || res != kOk) {

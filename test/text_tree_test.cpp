@@ -54,12 +54,14 @@ void DeleteForTest(TextTree& tree, BufferNaive& buffer, const Range& range) {
 
 }  // namespace charxed
 
+namespace {
+const std::string fname = "../test/test_sample.txt";
+}
+
 TEST_CASE("TextTree test") {
     LogInit("text_tree_test.log");
     auto _ = gsl::finally([] { LogDeinit(); });
     Path::GetCwdSys();
-
-    const std::string fname = "../test/test_sample.txt";
 
     TextTree tree;
     File f(fname, "r", false);
@@ -70,26 +72,22 @@ TEST_CASE("TextTree test") {
     BufferNaive buffer_naive(fname);
     buffer_naive.Load();
 
-    REQUIRE(LineCntForTest(fname) == tree.LineCnt());
-    SameForTest(tree, buffer_naive);
-
-    // Put load str test here for convienence.
-    SECTION("load str") {
-        TextTree tree2;
-        BufferNaive buffer;
-        buffer.Load();
-
-        rewind(f.file());
-        EOLSeq eol_seq;
-        auto str = f.ReadAll(eol_seq);
-
-        tree2.BulkLoad(str);
-        Pos hint;
-        buffer.Add({0, 0}, str, nullptr, false, hint);
-        SameForTest(tree2, buffer);
+    SECTION("Load test") {
+        REQUIRE(LineCntForTest(fname) == tree.LineCnt());
+        SameForTest(tree, buffer_naive);
     }
 
-    // All cases is carefully written to ensure trigger some speical data
+    SECTION("OffsetToPos test") {
+        const size_t offset = 100;
+        auto pos = tree.OffsetToPos(offset);
+        REQUIRE(pos.has_value());
+        // fmt::print("pos {}:{}", pos->line, pos->line);
+        auto iter = tree.Find(*pos);
+        REQUIRE(iter != tree.End());
+        REQUIRE(iter.offset() == offset);
+    }
+
+    // All cases below are carefully written to ensure trigger some speical data
     // structure state changes. It is a little bit counter-intuitive because we
     // use a real file. Do not change file content if you know what you are
     // doing.
@@ -138,4 +136,23 @@ TEST_CASE("TextTree test") {
     }
 
     // TODO: more cases
+}
+
+TEST_CASE("TextTree load str test") {
+    LogInit("text_tree_test.log");
+    auto _ = gsl::finally([] { LogDeinit(); });
+    Path::GetCwdSys();
+
+    TextTree tree2;
+    BufferNaive buffer;
+    buffer.Load();
+
+    File f(fname, "r", false);
+    EOLSeq eol_seq;
+    auto str = f.ReadAll(eol_seq);
+
+    tree2.BulkLoad(str);
+    Pos hint;
+    buffer.Add({0, 0}, str, nullptr, false, hint);
+    SameForTest(tree2, buffer);
 }

@@ -32,7 +32,10 @@ void Explorer::Init(LayoutManager* layout_manager) {
     layout_manager_ = layout_manager;
 }
 
-void Explorer::DoubleClick() { EnterCurrentEntry(); }
+Result Explorer::DoubleClick() {
+    EnterCurrentEntry();
+    return kOk;
+}
 
 void Explorer::EnterCurrentEntry() {
     if (IsCurrentEntryDir()) {

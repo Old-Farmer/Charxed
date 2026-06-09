@@ -70,6 +70,31 @@ class TextArea {
                                                         CursorState& state);
     bool FindPrevCharacterAndCursorGoInCurrentLineState(const Character& c,
                                                         CursorState& state);
+    bool CursorGoBracketState(CursorState& state);
+
+    using CursorGoState = bool (TextArea::*)(CursorState&);
+    using CursorGoStateWithCount = bool (TextArea::*)(size_t, CursorState&);
+
+    // Cursor movement wrappers of CursorGoxxxState, no count and count version.
+    // f is CursorGoxxxState, character wise.
+    template <CursorGoState f>
+    void CursorGo() {
+        b_view_->make_cursor_visible = true;
+        CursorState state(cursor_);
+        if ((this->*f)(state)) {
+            state.SetCursor(cursor_);
+            SelectionFollowCursor();
+        }
+    }
+    template <CursorGoStateWithCount f>
+    void CursorGoWithCount(size_t count) {
+        b_view_->make_cursor_visible = true;
+        CursorState state(cursor_);
+        if ((this->*f)(count, state)) {
+            state.SetCursor(cursor_);
+            SelectionFollowCursor();
+        }
+    }
 
     void CursorGoRight(size_t count);
     void CursorGoLeft(size_t count);
@@ -82,6 +107,7 @@ class TextArea {
     void CursorGoPrevWordBegin(size_t count);
     void CursorGoNextWordBegin(size_t count);
     void CursorGoLine(size_t line);
+    void CursorGoBracket();
     void FindNextCharacterAndCursorGoInCurrentLine(const Character& c);
     void FindPrevCharacterAndCursorGoInCurrentLine(const Character& c);
 
@@ -91,14 +117,53 @@ class TextArea {
     bool IsSelectionActive() { return selection_.get() != nullptr; }
     void SelectionFollowCursor();
 
-    // Shouldn't be called in vim mode
+    // Selection wrappers of CursorGoxxxState, no count and count version.
+    // f is CursorGoxxxState, character wise.
+    template <CursorGoState f>
+    void SelectTo(bool inclusive_end = false) {
+        b_view_->make_cursor_visible = true;
+        CursorState state(cursor_);
+        if (!(this->*f)(state)) {
+            return;
+        }
+        selection_ = std::make_unique<NormalSelection>(cursor_->pos, state.pos,
+                                                       inclusive_end);
+    }
+    template <CursorGoStateWithCount f>
+    void SelectToWithCount(size_t count) {
+        b_view_->make_cursor_visible = true;
+        CursorState state(cursor_);
+        if (!(this->*f)(count, state)) {
+            return;
+        }
+        selection_ = std::make_unique<NormalSelection>(cursor_->pos, state.pos);
+    }
+
     void SelectAll();
+    // TODO:
+    // bool SelectWords(size_t count);
+    // bool SelectInnerWords(size_t count);
+    bool SelectWord();
+    void SelectLinesToLine(size_t line);
+    // Include the current line
+    void SelectNextLines(size_t count);
+    void SelectPrevLines(size_t count);
+
+    // inner means we don't need pair open & close character, just need the
+    // content inside the pair.
+    // return true if we can find a pair,
+    // else return false.
+    bool SelectPair(char open, bool inner);
 
     Result DeleteAtCursor();
+    // Must !selection_->IsSelectionActive()
     Result DeleteWordBeforeCursor();
     // if cursor_pos != nullptr then cursor will set to cursor_pos
-    Result AddStringAtCursor(std::string_view str,
-                             const Pos* cursor_pos = nullptr);
+    Result AddStringAtCursorNoSelection(std::string_view str,
+                                        const Pos* cursor_pos = nullptr);
+    // str is new content, lines means whether is line semantic
+    Result ReplaceSelection(std::string_view str, bool lines);
+
     // if cursor_pos != nullptr then cursor will set to cursor_pos
     // Selection shouldn't be active.
     Result AddStringAtPos(Pos pos, std::string_view str,
@@ -122,11 +187,6 @@ class TextArea {
 
     Result DeleteCharacterBeforeCursor();
     Result DeleteSelection();
-
-    Result AddStringAtCursorNoSelection(std::string_view str,
-                                        const Pos* cursor_pos = nullptr);
-    Result ReplaceSelection(std::string_view str,
-                            const Pos* cursor_pos = nullptr);
 
     // inclusice end_line
     Result IndentLines(size_t count, size_t begin_line, size_t end_line);

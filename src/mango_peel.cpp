@@ -157,7 +157,7 @@ Result MangoPeel::AddStringAtCursor(std::string str) {
         return kFail;
     }
     CHX_ASSERT(area_.cursor_->pos.line == 0);
-    return area_.AddStringAtCursor(std::move(str));
+    return area_.AddStringAtCursorNoSelection(std::move(str));
 }
 
 Result MangoPeel::Paste() {
@@ -172,7 +172,7 @@ Result MangoPeel::Paste() {
             c = ' ';
         }
     }
-    return area_.AddStringAtCursor(std::move(content));
+    return area_.AddStringAtCursorNoSelection(std::move(content));
 }
 
 void MangoPeel::PrevHistoryItem(HistoryType history) {

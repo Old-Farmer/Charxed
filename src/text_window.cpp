@@ -104,13 +104,13 @@ Result TextWindow::DeleteAtCursor() {
 }
 
 Result TextWindow::AddStringAtCursor(std::string_view str, bool raw) {
-    if (raw) {
-        return area_.AddStringAtCursor(str);
-    }
-
     // TODO: better support autopair autoindent when selection
     if (area_.IsSelectionActive()) {
-        return area_.AddStringAtCursor(str);
+        return area_.ReplaceSelection(str, false);
+    }
+
+    if (raw) {
+        return area_.AddStringAtCursorNoSelection(str);
     }
 
     char c = -1;
@@ -119,7 +119,7 @@ Result TextWindow::AddStringAtCursor(std::string_view str, bool raw) {
     }
 
     if (c == -1) {
-        return area_.AddStringAtCursor(str);
+        return area_.AddStringAtCursorNoSelection(str);
     }
 
     if (GetOpt<bool>(kOptAutoIndent) && c == '\n') {
@@ -128,7 +128,7 @@ Result TextWindow::AddStringAtCursor(std::string_view str, bool raw) {
         if (IsPair(c)) {
             return TryAutoPair(str);
         } else {
-            return area_.AddStringAtCursor(str);
+            return area_.AddStringAtCursorNoSelection(str);
         }
     }
     // Will not reach here.
@@ -195,16 +195,16 @@ Result TextWindow::TryAutoPair(std::string_view str) {
     // try auto pair
     auto [is_open, c_close] = IsPairOpen(str[0]);
     if (!is_open) {
-        return area_.AddStringAtCursor(str);
+        return area_.AddStringAtCursorNoSelection(str);
     }
 
     if (end_of_line || !IsPair(str[0], cur_c)) {
         Pos pos = {cursor_->pos.line, cursor_->pos.byte_offset + 1};
         std::string pairs = std::string(str) + c_close;
-        return area_.AddStringAtCursor(pairs, &pos);
+        return area_.AddStringAtCursorNoSelection(pairs, &pos);
     }
 
-    return area_.AddStringAtCursor(str);
+    return area_.AddStringAtCursorNoSelection(str);
 }
 
 Result TextWindow::TryAutoIndent(Pos pos) {
@@ -387,7 +387,7 @@ void TextWindow::OnBufferDelete(const Buffer* buffer) {
 }
 
 SearchState TextWindow::CursorGoSearchResult(bool next, size_t count,
-                                                   bool keep_current_if_one) {
+                                             bool keep_current_if_one) {
     CursorState state(cursor_);
     SearchState search_state = area_.CursorGoSearchResultState(
         b_search_context_, next, count, keep_current_if_one, state);

@@ -28,6 +28,7 @@ enum Result {
     kRetriggerCmp,
     kMsgNeedMore,  // Need recv more for parsing a complete msg
     kWrapHistory,
+    kSelectionStarted,  // Selection started
 };
 
 constexpr const char* kResultString[] = {"Ok", "Error"};

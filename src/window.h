@@ -4,6 +4,7 @@
 #include <string>
 
 #include "pos.h"
+#include "result.h"
 #include "search.h"
 namespace charxed {
 
@@ -22,7 +23,8 @@ class Window {
 
     virtual void SetCursorHint(size_t s_row, size_t s_col) = 0;
 
-    virtual void DoubleClick() {};
+    // return kOk or kSelectionStarted
+    virtual Result DoubleClick() { return kOk; };
 
     virtual void ScrollRows(int64_t count) = 0;
     virtual void ScrollCols(int64_t count) = 0;

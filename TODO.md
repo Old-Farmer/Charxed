@@ -7,6 +7,7 @@
 - Multi-window
 - Bufferline(low priority)
 - Cursor color
+- Show pending keys of keymaps
 
 ## LSP
 
@@ -15,8 +16,6 @@
 
 ## Modal Editing
 
-- Operator pending mode
-- Text object
 - Multi cursor mode
 
 ## Usability
@@ -28,8 +27,8 @@
 - Better auto indent per laguages
 - SIGTSTP & SIGCONT support
 - Auto saving
-- MacOS support
-- Windows support
+- MacOS support(high priority)
+- Windows support(high priority, especially for termbox2)
 - Low lantency remote development
 
 ## Extensibiliy
@@ -53,3 +52,9 @@
 ## Code Quality
 
 - better clang-tidy
+
+## Cross Platform
+
+- Better CMake
+    - Linux aarch64
+

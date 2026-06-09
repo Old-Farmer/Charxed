@@ -10,9 +10,9 @@ Commands are instructions you can execute in the Charxed Peel. You can use full 
     short form: q!
     desc: force quit the editor
 
-- `write [path]`  
-    short form: w
-    desc: save the current content as a file, or save as another file if `path` is specified.
+- `saveas <path>`  
+    short form: sa
+    desc: save as `path` file.
 
 - `help [doc-name]`  
     short form: h

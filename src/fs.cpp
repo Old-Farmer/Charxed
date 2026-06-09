@@ -202,6 +202,13 @@ const std::string& Path::GetHomeSys() {
         home_.push_back(kPathSeperator);
     }
     home_ = Path::Normalize(home_);
+    // Set HOME if HOME doesn't exit. Because some programs detect HOME for
+    // essential setups.
+    if (env == nullptr) {
+        auto tmp = home_;
+        tmp.pop_back();  // pop kPathSeperator
+        setenv("HOME", tmp.c_str(), 1);
+    }
     return home_;
 }
 
@@ -312,20 +319,20 @@ Result GetFileStat(const std::string& path, FileStat& file_stat) {
 void Create(const std::string& path) {
     int fd = open(path.c_str(), O_CREAT, kDefaultCreateMode);
     if (fd == -1) {
-        throw OSException(errno, "open {} error: {}", path, strerror(errno));
+        throw FSException("open {} error: {}", path, strerror(errno));
     }
     close(fd);
 }
 
 void Remove(const std::string& path) {
     if (unlink(path.c_str()) == -1) {
-        throw OSException(errno, "unlink {} error: {}", path, strerror(errno));
+        throw FSException("unlink {} error: {}", path, strerror(errno));
     }
 }
 
 void MakeDirectory(const std::string& path) {
     if (mkdir(path.c_str(), kDefaultMkDirMode) == -1) {
-        throw OSException(errno, "mkdir {} error: {}", path, strerror(errno));
+        throw FSException("mkdir {} error: {}", path, strerror(errno));
     }
 }
 

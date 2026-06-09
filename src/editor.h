@@ -96,7 +96,6 @@ class Editor {
     // Count is at least 1.
     size_t Count() { return count_ == 0 ? 1 : count_; }
     // OpPendingCount is at least 1.
-    // Used in vim operator pending mode
     size_t OpPendingCount() {
         return Count() *
                (op_pending_stored_count_ == 0 ? 1 : op_pending_stored_count_);
@@ -154,12 +153,6 @@ class Editor {
 
     bool multirow_peel_keep_ = false;
 
-    bool highlight_search_ = false;
-
-    enum class InputState {
-        kNone,
-        kCount,  // count
-    };
     enum class Operator {
         kYank,
         kDelete,
@@ -167,15 +160,16 @@ class Editor {
         kUnindent,
     };
 
-    size_t count_;
+    size_t count_ = 0;
+
     size_t op_pending_stored_count_ = 0;
     Character c_to_find_;
+    bool find_forward_ = true;
 
-    InputState input_state_ = InputState::kNone;
     Operator pending_operator_;
 
+    bool highlight_search_ = false;
     bool search_foward_ = true;
-    bool find_forward_ = true;
 
     std::unique_ptr<SingleTimer> autocmp_trigger_timer_;
     std::unique_ptr<SingleTimer> search_on_type_timer_;

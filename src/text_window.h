@@ -29,6 +29,13 @@ class TextWindow : public Window {
         area_.SetCursorHint(s_row, s_col);
     }
 
+    Result DoubleClick() override {
+        if (area_.SelectWord()) {
+            return kSelectionStarted;
+        }
+        return kOk;
+    }
+
     // NOTE: all count shouldn't be 0, otherwise behavior is undefined.
 
     void ScrollRows(int64_t count) override { area_.ScrollRows(count); }
@@ -58,6 +65,7 @@ class TextWindow : public Window {
     void CursorGoNextWordBegin(size_t count) {
         area_.CursorGoNextWordBegin(count);
     }
+    void CursorGoBracket() { area_.CursorGoBracket(); }
     void CursorGoLine(size_t line);
     void FindNextCharacterAndCursorGoInCurrentLine(const Character& c) {
         area_.FindNextCharacterAndCursorGoInCurrentLine(c);
@@ -77,6 +85,7 @@ class TextWindow : public Window {
     void SelectionFollowCursor() override { area_.SelectionFollowCursor(); };
 
     Result DeleteAtCursor();
+    Result DeleteSelection() { return area_.DeleteSelection(); }
     Result DeleteWordBeforeCursor() { return area_.DeleteWordBeforeCursor(); }
     // raw means do not treat it as keystroke
     Result AddStringAtCursor(std::string_view str, bool raw = false);

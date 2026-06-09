@@ -21,36 +21,41 @@ void StatusLine::Draw() {
 
     auto scheme = global_opts_->GetOpt<ColorScheme>(kOptColorScheme);
 
+    left_str_.clear();
+    right_str_.clear();
     switch (*context_) {
         case Context::kEditor: {
             Buffer* b;
             b = cursor_->t_win->area_.buffer_;
-            left_str_ =
-                fmt::format("{:<" CHX_MODE_WIDTH "} {}{}",
-                            kModeString[static_cast<int>(*mode_)], b->Name(),
-                            kBufferStateString[static_cast<int>(b->state())]);
+            fmt::format_to(std::back_inserter(left_str_),
+                           "{:<" CHX_MODE_WIDTH "} {}{}",
+                           kModeString[static_cast<int>(*mode_)], b->Name(),
+                           kBufferStateString[static_cast<int>(b->state())]);
             int64_t line, character_in_line;
             if (IsPeel(*mode_)) {
                 line = cursor_->t_win->area_.b_view_->cursor_state.pos.line;
-                character_in_line = cursor_->t_win->area_.b_view_
-                                        ->cursor_state.character_in_line_;
+                character_in_line = cursor_->t_win->area_.b_view_->cursor_state
+                                        .character_in_line_;
             } else {
                 line = cursor_->pos.line;
                 character_in_line = cursor_->character_in_line;
             }
 
-            right_str_ = fmt::format(
-                "  {},{}  {}  {}{}  {}", line + 1, character_in_line + 1,
+            fmt::format_to(
+                std::back_inserter(right_str_), "  {},{}  {:>2}%  {}  {}{}  {}",
+                line + 1, character_in_line + 1,
+                100 * (line + 1) / b->LineCnt(),
                 FiletypeUserStrRep(b->filetype()),
                 b->opts().GetOpt<bool>(kOptTabSpace) ? "Sp" : "Tb",
                 b->opts().GetOpt<int64_t>(kOptTabStop), b->eol_seq());
             break;
         }
         case Context::kExplorer: {
-            left_str_ = fmt::format("{:<" CHX_MODE_WIDTH "} {}",
-                                    kModeString[static_cast<int>(*mode_)],
-                                    Path::GetCwd());
-            right_str_ = fmt::format("  {}", cursor_->pos.line);
+            fmt::format_to(
+                std::back_inserter(left_str_), "{:<" CHX_MODE_WIDTH "} {}",
+                kModeString[static_cast<int>(*mode_)], Path::GetCwd());
+            fmt::format_to(std::back_inserter(right_str_), "  {}",
+                           cursor_->pos.line);
             break;
         }
         default:

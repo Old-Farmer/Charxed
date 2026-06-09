@@ -10,6 +10,11 @@
 
 namespace charxed {
 
+struct SearchState {
+    size_t i = 0;  // from 1 instead of zero
+    size_t total = 0;
+};
+
 class Buffer;
 
 // return true if success
@@ -163,10 +168,4 @@ struct ListSearchContext {
         return true;
     }
 };
-
-struct SearchState {
-    size_t i = 0;  // from 1 instead of zero
-    size_t total = 0;
-};
-
 }  // namespace charxed

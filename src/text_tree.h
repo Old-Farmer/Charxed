@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <vector>
 
 #include "file.h"
@@ -99,11 +100,10 @@ class TextTree {
                           codepoint);
             Iterator iter = *this;
             iter.index_ += byte_len;
-            if (iter.index_ == iter.node_->bytes) {
-                if (iter.node_->next) {
-                    iter.index_ = 0;
-                    iter.node_ = iter.node_->next;
-                }
+            if (iter.index_ == iter.node_->bytes &&
+                iter.node_->next != nullptr) {
+                iter.index_ = 0;
+                iter.node_ = iter.node_->next;
             }
             iter.offset_ += byte_len;
             return iter;
@@ -131,6 +131,7 @@ class TextTree {
 
         char ThisByte() const {
             CHX_ASSERT(*this != text_->End());
+            CHX_ASSERT(index_ < node_->bytes);
             return node_->data[index_];
         }
 
@@ -138,7 +139,7 @@ class TextTree {
         void NextByte() {
             CHX_ASSERT(*this != text_->End());
             index_++;
-            if (index_ == node_->bytes) {
+            if (index_ == node_->bytes && node_->next != nullptr) {
                 index_ = 0;
                 node_ = node_->next;
             }
@@ -160,6 +161,7 @@ class TextTree {
 
         size_t offset() const { return offset_; }
 
+        // virtually continuous data from this iterator.
         std::string_view MaxContinuousData() {
             return {&node_->data[index_], node_->bytes - index_};
         }
@@ -211,6 +213,9 @@ class TextTree {
     // if offset can't be found, return End()
     Iterator Find(size_t offset) const;
 
+    // Transfer global offset to pos
+    std::optional<Pos> OffsetToPos(size_t offset) const;
+
     Iterator Begin() const {
         Iterator iter;
 #ifndef NDEBUG
@@ -249,7 +254,7 @@ class TextTree {
         return iter;
     }
 
-    // A view of part of text
+    // A view of part of text, [begin, end)
     struct TextView {
         Iterator begin;
         Iterator end;

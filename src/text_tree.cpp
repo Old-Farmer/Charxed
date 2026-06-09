@@ -4,7 +4,7 @@
 #include <queue>
 
 #include "exception.h"
-#include "logging.h"
+#include "logging.h"  // IWYU pragma: keep
 
 namespace charxed {
 
@@ -434,6 +434,61 @@ TextTree::Iterator TextTree::Find(size_t offset) const {
     iter.index_ = offset - acc_bytes;
     iter.offset_ = offset;
     return iter;
+}
+
+std::optional<Pos> TextTree::OffsetToPos(size_t offset) const {
+    Node* node = root_;
+    size_t acc_bytes = 0;
+    size_t acc_lines = 0;
+    while (!node->is_leaf) {
+        auto internal = static_cast<InternalNode*>(node);
+        size_t i = 0;
+        for (; i < internal->size &&
+               acc_bytes + internal->infos[i].bytes <= offset;
+             i++) {
+            acc_bytes += internal->infos[i].bytes;
+            acc_lines += internal->infos[i].lines;
+        }
+        if (i == internal->size) {
+            return {};
+        }
+        node = internal->children[i];
+    }
+
+    auto leaf = static_cast<LeafNode*>(node);
+
+    size_t cur_node_lines = 0;
+    size_t byte_offset = 0;
+    const size_t left_bytes = offset - acc_bytes;
+    CHX_ASSERT((leaf == end_leaf_ && left_bytes <= leaf->bytes) ||
+               left_bytes < leaf->bytes);
+    for (size_t i = 0; i < left_bytes; i++) {
+        if (leaf->data[i] == '\n') {
+            cur_node_lines++;
+            byte_offset = 0;
+        } else {
+            byte_offset++;
+        }
+    }
+    // We find '\n' in this leaf, meaning byte_offset is correct
+    if (cur_node_lines > 0) {
+        return Pos{cur_node_lines + acc_lines, byte_offset};
+    }
+
+    // If we can't find any '\n' in this node, we should search leaves backward
+    // to get the actul byte_offset.
+    leaf = leaf->prev;
+    while (leaf) {
+        CHX_ASSERT(leaf->bytes != 0);
+        for (int64_t i = leaf->bytes - 1; i >= 0; i--) {
+            if (leaf->data[i] == '\n') {
+                break;
+            }
+            byte_offset++;
+        }
+        leaf = leaf->prev;
+    }
+    return Pos{acc_lines, byte_offset};
 }
 
 // If str is too large, we split it too some substrs and insert it to the trees

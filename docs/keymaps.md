@@ -15,7 +15,7 @@ NOTE: Don't support self-defined keymaps now.
 - `<end>` means End key
 - `<left>` means Left arrow key
 - `<right>` means Right arrow key
-- `<char>` means any single codepoint character
+- `<any-cp>` means any single codepoint character
 
 ## Mode Reference
 
@@ -28,6 +28,21 @@ NOTE: Don't support self-defined keymaps now.
 - **Search**: Search input mode (`/` or `?` prompt)
 - **Show**: Peel show mode (multirow output display)
 
+## How Operator Pending Works
+
+Operator pending is the "waiting for a motion" state after you press an operator key in Normal mode.
+
+Think of it as:
+
+`operator + motion/text-object`
+
+Examples:
+
+- `dw` deletes one word
+- `y$` yanks to end of line
+- `>j` indents the current line and the next line
+- `di(` deletes inside parentheses
+- `2d2w` becomes `d4w` because counts multiply
 
 ---
 
@@ -49,7 +64,9 @@ NOTE: Don't support self-defined keymaps now.
 | `e` | Move to end of word | Normal, Select, Select-L, Show | Editor |
 | `w` | Move to beginning of next word | Normal, Select, Select-L, Show | Editor |
 | `0` | Move to beginning of line | Normal, Select, Select-L, Show | Editor |
+| `^` | Move to the first non-blank character of the line | Normal, Select, Select-L | Editor |
 | `$` | Move to end of line | Normal, Select, Select-L, Show | Editor |
+| `%` | Move to the other bracket in a bracket pair(or go to {count} %) | Normal, Select, Select-L, Show | Editor |
 | `<c-f>` | Move down one page | Normal, Select, Select-L, Show | All |
 | `<c-b>` | Move up one page | Normal, Select, Select-L, Show | All |
 | `<c-d>` | Move down half page | Normal, Select, Select-L, Show | All |
@@ -57,8 +74,8 @@ NOTE: Don't support self-defined keymaps now.
 | `gg` | Move to beginning | Normal, Select, Select-L | Editor |
 | `G` | Move to end of file (or go to line {count}) | Normal, Select, Select-L | Editor |
 | `gf` | Go to file at cursor | Normal, Select, Select-L | Editor |
-| `f<char>` | Go to the next positon of the character in the current line | Normal, Select, Select-L | Editor |
-| `F<char>` | Go to the prev positon of the character in the current line | Normal, Select, Select-L | Editor |
+| `f<any-cp>` | Go to the next positon of the character in the current line | Normal, Select, Select-L | Editor |
+| `F<any-cp>` | Go to the prev positon of the character in the current line | Normal, Select, Select-L | Editor |
 | `<c-o>` | Jump to previous cursor position | Normal | Editor |
 | `<c-i>` | Jump to next cursor position | Normal | Editor |
 | `]b` | Go to next buffer | Normal | Editor |
@@ -72,12 +89,15 @@ NOTE: Don't support self-defined keymaps now.
 | `s` | Start line-wise selection | Normal | Editor |
 | `S` | Start character-wise selection | Normal | Editor |
 
-## Editor Operations
+## Editing Operations
 
 | Key | Description | Mode(s) | Context |
 | --- | --- | --- | --- |
+| `<c-s>` | Save the current buffer | Normal, Select, Select-L, Insert | Editor |
 | `y` | Copy selection / prepare yank operation | Select, Select-L, Normal | Editor |
+| `Y` | Copy to line end | Normal | Editor |
 | `d` | Cut selection / prepare delete operation | Select, Select-L, Normal | Editor |
+| `D` | Delete to line end | Normal | Editor |
 | `p` | Paste | Normal | Editor |
 | `u` | Undo | Normal | Editor |
 | `<c-r>` | Redo | Normal | Editor |
@@ -94,6 +114,28 @@ NOTE: Don't support self-defined keymaps now.
 | `<space>f` | Call clang-format to format the current buffer(really unstable) | Normal | Editor |
 | `>` | Indent | Select, Select-L, Op-Pend | Editor |
 | `<` | Unindent | Select-L, Select-L, Op-Pend | Editor |
+
+## Operator Pending Motions / Text Objects
+
+operator support:
+
+- `y` copy
+- `d` delete
+- `>` indent
+- `<` unindent
+
+| Key | Description | Mode(s) | Context |
+| --- | --- | --- | --- |
+| `y` | Only after `y`, yank lines | - | Editor |
+| `d` | Only after `d`, delete lines | - | Editor |
+| `>` | Only after `>`, indent lines | - | Editor |
+| `<` | Only after `<`, unindent lines | - | Editor |
+| `h`, `l`, `b`, `e`, `w`, `0`, `^`, `$` | As if the cursor moves, and do operation in the cursor movement range(character wise, exclusive end character) | - | Editor |
+| `%` | As if the cursor moves, and do operation in the cursor movement range(character wise, inclusive end character) | - | Editor |
+| `k`, `j`, `gg`, `G` | As if the cursor moves, and do operation in the cursor movement range(line wise, inclusive end line) | - | Editor |
+| `ip` | inner content of a pair(bracket/quote), `p` = `{`, `}`, `(`, `)`, `[`, `]`, `"`, `'`, `` ` ``  | - | Editor |
+| `ap` | a pair(bracket/quote) | - | Editor |
+
 
 ## Completion & History
 

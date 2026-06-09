@@ -6,11 +6,23 @@ namespace charxed {
 
 Range NormalSelection::ToSelectRange(const Buffer* buffer) const {
     (void)buffer;
+    Range res;
     if (anchor < head) {
-        return Range{anchor, head};
+        res.begin = anchor;
+        res.end = head;
     } else {
-        return Range{head, anchor};
+        res.begin = head;
+        res.end = anchor;
     }
+    if (inclusive_end) {
+        auto iter = buffer->Find(res.end);
+        if (iter != buffer->End()) {
+            Character c;
+            iter = NextCharacter(iter, buffer->End(), c);
+            res.end = *buffer->OffsetToPos(iter.offset());
+        }
+    }
+    return res;
 }
 
 Range LineSelection::ToSelectRange(const Buffer* buffer) const {

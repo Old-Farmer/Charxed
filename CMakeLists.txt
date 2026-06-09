@@ -208,6 +208,7 @@ target_sources(
   "${SRC_DIR}/cmp_menu.cpp"
   "${SRC_DIR}/command_manager.h"
   "${SRC_DIR}/command_manager.cpp"
+  "${SRC_DIR}/commands.cpp"
   "${SRC_DIR}/completer.h"
   "${SRC_DIR}/completer.cpp"
   "${SRC_DIR}/cursor.h"
@@ -236,6 +237,7 @@ target_sources(
   "${SRC_DIR}/fs_monitor.cpp"
   "${SRC_DIR}/history.h"
   "${SRC_DIR}/json.h"
+  "${SRC_DIR}/keymaps.cpp"
   "${SRC_DIR}/keyseq_manager.h"
   "${SRC_DIR}/keyseq_manager.cpp"
   "${SRC_DIR}/layout_manager.h"
@@ -340,6 +342,7 @@ target_sources(
   test PUBLIC
   "${TEST_DIR}/buffer_naive.h"
   "${TEST_DIR}/buffer_naive.cpp"
+  "${TEST_DIR}/clipboard_test.cpp"
   "${TEST_DIR}/data_structure_test.cpp"
   "${TEST_DIR}/fs_test.cpp"
   "${TEST_DIR}/json_test.cpp"

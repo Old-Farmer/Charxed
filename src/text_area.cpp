@@ -1171,48 +1171,36 @@ bool TextArea::CursorGoEndState(CursorState& state) {
 bool TextArea::CursorGoNextWordEndState(size_t count, CursorState& state) {
     CHX_ASSERT(buffer_);
     CHX_ASSERT(count != 0);
-    size_t i = 0;
-    auto cur_line = buffer_->GetLineView(state.pos.line);
     auto iter = buffer_->Find(state.pos);
-    for (; i < count; i++) {
-        if (iter == cur_line.end) {
-            if (state.pos.line == buffer_->LineCnt() - 1) {
-                break;
-            }
-            state.pos.line++;
-            cur_line = buffer_->GetLineView(state.pos.line);
-            iter = cur_line.begin;
-        }
-        iter = NextWordEnd(iter, cur_line.end);
+    auto end = buffer_->End();
+    size_t i = 0;
+    for (; i < count && iter != end; i++) {
+        iter = NextWordEnd(iter, end);
     }
     if (i == 0) {
-        return false;
+        return 0;
     }
-    state.pos.byte_offset = iter.offset() - cur_line.begin.offset();
+    auto pos = buffer_->OffsetToPos(iter.offset());
+    CHX_ASSERT(pos.has_value());
+    state.pos = *pos;
     state.DontHoldColWant();
     return true;
 }
 bool TextArea::CursorGoPrevWordBeginState(size_t count, CursorState& state) {
     CHX_ASSERT(buffer_);
     CHX_ASSERT(count != 0);
-    size_t i = 0;
-    auto cur_line = buffer_->GetLineView(state.pos.line);
     auto iter = buffer_->Find(state.pos);
-    for (; i < count; i++) {
-        if (iter == cur_line.begin) {
-            if (state.pos.line == 0) {
-                break;
-            }
-            state.pos.line--;
-            cur_line = buffer_->GetLineView(state.pos.line);
-            iter = cur_line.end;
-        }
-        iter = PrevWordBegin(iter, cur_line.begin);
+    auto begin = buffer_->Begin();
+    size_t i = 0;
+    for (; i < count && iter != begin; i++) {
+        iter = PrevWordBegin(iter, begin);
     }
     if (i == 0) {
-        return false;
+        return 0;
     }
-    state.pos.byte_offset = iter.offset() - cur_line.begin.offset();
+    auto pos = buffer_->OffsetToPos(iter.offset());
+    CHX_ASSERT(pos.has_value());
+    state.pos = *pos;
     state.DontHoldColWant();
     return true;
 }
@@ -1220,24 +1208,18 @@ bool TextArea::CursorGoPrevWordBeginState(size_t count, CursorState& state) {
 bool TextArea::CursorGoNextWordBeginState(size_t count, CursorState& state) {
     CHX_ASSERT(buffer_);
     CHX_ASSERT(count != 0);
-    size_t i = 0;
-    auto cur_line = buffer_->GetLineView(state.pos.line);
     auto iter = buffer_->Find(state.pos);
-    for (; i < count; i++) {
-        if (iter == cur_line.end) {
-            if (state.pos.line == buffer_->LineCnt() - 1) {
-                break;
-            }
-            state.pos.line++;
-            cur_line = buffer_->GetLineView(state.pos.line);
-            iter = cur_line.begin;
-        }
-        iter = NextWordBegin(iter, cur_line.end);
+    auto end = buffer_->End();
+    size_t i = 0;
+    for (; i < count && iter != end; i++) {
+        iter = NextWordBegin(iter, end);
     }
     if (i == 0) {
-        return false;
+        return 0;
     }
-    state.pos.byte_offset = iter.offset() - cur_line.begin.offset();
+    auto pos = buffer_->OffsetToPos(iter.offset());
+    CHX_ASSERT(pos.has_value());
+    state.pos = *pos;
     state.DontHoldColWant();
     return true;
 }
@@ -1264,126 +1246,92 @@ bool TextArea::FindNextCharacterAndCursorGoInCurrentLineState(
     const Character& c, CursorState& state) {
     CHX_ASSERT(buffer_);
     auto line = buffer_->GetLineView(state.pos.line);
-    auto iter = buffer_->Find(state.pos);
-    Character cur_c;
-    if (iter != line.end) iter = NextCharacter(iter, line.end, cur_c);
-    while (iter != line.end) {
-        auto next = NextCharacter(iter, line.end, cur_c);
-        if (cur_c == c) {
-            state.pos.byte_offset = iter.offset() - line.begin.offset();
-            return true;
-        }
-        iter = next;
+    auto target_iter =
+        NextSpecificCharacter(buffer_->Find(state.pos), c, line.end);
+    if (!target_iter.has_value()) {
+        return false;
     }
-    return false;
+    state.pos.byte_offset = target_iter->offset() - line.begin.offset();
+    state.DontHoldColWant();
+    return true;
 }
 
 bool TextArea::FindPrevCharacterAndCursorGoInCurrentLineState(
     const Character& c, CursorState& state) {
     CHX_ASSERT(buffer_);
     auto line = buffer_->GetLineView(state.pos.line);
-    auto iter = buffer_->Find(state.pos);
-    Character cur_c;
-    while (iter != line.begin) {
-        iter = PrevCharacter(iter, line.begin, cur_c);
-        if (cur_c == c) {
-            state.pos.byte_offset = iter.offset() - line.begin.offset();
-            return true;
-        }
+    auto target_iter =
+        PrevSpecificCharacter(buffer_->Find(state.pos), c, line.begin);
+    if (!target_iter.has_value()) {
+        return false;
     }
-    return false;
+    state.pos.byte_offset = target_iter->offset() - line.begin.offset();
+    state.DontHoldColWant();
+    return true;
+}
+
+bool TextArea::CursorGoBracketState(CursorState& state) {
+    auto iter = buffer_->Find(state.pos);
+    auto end = buffer_->End();
+    if (iter == end) {
+        return false;
+    }
+    auto [found_iter, is_open] = ClosestBracket(iter, {buffer_->Begin(), end});
+    if (found_iter == end) {
+        return false;
+    }
+
+    if (found_iter != iter) {
+        state.pos = *buffer_->OffsetToPos(found_iter.offset());
+        state.DontHoldColWant();
+        return true;
+    }
+    // current pos is a bracket, jump to the other bracket
+    char open;
+    if (is_open) {
+        open = found_iter.ThisByte();
+    } else {
+        open = IsPairClose(found_iter.ThisByte()).second;
+    }
+    auto v = FindBracketPairAround(found_iter, {buffer_->Begin(), end}, open);
+    if (v.Size() == 0) {
+        return false;
+    }
+    state.pos = *buffer_->OffsetToPos(
+        is_open ? v.end.offset() - 1
+                : v.begin.offset());  // 1 is because bracket is now char
+    state.DontHoldColWant();
+    return true;
 }
 
 void TextArea::CursorGoRight(size_t count) {
-    b_view_->make_cursor_visible = true;
-    CursorState state(cursor_);
-    if (CursorGoRightState(count, state)) {
-        state.SetCursor(cursor_);
-        SelectionFollowCursor();
-    }
+    CursorGoWithCount<&TextArea::CursorGoRightState>(count);
 }
-
 void TextArea::CursorGoLeft(size_t count) {
-    b_view_->make_cursor_visible = true;
-    CursorState state(cursor_);
-    if (CursorGoLeftState(count, state)) {
-        state.SetCursor(cursor_);
-        SelectionFollowCursor();
-    }
+    CursorGoWithCount<&TextArea::CursorGoLeftState>(count);
 }
-
 void TextArea::CursorGoUp(size_t count) {
-    CHX_ASSERT(count != 0);
-    b_view_->make_cursor_visible = true;
-    CursorState state(cursor_);
-    if (CursorGoUpState(count, state)) {
-        state.SetCursor(cursor_);
-        SelectionFollowCursor();
-    }
+    CursorGoWithCount<&TextArea::CursorGoUpState>(count);
 }
-
 void TextArea::CursorGoDown(size_t count) {
-    CHX_ASSERT(count != 0);
-    b_view_->make_cursor_visible = true;
-    CursorState state(cursor_);
-    if (CursorGoDownState(count, state)) {
-        state.SetCursor(cursor_);
-        SelectionFollowCursor();
-    }
+    CursorGoWithCount<&TextArea::CursorGoDownState>(count);
 }
-
-void TextArea::CursorGoHome() {
-    b_view_->make_cursor_visible = true;
-    CursorState state(cursor_);
-    if (CursorGoHomeState(state)) {
-        state.SetCursor(cursor_);
-        SelectionFollowCursor();
-    }
-}
-
+void TextArea::CursorGoHome() { CursorGo<&TextArea::CursorGoHomeState>(); }
 void TextArea::CursorGoFirstNonBlank() {
-    b_view_->make_cursor_visible = true;
-    CursorState state(cursor_);
-    if (CursorGoFirstNonBlankState(state)) {
-        state.SetCursor(cursor_);
-        SelectionFollowCursor();
-    }
+    CursorGo<&TextArea::CursorGoFirstNonBlankState>();
 }
-
-void TextArea::CursorGoEnd() {
-    b_view_->make_cursor_visible = true;
-    CursorState state(cursor_);
-    if (CursorGoEndState(state)) {
-        state.SetCursor(cursor_);
-        SelectionFollowCursor();
-    }
-}
-
+void TextArea::CursorGoEnd() { CursorGo<&TextArea::CursorGoEndState>(); }
 void TextArea::CursorGoNextWordEnd(size_t count) {
-    b_view_->make_cursor_visible = true;
-    CursorState state(cursor_);
-    if (CursorGoNextWordEndState(count, state)) {
-        state.SetCursor(cursor_);
-        SelectionFollowCursor();
-    }
+    CursorGoWithCount<&TextArea::CursorGoNextWordEndState>(count);
 }
-
 void TextArea::CursorGoPrevWordBegin(size_t count) {
-    b_view_->make_cursor_visible = true;
-    CursorState state(cursor_);
-    if (CursorGoPrevWordBeginState(count, state)) {
-        state.SetCursor(cursor_);
-        SelectionFollowCursor();
-    }
+    CursorGoWithCount<&TextArea::CursorGoPrevWordBeginState>(count);
 }
-
 void TextArea::CursorGoNextWordBegin(size_t count) {
-    b_view_->make_cursor_visible = true;
-    CursorState state(cursor_);
-    if (CursorGoNextWordBeginState(count, state)) {
-        state.SetCursor(cursor_);
-        SelectionFollowCursor();
-    }
+    CursorGoWithCount<&TextArea::CursorGoNextWordBeginState>(count);
+}
+void TextArea::CursorGoBracket() {
+    CursorGo<&TextArea::CursorGoBracketState>();
 }
 
 void TextArea::CursorGoLine(size_t line) {
@@ -1433,6 +1381,79 @@ void TextArea::SelectAll() {
     cursor_->DontHoldColWant();
 }
 
+bool TextArea::SelectWord() {
+    b_view_->make_cursor_visible = true;
+    auto line = buffer_->GetLineView(cursor_->pos.line);
+    auto iter = buffer_->Find(cursor_->pos);
+    auto word = ThisWord(iter, line);
+    if (word.Size() == 0) {
+        return false;
+    }
+
+    selection_ = std::make_unique<NormalSelection>();
+    selection_->anchor = {cursor_->pos.line,
+                          word.begin.offset() - line.begin.offset()};
+    selection_->head = {cursor_->pos.line,
+                        word.end.offset() - line.begin.offset()};
+    return true;
+}
+
+void TextArea::SelectLinesToLine(size_t line) {
+    b_view_->make_cursor_visible = true;
+    selection_ = std::make_unique<LineSelection>(Pos{cursor_->pos.line, 0},
+                                                 Pos{line, 0});
+}
+
+void TextArea::SelectNextLines(size_t count) {
+    CHX_ASSERT(count != 0);
+    SelectLinesToLine(
+        std::min(cursor_->pos.line + count - 1, buffer_->LineCnt() - 1));
+}
+
+void TextArea::SelectPrevLines(size_t count) {
+    SelectLinesToLine(
+        cursor_->pos.line >= (count - 1) ? cursor_->pos.line - (count - 1) : 0);
+}
+
+// TODO: include ' ' & '\t' before or after the pair when inner is false.
+bool TextArea::SelectPair(char open, bool inner) {
+    b_view_->make_cursor_visible = true;
+    auto iter = buffer_->Find(cursor_->pos);
+    if (isQuote(open)) {
+        auto line = buffer_->GetLineView(cursor_->pos.line);
+        auto quoted = FindQuotePairAroundInLine(iter, line, open);
+        if (quoted.Size() == 0) {
+            return false;
+        }
+        selection_ = std::make_unique<NormalSelection>(
+            Pos{cursor_->pos.line, quoted.begin.offset() - line.begin.offset()},
+            Pos{cursor_->pos.line, quoted.end.offset() - line.begin.offset()});
+    } else {
+        auto end = buffer_->End();
+        if (iter == end) {
+            return false;
+        }
+
+        auto brackets =
+            FindBracketPairAround(iter, {buffer_->Begin(), end}, open);
+        if (brackets.Size() == 0) {
+            return false;
+        }
+        selection_ = std::make_unique<NormalSelection>(
+            *buffer_->OffsetToPos(brackets.begin.offset()),
+            *buffer_->OffsetToPos(brackets.end.offset()));
+    }
+
+    if (inner) {
+        // anchor is open and head is close.
+        // Currenty, pairs are all ascii characters, so we can use one byte ++
+        // and --.
+        selection_->anchor.byte_offset++;
+        selection_->head.byte_offset--;
+    }
+    return true;
+}
+
 void TextArea::SelectionFollowCursor() {
     if (IsSelectionActive()) {
         selection_->head = cursor_->pos;
@@ -1476,16 +1497,6 @@ Result TextArea::DeleteWordBeforeCursor() {
     return kOk;
 }
 
-Result TextArea::AddStringAtCursor(std::string_view str,
-                                   const Pos* cursor_pos) {
-    b_view_->make_cursor_visible = true;
-    if (IsSelectionActive()) {
-        return ReplaceSelection(str, cursor_pos);
-    } else {
-        return AddStringAtCursorNoSelection(str, cursor_pos);
-    }
-}
-
 Result TextArea::AddStringAtPos(Pos pos, std::string_view str,
                                 const Pos* cursor_pos) {
     CHX_ASSERT(!IsSelectionActive());
@@ -1525,7 +1536,7 @@ Result TextArea::TabAtCursor() {
     StopSelection();
 
     if (!GetOpt<bool>(kOptTabSpace)) {
-        return AddStringAtCursor("\t");
+        return AddStringAtCursorNoSelection("\t");
     }
 
     auto tabstop = GetOpt<int64_t>(kOptTabStop);
@@ -1548,7 +1559,7 @@ Result TextArea::TabAtCursor() {
         cur_b_view_c += character_width;
     }
     int need_space = tabstop - cur_b_view_c % tabstop;
-    return AddStringAtCursor(std::string(need_space, kSpaceChar));
+    return AddStringAtCursorNoSelection(std::string(need_space, kSpaceChar));
 }
 
 Result TextArea::Redo() {
@@ -1606,8 +1617,9 @@ Result TextArea::Paste(size_t count) {
         // High potential oom
         try {
             std::string tmp_content = content;
-            content.reserve(content.size() * count);
+            content.reserve(content.size() * count + (lines ? count : 0));
             for (size_t i = 0; i < count - 1; i++) {
+                if (lines) content += '\n';
                 content += tmp_content;
             }
         } catch (std::bad_alloc&) {
@@ -1615,16 +1627,27 @@ Result TextArea::Paste(size_t count) {
         }
     }
     if (IsSelectionActive()) {
-        return ReplaceSelection(std::move(content));
+        return ReplaceSelection(content, lines);
     } else {
         Pos pos;
+        Result res;
         if (lines) {
-            buffer_->Add({cursor_->pos.line,
-                          buffer_->GetLineView(cursor_->pos.line).Size()},
-                         std::move(content), &cursor_->pos, false, pos);
+            pos.line = cursor_->pos.line + 1;
+            pos.byte_offset = 0;
+            // try put cursor at the first non blank.
+            // use codepoint here for convenience.
+            for (char c : content) {
+                if (c != '\t' && c != kSpaceChar) break;
+                pos.byte_offset++;
+            }
+            content.insert(0, 1, '\n');
+            res = buffer_->Add({cursor_->pos.line,
+                                buffer_->GetLineView(cursor_->pos.line).Size()},
+                               content, &cursor_->pos, true, pos);
         } else {
-            buffer_->Add(cursor_->pos, std::move(content), nullptr, false, pos);
+            res = buffer_->Add(cursor_->pos, content, nullptr, false, pos);
         }
+        if (res != kOk) return res;
         AfterModify(pos);
         return kOk;
     }
@@ -1711,9 +1734,38 @@ Result TextArea::DeleteCharacterBeforeCursor() {
 }
 
 Result TextArea::DeleteSelection() {
+    CHX_ASSERT(IsSelectionActive());
+    Range r = selection_->ToDeleteRange(buffer_);
+    if (r.begin == r.end) {
+        return kFail;
+    }
+
     Pos pos;
-    if (Result res; (res = buffer_->Delete(selection_->ToDeleteRange(buffer_),
-                                           &cursor_->pos, false, pos)) != kOk) {
+    // We try to make the cursor pos same
+    bool line_semantic = selection_->LineSemantic();
+    if (line_semantic) {
+        size_t begin_line =
+            std::min(selection_->head.line, selection_->anchor.line);
+        size_t end_line =
+            std::max(selection_->head.line, selection_->anchor.line);
+        if (end_line == buffer_->LineCnt() - 1) {
+            if (begin_line == 0) {
+                pos = {0, 0};
+            } else {
+                CursorState state(cursor_);
+                pos.line = begin_line - 1;
+                CursorGoLineState(pos.line, state);
+                pos.byte_offset = state.pos.byte_offset;
+            }
+        } else {
+            CursorState state(cursor_);
+            CursorGoLineState(end_line + 1, state);
+            pos.line = begin_line;
+            pos.byte_offset = state.pos.byte_offset;
+        }
+    }
+    if (Result res;
+        (res = buffer_->Delete(r, &cursor_->pos, line_semantic, pos)) != kOk) {
         return res;
     }
     AfterModify(pos);
@@ -1724,6 +1776,7 @@ Result TextArea::DeleteSelection() {
 Result TextArea::AddStringAtCursorNoSelection(std::string_view str,
                                               const Pos* cursor_pos) {
     CHX_ASSERT(!IsSelectionActive());
+    b_view_->make_cursor_visible = true;
 
     Pos pos;
     if (cursor_pos != nullptr) {
@@ -1737,12 +1790,40 @@ Result TextArea::AddStringAtCursorNoSelection(std::string_view str,
     return kOk;
 }
 
-Result TextArea::ReplaceSelection(std::string_view str, const Pos* cursor_pos) {
+Result TextArea::ReplaceSelection(std::string_view str, bool lines) {
     CHX_ASSERT(IsSelectionActive());
-    if (Result res; (res = Replace(selection_->ToDeleteRange(buffer_), str,
-                                   cursor_pos)) != kOk) {
+    b_view_->make_cursor_visible = true;
+
+    // We need select range here because we want replace the
+    // selection range.
+    Range r = selection_->ToSelectRange(buffer_);
+
+    Pos pos;
+    std::string line_str;
+    if (lines) {
+        // try put cursor at the first non blank.
+        // Use codepoint for convenience.
+        size_t blank_bytes = 0;
+        for (char c : str) {
+            if (c != '\t' && c != kSpaceChar) break;
+            blank_bytes++;
+        }
+        if (!selection_->LineSemantic()) {
+            line_str.append(1, '\n');
+            line_str += str;
+            str = line_str;
+            pos.line = r.begin.line + 1;
+            pos.byte_offset = blank_bytes;
+        } else {  // special case: use lines to replace lines
+            pos.line = r.begin.line;
+            pos.byte_offset = r.begin.byte_offset + blank_bytes;
+        }
+    }
+    Result res = buffer_->Replace(r, str, &cursor_->pos, lines, pos);
+    if (res != kOk) {
         return res;
     }
+    AfterModify(pos);
     StopSelection();
     return kOk;
 }
@@ -1750,23 +1831,26 @@ Result TextArea::ReplaceSelection(std::string_view str, const Pos* cursor_pos) {
 Result TextArea::IndentLines(size_t count, size_t begin_line, size_t end_line) {
     b_view_->make_cursor_visible = true;
     BufferEditBatch edit_batch;
-    std::string str;
-    if (GetOpt<bool>(kOptTabSpace)) {
-        str = std::string(count * GetOpt<int64_t>(kOptTabStop), kSpaceChar);
-    } else {
-        str = std::string(count, '\t');
-    }
+    auto tabspace = GetOpt<bool>(kOptTabSpace);
+    std::string str =
+        tabspace ? std::string(count * GetOpt<int64_t>(kOptTabStop), kSpaceChar)
+                 : std::string(count, '\t');
+    Pos pos = cursor_->pos;
     for (size_t i = begin_line; i <= end_line; i++) {
         auto line = buffer_->GetLineView(i);
         if (line.Size() == 0) {
             continue;
+        }
+        if (cursor_->pos.line == i) {
+            pos.byte_offset += tabspace
+                                   ? str.size()
+                                   : str.size() * GetOpt<int64_t>(kOptTabStop);
         }
         edit_batch.PushBack({{{i, 0}, {i, 0}}, str});
     }
     if (edit_batch.Size() == 0) {
         return kFail;
     }
-    Pos pos = cursor_->pos;
     Result res = buffer_->BatchEdit(edit_batch, &cursor_->pos, true, pos);
     if (res == kOk) {
         AfterModify(pos);
@@ -1792,8 +1876,7 @@ Result TextArea::UnindentLines(size_t count, size_t begin_line,
         Range range = {{i, 0}, {i, iter.offset() - line.begin.offset()}};
         edit_batch.PushBack({range, ""});
         if (i == cursor_->pos.line) {
-            size_t cur_line_end = line.Size() - range.end.byte_offset;
-            pos.byte_offset = std::min(cursor_->pos.byte_offset, cur_line_end);
+            pos.byte_offset -= range.end.byte_offset;
         }
     }
     if (edit_batch.Size() == 0) {

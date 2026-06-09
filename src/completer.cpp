@@ -88,8 +88,8 @@ PeelCompleter::PeelCompleter(MangoPeel* peel, BufferManager* buffer_manager,
         };
         cmd_name_to_cmp_handler_["e"] = handler;
         cmd_name_to_cmp_handler_["edit"] = handler;
-        cmd_name_to_cmp_handler_["w"] = handler;
-        cmd_name_to_cmp_handler_["write"] = handler;
+        cmd_name_to_cmp_handler_["saveas"] = handler;
+        cmd_name_to_cmp_handler_["sa"] = handler;
     }
     {
         auto handler = [this](int arg_index, std::string_view arg_hint) {
@@ -163,37 +163,31 @@ void PeelCompleter::Suggest(const Pos& cursor_pos,
     }
     menu_entries = suggestions_;
 }
+
 Result PeelCompleter::Accept(size_t index, Cursor* cursor) {
-    Pos pos;
-    peel_->area_.b_view_->make_cursor_visible = true;
-    if (type_ == SuggestType::kOther) {
-        peel_->area_.buffer_->Replace(
-            {{0, this_arg_offset_}, {0, cursor->pos.byte_offset}},
-            suggestions_[index], nullptr, false, pos);
-    } else if (type_ == SuggestType::kPath) {
-        std::string_view hint = {
-            peel_->GetUserInput().data() + this_arg_offset_,
-            cursor->pos.byte_offset - this_arg_offset_};
-        int64_t sep_index = Path::LastPathSeperator(hint);
-        if (sep_index == static_cast<int64_t>(hint.size() - 1)) {
-            peel_->area_.buffer_->Add({0, cursor->pos.byte_offset},
-                                      suggestions_[index], nullptr, false, pos);
-        } else {
-            peel_->area_.buffer_->Replace(
-                {{0, sep_index + 1 + this_arg_offset_},
-                 {0, cursor->pos.byte_offset}},
-                suggestions_[index], nullptr, false, pos);
-        }
-    } else {
-        CHX_ASSERT(false);
-    }
-    cursor->pos = pos;
     Result res;
-    if (type_ == SuggestType::kPath &&
-        suggestions_[index].back() == kPathSeperator) {
-        res = kRetriggerCmp;
-    } else {
-        res = kOk;
+    switch (type_) {
+        case SuggestType::kPath: {
+            std::string_view hint = {
+                peel_->GetUserInput().data() + this_arg_offset_,
+                cursor->pos.byte_offset - this_arg_offset_};
+            int64_t sep_index = Path::LastPathSeperator(hint);
+            if (sep_index == static_cast<int64_t>(hint.size() - 1)) {
+                peel_->area_.AddStringAtCursorNoSelection(suggestions_[index]);
+            } else {
+                peel_->area_.Replace({{0, sep_index + 1 + this_arg_offset_},
+                                      {0, cursor->pos.byte_offset}},
+                                     suggestions_[index]);
+            }
+            res = suggestions_[index].back() == kPathSeperator ? kRetriggerCmp
+                                                               : kOk;
+            break;
+        }
+        case SuggestType::kOther:
+            peel_->area_.Replace(
+                {{0, this_arg_offset_}, {0, cursor->pos.byte_offset}},
+                suggestions_[index]);
+            res = kOk;
     }
     suggestions_.clear();
     return res;

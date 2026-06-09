@@ -81,6 +81,19 @@ inline bool IsPeel(Mode mode) {
     }
 }
 
+inline bool InsertLike(Mode mode) {
+    switch (mode) {
+        case Mode::kInsert:
+            [[fallthrough]];
+        case Mode::kPeelCommand:
+            [[fallthrough]];
+        case Mode::kPeelSearch:
+            return true;
+        default:
+            return false;
+    }
+}
+
 #define CHX_SELECT_MODES Mode::kSelect, Mode::kSelectLine
 #define CHX_DEFAULT_MODES Mode::kNormal, CHX_SELECT_MODES
 #define CHX_ALL_MODES                                                       \

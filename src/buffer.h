@@ -184,10 +184,13 @@ class Buffer {
         return GetContentView(range).ToString();
     }
 
-    // Please refer TextTree Find and Iterator
+    // Please refer TextTree API
     using Iterator = TextTree::Iterator;
     Iterator Find(Pos pos) const { return tree_.Find(pos); }
     Iterator Find(size_t offset) const { return tree_.Find(offset); }
+    std::optional<Pos> OffsetToPos(size_t offset) const {
+        return tree_.OffsetToPos(offset);
+    }
 
     Iterator LineEnd(size_t line) {
         CHX_ASSERT(LineCnt() > line);
@@ -262,6 +265,12 @@ class Buffer {
     // cursor_pos_hint will be set to the suggest cursor pos
     Result Redo(Pos& cursor_pos_hint);
     Result Undo(Pos& cursor_pos_hint);
+
+    // Sometimes we can't calc cursor_pos_hint before edit, we should call this
+    // to fix it.
+    // NOTE: maybe useful
+    // TODO: Implement it
+    void FixLastHistoryItemCursorPosHint(Pos cursor_pos_hint);
 
     int64_t id() const noexcept { return id_; }
     // Must always >= 1

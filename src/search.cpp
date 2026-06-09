@@ -7,11 +7,10 @@ namespace charxed {
 bool BuildRegContext(const std::string& pattern, bool ignore_case,
                      regex_t& regex) {
     Character c;
-    int byte_len;
-    char asc;
-    for (size_t i = 0; i < pattern.size(); i += byte_len) {
-        ThisCharacter(pattern, i, c, byte_len);
-        if (c.Ascii(asc) && asc >= 'A' && asc <= 'Z') {
+    // Because current reg engine only recognize code points, we also iter it
+    // by code point.
+    for (size_t i = 0; i < pattern.size(); i++) {
+        if (isupper(pattern[i])) {
             ignore_case = false;
             break;
         }
