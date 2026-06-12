@@ -11,13 +11,12 @@ enum class MouseState {
     kLeftHolding,
 };
 
-#define CHX_BUFFER_STATE_TABLE         \
-    X(kModified, "[M]")                \
-    X(kNotModified, "")                \
-    X(kCannotRead, "[Can't Read]")     \
-    X(kHaveNotRead, "[Haven't Read]")  \
-    X(kCannotCreate, "[Can't Create]") \
-    X(kReadOnly, "[RdOnly]")           \
+#define CHX_BUFFER_STATE_TABLE        \
+    X(kModified, "[M]")               \
+    X(kNotModified, "")               \
+    X(kCannotRead, "[Can't Read]")    \
+    X(kHaveNotRead, "[Haven't Read]") \
+    X(kReadOnly, "[RdOnly]")          \
     X(kCodingInvalid, "[CodingInvalid]")
 
 enum class BufferState : int {

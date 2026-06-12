@@ -392,14 +392,13 @@ const SyntaxParser::TSQueryContext* SyntaxParser::GetQueryContext(
     if (!query_context) {
         std::string query_file_path = QueryFilePath(filetype);
         try {
-            File f(query_file_path, "r", false);
+            File f(query_file_path, "r");
             EOLSeq eol_seq;
             std::string query_str = f.ReadAll(eol_seq);
             // Cpp need C
             if (filetype == FileType::kCpp) {
                 std::string query_str_c =
-                    File(QueryFilePath(FileType::kC), "r", false)
-                        .ReadAll(eol_seq);
+                    File(QueryFilePath(FileType::kC), "r").ReadAll(eol_seq);
                 query_str = query_str_c + kTSNewLine + query_str;
             }
             uint32_t error_offset;

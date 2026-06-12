@@ -128,11 +128,11 @@ class Buffer {
     CHX_DEFAULT_MOVE(Buffer);
     ~Buffer();
 
-    // throws IOException, FileCreateException, CodingException, FSException
+    // throws IOException, CodingException, FSException
     // if it is a no file backup buffer, any of above exceptions won't throw.
     void Load();
 
-    // throws IOException, CodingException, FSException
+    // throws IOException, FileExistException, CodingException, FSException
     // two args is similar to Add/Delete/Replace
     void Reload(Pos* cursor_pos, Pos& cursor_pos_hint);
 
@@ -142,9 +142,9 @@ class Buffer {
     // return
     // kok
     // kBufferNoBackupFile
-    // kBufferCannotRead
+    // kBufferCannotLoad
     // kBufferReadOnly
-    Result Write();
+    Result Save();
 
     // Save the buffer content to a new path.
     // path shouldn't be empty.
@@ -153,7 +153,7 @@ class Buffer {
     // throws IOException
     // return
     // kok
-    // kBufferCannotRead
+    // kBufferCannotLoad
     // kBufferReadOnly
     Result SaveAs(const Path& path);
 
@@ -268,7 +268,7 @@ class Buffer {
 
     // Sometimes we can't calc cursor_pos_hint before edit, we should call this
     // to fix it.
-    // NOTE: maybe useful
+    // NOTE: not used now, maybe useful
     // TODO: Implement it
     void FixLastHistoryItemCursorPosHint(Pos cursor_pos_hint);
 

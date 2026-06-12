@@ -71,7 +71,7 @@ class BufferNaive {
     CHX_DEFAULT_MOVE(BufferNaive);
     ~BufferNaive();
 
-    // throws IOException, FileCreateException, CodingException
+    // throws IOException, CodingException
     // if it is a no file backup buffer, any of above exceptions won't throw.
     void Load();
 

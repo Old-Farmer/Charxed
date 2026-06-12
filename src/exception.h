@@ -39,7 +39,8 @@ class Exception : public std::exception {
 
 CHX_NORMAL_EXCEPTION(TermException)
 CHX_NORMAL_EXCEPTION(IOException)
-CHX_NORMAL_EXCEPTION(FileCreateException)
+CHX_NORMAL_EXCEPTION(FileNotExistException)
+CHX_NORMAL_EXCEPTION(FileCreateException)  // NOTE: Not used now
 CHX_NORMAL_EXCEPTION(CodingException)
 CHX_NORMAL_EXCEPTION(FSException)
 CHX_NORMAL_EXCEPTION(LogInitException)

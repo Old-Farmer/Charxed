@@ -895,11 +895,9 @@ void Editor::RemoveCurrentBuffer() {
 
 void Editor::SaveCurrentBuffer() {
     try {
-        Result res = cursor_.t_win->area_.buffer_->Write();
+        Result res = cursor_.t_win->area_.buffer_->Save();
         if (res == kOk) {
-            NotifyUser(
-                fmt::format("\"{}\" saved",
-                            cursor_.t_win->area_.buffer_->path().FileName()));
+            ;
         } else if (res == kBufferNoBackupFile) {
             NotifyUser("Buffer no backup file");
         } else if (res == kBufferCannotLoad) {

@@ -20,22 +20,16 @@ std::string_view format_as(EOLSeq eol_seq) {
     return str;
 }
 
-File::File(const std::string& path, const char* mode,
-           bool create_if_not_exist) {
+File::File(const std::string& path, const char* mode) {
     file_ = fopen(path.c_str(), mode);
     if (file_ != nullptr) {
         return;
     }
 
-    if (!create_if_not_exist || errno != ENOENT) {
+    if (errno != ENOENT) {
         throw IOException("File {} can't open: {}", path, strerror(errno));
     }
-
-    file_ = fopen(path.c_str(), "w+");
-    if (file_ == nullptr) {
-        throw FileCreateException("File {} can't create: {}", path,
-                                  strerror(errno));
-    }
+    throw FileNotExistException("File {} doesn't exist", path);
 }
 
 File::~File() { fclose(file_); }

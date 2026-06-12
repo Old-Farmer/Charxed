@@ -22,9 +22,10 @@ class File {
     // mode is same as C file stdio api
     // "r" for readonly
     // "w" for writeonly
-    // create_if_not_exist only meaningful to read
-    // throws IOException, FileCreateException
-    File(const std::string& path, const char* mode, bool create_if_not_exist);
+    // throws IOException,
+    // and also throws FileNotExistException if the mode doesn't mean to create
+    // file.
+    File(const std::string& path, const char* mode);
     ~File();
 
     CHX_DELETE_COPY(File);

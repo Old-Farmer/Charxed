@@ -35,22 +35,26 @@ void BufferNaive::Load() {
             return;
         }
 
-        File f(path_.AbsolutePath(), "r", true);
-        CHX_LOG_DEBUG("file path {}", path_.AbsolutePath());
+        try {
+            File f(path_.AbsolutePath(), "r");
+            CHX_LOG_DEBUG("file path {}", path_.AbsolutePath());
 
-        while (true) {
-            std::string buf;
-            Result ret = f.ReadLine(buf, eol_seq_);
-            if (!CheckUtf8Valid(buf)) {
-                lines_.clear();
-                lines_.push_back({});
-                state_ = BufferState::kCodingInvalid;
-                throw CodingException("{}", "utf8 encoding error");
+            while (true) {
+                std::string buf;
+                Result ret = f.ReadLine(buf, eol_seq_);
+                if (!CheckUtf8Valid(buf)) {
+                    lines_.clear();
+                    lines_.push_back({});
+                    state_ = BufferState::kCodingInvalid;
+                    throw CodingException("{}", "utf8 encoding error");
+                }
+                lines_.emplace_back(std::move(buf));
+                if (ret == kEof) {
+                    break;
+                }
             }
-            lines_.emplace_back(std::move(buf));
-            if (ret == kEof) {
-                break;
-            }
+        } catch (FileNotExistException&) {
+            ;
         }
         if (lines_.empty()) {
             lines_.push_back({});
@@ -60,11 +64,6 @@ void BufferNaive::Load() {
 
         state_ =
             read_only_ ? BufferState::kReadOnly : BufferState::kNotModified;
-    } catch (FileCreateException& e) {
-        lines_.clear();
-        lines_.push_back({});  // ensure one empty line
-        state_ = BufferState::kCannotCreate;
-        throw;
     } catch (IOException& e) {
         lines_.clear();
         lines_.push_back({});  // ensure one empty line
@@ -94,7 +93,7 @@ Result BufferNaive::Write() {
     }
 
     std::string swap_file_path = path_.AbsolutePath() + kSwapSuffix;
-    File swap_file = File(swap_file_path, "w", true);
+    File swap_file = File(swap_file_path, "w");
 
     const char* eol_seq_str = eol_seq_ == EOLSeq::kLF ? kEOLSeqLF : kEOLSeqCRLF;
     int eol_seq_str_size = strlen(eol_seq_str);

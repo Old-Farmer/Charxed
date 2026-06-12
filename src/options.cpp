@@ -258,23 +258,21 @@ void GlobalOpts::TryApply(const Json& config, const Json& colorscheme_config) {
 void GlobalOpts::LoadConfig() {
     EOLSeq eol_seq;
     std::string default_config_str =
-        File(std::string(Path::GetAppRoot() + kDefaultConfigPath), "r", false)
+        File(std::string(Path::GetAppRoot() + kDefaultConfigPath), "r")
             .ReadAll(eol_seq);
     std::string default_colorscheme_str =
-        File(std::string(Path::GetAppRoot() + kDefaultColorschemePath), "r",
-             false)
+        File(std::string(Path::GetAppRoot() + kDefaultColorschemePath), "r")
             .ReadAll(eol_seq);
 
     try {
         std::string user_config_str;
         if (File::FileReadable(kUserConfigPath)) {
-            user_config_str =
-                File(kUserConfigPath, "r", false).ReadAll(eol_seq);
+            user_config_str = File(kUserConfigPath, "r").ReadAll(eol_seq);
         }
         std::string user_colorscheme_str;
         if (File::FileReadable(kUserColorschemePath)) {
             user_colorscheme_str =
-                File(kUserColorschemePath, "r", false).ReadAll(eol_seq);
+                File(kUserColorschemePath, "r").ReadAll(eol_seq);
         }
 
         // We merge with user config

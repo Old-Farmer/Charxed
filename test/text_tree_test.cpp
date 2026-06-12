@@ -12,7 +12,7 @@ namespace charxed {
 
 size_t LineCntForTest(const std::string& fname) {
     size_t cnt = 1;
-    File f(fname, "r", false);
+    File f(fname, "r");
     Result res;
     do {
         char c;
@@ -64,7 +64,7 @@ TEST_CASE("TextTree test") {
     Path::GetCwdSys();
 
     TextTree tree;
-    File f(fname, "r", false);
+    File f(fname, "r");
     EOLSeq eol_seq;
     tree.BulkLoad(f, eol_seq);
     REQUIRE(tree.Check() == "");
@@ -147,7 +147,7 @@ TEST_CASE("TextTree load str test") {
     BufferNaive buffer;
     buffer.Load();
 
-    File f(fname, "r", false);
+    File f(fname, "r");
     EOLSeq eol_seq;
     auto str = f.ReadAll(eol_seq);
 

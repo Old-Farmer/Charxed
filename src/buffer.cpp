@@ -52,6 +52,12 @@ Buffer::~Buffer() {
 
 void Buffer::Load() {
     auto _ = gsl::finally([this] {
+        // abnormal state, fast return
+        if (state_ != BufferState::kHaveNotRead) {
+            return;
+        }
+        state_ =
+            read_only_ ? BufferState::kReadOnly : BufferState::kNotModified;
         opts_.InitAfterBufferLoad(this);
         if (GetOpt<bool>(kOptBasicWordCompletion) && IsLoad() && !read_only()) {
             basic_word_completer_ =
@@ -63,16 +69,21 @@ void Buffer::Load() {
     try {
         if (path_.Empty()) {
             tree_.BulkLoad("");
-            state_ = BufferState::kNotModified;
             return;
         }
 
-        File f(path_.AbsolutePath(), "r", true);
-        CHX_LOG_DEBUG("file path {}", path_.AbsolutePath());
-
-        tree_.BulkLoad(f, eol_seq_);
-
         filetype_ = DecideFiletype(path_.FileName());
+
+        try {
+            File f(path_.AbsolutePath(), "r");
+            CHX_LOG_DEBUG("file path {}", path_.AbsolutePath());
+            tree_.BulkLoad(f, eol_seq_);
+        } catch (FileNotExistException&) {
+            // Not exist, we don't create it now. It's better to create
+            // it when save it.
+            tree_.BulkLoad("");
+            return;
+        }
 
         FileStat file_stat;
         Result res = GetFileStat(path_.AbsolutePath(), file_stat);
@@ -92,17 +103,10 @@ void Buffer::Load() {
             read_only_ = true;
         }
 #endif
-        state_ =
-            read_only_ ? BufferState::kReadOnly : BufferState::kNotModified;
-
         // TODO: check file stat for more op
     } catch (CodingException& e) {
         tree_.BulkLoad("");  // ensure init
         state_ = BufferState::kCodingInvalid;
-        throw;
-    } catch (FileCreateException& e) {
-        tree_.BulkLoad("");  // ensure init
-        state_ = BufferState::kCannotCreate;
         throw;
     } catch (Exception& e) {
         tree_.BulkLoad("");  // ensure init
@@ -113,7 +117,7 @@ void Buffer::Load() {
 
 void Buffer::Reload(Pos* cursor_pos, Pos& cursor_pos_hint) {
     try {
-        File f(path_.AbsolutePath(), "r", false);
+        File f(path_.AbsolutePath(), "r");
         CHX_LOG_DEBUG("reload file path {}", path_.AbsolutePath());
 
         FileStat file_stat;
@@ -166,7 +170,7 @@ void Buffer::Clear() {
     version_++;
 }
 
-Result Buffer::Write() {
+Result Buffer::Save() {
     if (path_.Empty()) {
         return kBufferNoBackupFile;
     }
@@ -184,7 +188,7 @@ Result Buffer::Write() {
     swap_file_path.append(path_.AbsolutePath());
     swap_file_path.append(kSwapSuffix);
 
-    File swap_file = File(swap_file_path, "w", true);
+    File swap_file = File(swap_file_path, "w");
 
     if (eol_seq_ == EOLSeq::kLF) {
         for (auto iter = tree_.BlockBegin(); iter != tree_.BlockEnd();
@@ -249,7 +253,7 @@ Result Buffer::SaveAs(const Path& path) {
     }
 
     try {
-        Result res = Write();
+        Result res = Save();
         if (res != kOk) {
             path_ = old_p;
             read_only_ = old_read_only;
