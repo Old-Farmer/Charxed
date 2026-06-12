@@ -154,7 +154,11 @@ const std::string& Path::GetCwdSys() {
     if (ret == nullptr) {
         throw FSException("Getcwd Error: {}", strerror(errno));
     }
-    cwd_ = std::string(buf) + kPathSeperator;
+    cwd_ = std::string(buf);
+    CHX_ASSERT(cwd_.size() != 0);
+    if (cwd_.back() != kPathSeperator) {
+        cwd_.push_back(kPathSeperator);
+    }
     return cwd_;
 }
 
