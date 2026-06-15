@@ -45,7 +45,7 @@
 
 ## Performance
 
-- Big file support:
+- Big file support(Possibly implementation: make TextTree a persistent data structure, so background threads can use the old version of TextTree without confliction with the forground thread editing the buffer):
     - treesitter background thread parsing
     - File background thread saving
 
