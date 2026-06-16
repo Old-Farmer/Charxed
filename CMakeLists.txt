@@ -18,17 +18,17 @@ set(FETCHCONTENT_QUIET OFF)
 set(THIRD_PARTY_DIR "${CMAKE_SOURCE_DIR}/third-party")
 
 # third party versions
-set(TERMBOX2_VERSION "")
+set(TERMBOX2_VERSION "dev")
 set(UTF8PROC_VERSION "v2.11.3")
 set(GSL_VERSION "v4.2.0")
 set(JSON_VERSION "v3.12.0")
-set(CATCH2_VERSION "v3.12.0")
+set(CATCH2_VERSION "v3.15.1")
 set(TREESITTER_VERSION "v0.26.9")
 set(FMT_VERSION "12.1.0")
 set(TS_GRAMMARS
-    c    v0.24.2
-    cpp  v0.23.4
-    json v0.24.8
+    c    "v0.24.2"
+    cpp  "v0.23.4"
+    json "v0.24.8"
 )
 
 # Extract TS_GRAMMARS_LANGS
@@ -44,7 +44,7 @@ endforeach()
 FetchContent_Declare(
     termbox2
     GIT_REPOSITORY "https://github.com/Old-Farmer/termbox2.git"
-    GIT_TAG dev
+    GIT_TAG ${TERMBOX2_VERSION}
     GIT_SHALLOW ON
     GIT_PROGRESS ON
     # Don't specify SOURCE_DIR because we use make in the source dir
