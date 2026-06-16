@@ -47,7 +47,7 @@ const std::unordered_map<zstring_view, FileType> kNameToFiletype = {
 // clang-format on
 
 const std::unordered_map<zstring_view, FileType> kInnerStrRepToFileType = {
-#define X(ft, inner, user) {#inner, FileType::ft},
+#define X(ft, inner, user) {inner, FileType::ft},
     CHX_FILE_TYPE_TABLE
 #undef X
 };
@@ -80,10 +80,8 @@ zstring_view FileTypesInnerStrRep(FileType filetype) {
     switch (filetype) {
 #define X(ft, inner, user)     \
         case FileType::ft:     \
-            return #inner;
-
+            return inner;
         CHX_FILE_TYPE_TABLE
-
 #undef X
         default:
             CHX_ASSERT(false);
@@ -95,10 +93,8 @@ zstring_view FiletypeUserStrRep(FileType filetype) {
     switch (filetype) {
 #define X(ft, inner, user)     \
         case FileType::ft:     \
-            return #user;
-
+            return user;
         CHX_FILE_TYPE_TABLE
-
 #undef X
         default:
             CHX_ASSERT(false);

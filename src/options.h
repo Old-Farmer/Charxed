@@ -192,7 +192,7 @@ class GlobalOpts {
    private:
     void* opts_[__kOptKeyCount];
     std::unordered_map<OptKey, void*>
-        filetype_opts_[static_cast<int>(FileType::__kCount)];
+        filetype_opts_[static_cast<int>(FileType::_kCount)];
 
     bool user_config_valid_ = false;
     std::string user_config_error_reason_;

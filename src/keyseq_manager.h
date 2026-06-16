@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <string>
 
 #include "result.h"
@@ -23,7 +24,7 @@ struct Keyseq {
 class KeyseqManager {
    public:
     KeyseqManager(Mode& mode, Context& context);
-    ~KeyseqManager() = default; // TODO: implement it
+    ~KeyseqManager() = default;  // TODO: implement it
     CHX_DELETE_COPY(KeyseqManager);
     CHX_DELETE_MOVE(KeyseqManager);
 
@@ -68,7 +69,7 @@ class KeyseqManager {
         std::array<Node,
                    static_cast<size_t>(Mode::_kCount)>;  // one tree per mode
 
-    std::array<KeymapsTrees, static_cast<size_t>(Context::__kCount)> roots_;
+    std::array<KeymapsTrees, static_cast<size_t>(Context::_kCount)> roots_;
 
     // keyseq state
     Node* cur_ = nullptr;

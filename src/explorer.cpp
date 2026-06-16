@@ -84,9 +84,9 @@ size_t Explorer::ExpandDirEntry(size_t flattern_index) {
     CHX_ASSERT(
         !static_cast<DirEntry*>(flattern_entries_[flattern_index])->expanded);
 
-    auto path = EntryPath(flattern_entries_[cursor_->pos.line]);
+    auto path = EntryPath(flattern_entries_[flattern_index]);
     auto entries = Path::ListUnderPath(path);
-    auto dir_e = static_cast<DirEntry*>(flattern_entries_[cursor_->pos.line]);
+    auto dir_e = static_cast<DirEntry*>(flattern_entries_[flattern_index]);
     dir_e->entries.reserve(entries.size());
     for (auto& name : entries) {
         CHX_ASSERT(!name.empty());
@@ -108,7 +108,7 @@ size_t Explorer::ExpandDirEntry(size_t flattern_index) {
     for (auto& e : dir_e->entries) {
         tmp.push_back(e.get());
     }
-    flattern_entries_.insert(flattern_entries_.begin() + cursor_->pos.line + 1,
+    flattern_entries_.insert(flattern_entries_.begin() + flattern_index + 1,
                              tmp.begin(), tmp.end());
     return tmp.size();
 }

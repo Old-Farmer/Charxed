@@ -84,8 +84,9 @@ Result TextWindow::DeleteAtCursor() {
             NextCharacter(iter, cur_line.end, character);
             char this_char = -1;
             character.Ascii(this_char);
-            bool need_delete_pairs =
-                c != -1 && this_char != -1 && IsPair(c, this_char);
+            bool need_delete_pairs = c != static_cast<char>(-1) &&
+                                     this_char != static_cast<char>(-1) &&
+                                     IsPair(c, this_char);
             range = {
                 {cursor_->pos.line, prev.offset() - cur_line.begin.offset()},
                 {cursor_->pos.line,
@@ -113,19 +114,15 @@ Result TextWindow::AddStringAtCursor(std::string_view str, bool raw) {
         return area_.AddStringAtCursorNoSelection(str);
     }
 
-    char c = -1;
-    if (str.size() == 1 && str[0] < CHAR_MAX && str[0] >= 0) {
-        c = str[0];
-    }
-
-    if (c == -1) {
+    CHX_ASSERT(!str.empty());
+    if (str.size() != 1) {
         return area_.AddStringAtCursorNoSelection(str);
     }
 
-    if (GetOpt<bool>(kOptAutoIndent) && c == '\n') {
+    if (GetOpt<bool>(kOptAutoIndent) && str[0] == '\n') {
         return TryAutoIndent(cursor_->pos);
     } else if (GetOpt<bool>(kOptAutoPair)) {
-        if (IsPair(c)) {
+        if (IsPair(str[0])) {
             return TryAutoPair(str);
         } else {
             return area_.AddStringAtCursorNoSelection(str);
@@ -157,7 +154,7 @@ Result TextWindow::Replace(const Range& range, std::string_view str) {
 }
 
 Result TextWindow::TryAutoPair(std::string_view str) {
-    CHX_ASSERT(str.size() == 1 && str[0] < CHAR_MAX && str[0] >= 0);
+    CHX_ASSERT(str.size() == 1);
 
     auto line = area_.buffer_->GetLineView(cursor_->pos.line);
 

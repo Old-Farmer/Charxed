@@ -36,7 +36,7 @@ enum class Context {
     kEditor,
     kExplorer,
 
-    __kCount,
+    _kCount,
 };
 
 #define CHX_MODE_TABLE                                                   \

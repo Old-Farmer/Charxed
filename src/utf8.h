@@ -10,7 +10,13 @@ using Codepoint = utf8proc_int32_t;
 constexpr size_t kMaxBytesUtf8Codepoint = 4;
 
 inline bool IsUtf8BeginByte(char b) {
+    // != 10uvwxyz
     return (static_cast<std::byte>(b) >> 6) != static_cast<std::byte>(0b10);
+}
+
+inline bool IsUTf8ByteAscii(char b) {
+    // == 0tuvwxyz
+    return b & (static_cast<char>(1) << 7);
 }
 
 // decode str to a codepoint

@@ -26,9 +26,7 @@
 - diff algorithm and diff view
 - Better auto indent per laguages
 - SIGTSTP & SIGCONT support
-- Auto saving
-- MacOS support(high priority)
-- Windows support(high priority, especially for termbox2)
+- Auto saving(maybe related to make TextTree persistent data structure)
 - Low lantency remote development
 
 ## Extensibiliy
@@ -55,6 +53,6 @@
 
 ## Cross Platform
 
-- Better CMake
-    - Linux aarch64
+- MacOS support(high priority)
+- Windows support(high priority, especially for termbox2)
 

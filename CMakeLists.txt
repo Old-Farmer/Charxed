@@ -17,6 +17,29 @@ set(FETCHCONTENT_QUIET OFF)
 # third-party
 set(THIRD_PARTY_DIR "${CMAKE_SOURCE_DIR}/third-party")
 
+# third party versions
+set(TERMBOX2_VERSION "")
+set(UTF8PROC_VERSION "v2.11.3")
+set(GSL_VERSION "v4.2.0")
+set(JSON_VERSION "v3.12.0")
+set(CATCH2_VERSION "v3.12.0")
+set(TREESITTER_VERSION "v0.26.9")
+set(FMT_VERSION "12.1.0")
+set(TS_GRAMMARS
+    c    v0.24.2
+    cpp  v0.23.4
+    json v0.24.8
+)
+
+# Extract TS_GRAMMARS_LANGS
+set(TS_GRAMMAR_LANGS)
+list(LENGTH TS_GRAMMARS N)
+math(EXPR LAST "${N} - 1")
+foreach(I RANGE 0 ${LAST} 2)
+    list(GET TS_GRAMMARS ${I} LANG)
+    list(APPEND TS_GRAMMAR_LANGS ${LANG})
+endforeach()
+
 # termbox2
 FetchContent_Declare(
     termbox2
@@ -24,42 +47,39 @@ FetchContent_Declare(
     GIT_TAG dev
     GIT_SHALLOW ON
     GIT_PROGRESS ON
-    SOURCE_DIR "${THIRD_PARTY_DIR}/termbox2"
+    # Don't specify SOURCE_DIR because we use make in the source dir
 )
-set(TERMBOX2_LIB "${THIRD_PARTY_DIR}/termbox2/libtermbox2.a")
-set(TERMBOX2_INCLUDE_DIR "${THIRD_PARTY_DIR}/termbox2")
+FetchContent_Populate(termbox2)
+set(TERMBOX2_LIB "${termbox2_SOURCE_DIR}/libtermbox2.a")
+set(TERMBOX2_INCLUDE_DIR "${termbox2_SOURCE_DIR}")
 add_custom_target(build_termbox2
-    COMMAND make libtermbox2.a CFLAGS=\"-DTB_OPT_ATTR_W=64 -DTB_OPT_EGC -O2\" --always-make
-    WORKING_DIRECTORY "${THIRD_PARTY_DIR}/termbox2"
+    COMMAND
+    ${CMAKE_COMMAND} -E env
+    CC=${CMAKE_C_COMPILER}
+    CXX=${CMAKE_CXX_COMPILER}
+    make libtermbox2.a
+    CFLAGS=\"-DTB_OPT_ATTR_W=64 -DTB_OPT_EGC -O2\" --always-make
+    WORKING_DIRECTORY "${termbox2_SOURCE_DIR}"
     COMMENT "Building termbox2 library"
     BYPRODUCTS "${TERMBOX2_LIB}"
 )
-FetchContent_Populate(termbox2)
 
 # utf8proc
 FetchContent_Declare(
     utf8proc
     GIT_REPOSITORY "https://github.com/JuliaStrings/utf8proc.git"
-    GIT_TAG master
+    GIT_TAG ${UTF8PROC_VERSION}
     GIT_SHALLOW ON
     GIT_PROGRESS ON
     SOURCE_DIR "${THIRD_PARTY_DIR}/utf8proc"
 )
-set(UTF8PROC_LIB "${THIRD_PARTY_DIR}/utf8proc/libutf8proc.a")
-set(UTF8PROC_INCLUDE_DIR "${THIRD_PARTY_DIR}/utf8proc")
-add_custom_target(build_utf8proc
-    COMMAND make
-    WORKING_DIRECTORY "${THIRD_PARTY_DIR}/utf8proc"
-    COMMENT "Building utf8proc library"
-    BYPRODUCTS "${UTF8PROC_LIB}"
-)
-FetchContent_Populate(utf8proc)
+FetchContent_MakeAvailable(utf8proc)
 
 # GSL
 FetchContent_Declare(
     GSL
     GIT_REPOSITORY "https://github.com/microsoft/GSL"
-    GIT_TAG "v4.2.0"
+    GIT_TAG ${GSL_VERSION}
     GIT_SHALLOW ON
     GIT_PROGRESS ON
     SOURCE_DIR "${THIRD_PARTY_DIR}/GSL"
@@ -68,7 +88,7 @@ FetchContent_MakeAvailable(GSL)
 
 # json
 FetchContent_Declare(json
-    URL "https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz"
+    URL "https://github.com/nlohmann/json/releases/download/${JSON_VERSION}/json.tar.xz"
     SOURCE_DIR "${THIRD_PARTY_DIR}/json"
 )
 FetchContent_MakeAvailable(json)
@@ -77,7 +97,7 @@ FetchContent_MakeAvailable(json)
 FetchContent_Declare(
     Catch2
     GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG        v3.8.1
+    GIT_TAG        ${CATCH2_VERSION}
     GIT_SHALLOW ON
     GIT_PROGRESS ON
     SOURCE_DIR "${THIRD_PARTY_DIR}/Catch2"
@@ -88,20 +108,12 @@ FetchContent_MakeAvailable(Catch2)
 FetchContent_Declare(
     treesitter
     GIT_REPOSITORY "https://github.com/tree-sitter/tree-sitter.git"
-    GIT_TAG master
+    GIT_TAG ${TREESITTER_VERSION}
     GIT_SHALLOW ON
     GIT_PROGRESS ON
     SOURCE_DIR "${THIRD_PARTY_DIR}/tree-sitter"
 )
-set(TREESITTER_LIB "${THIRD_PARTY_DIR}/tree-sitter/libtree-sitter.a")
-set(TREESITTER_INCLUDE_DIR "${THIRD_PARTY_DIR}/tree-sitter/lib/include")
-add_custom_target(build_treesitter
-    COMMAND make
-    WORKING_DIRECTORY "${THIRD_PARTY_DIR}/tree-sitter"
-    COMMENT "Building tree-sitter library"
-    BYPRODUCTS "${TREESITTER_LIB}"
-)
-FetchContent_Populate(treesitter)
+FetchContent_MakeAvailable(treesitter)
 
 # FetchContent_Declare(
 #     json_rpc_cxx
@@ -123,21 +135,23 @@ FetchContent_Populate(treesitter)
 # )
 
 # tree-sitter-grammars
-set(TS_GRAMMAR_LANGS
-    c
-    cpp
-    json
-)
 set(TS_GRAMMAR_DIR "${THIRD_PARTY_DIR}/tree-sitter-grammars")
-foreach(LANG IN LISTS TS_GRAMMAR_LANGS)
-    set(URL "https://github.com/tree-sitter/tree-sitter-${LANG}.git")
+list(LENGTH TS_GRAMMARS N)
+math(EXPR N "${N} - 1")
+foreach(I RANGE 0 ${N} 2)
+    list(GET TS_GRAMMARS ${I} LANG)
+
+    math(EXPR J "${I} + 1")
+    list(GET TS_GRAMMARS ${J} TAG)
+
     set(NAME ts_grammar_${LANG})
+
     FetchContent_Declare(
         ${NAME}
-        GIT_REPOSITORY ${URL}
-        GIT_TAG master
-        GIT_SHALLOW TRUE
-        GIT_PROGRESS TRUE
+        GIT_REPOSITORY "https://github.com/tree-sitter/tree-sitter-${LANG}.git"
+        GIT_TAG ${TAG}
+        GIT_SHALLOW ON
+        GIT_PROGRESS ON
         SOURCE_DIR "${TS_GRAMMAR_DIR}/tree-sitter-${LANG}"
     )
     # Use populate Instead of MakeAvailabe to avoid target conflicts.
@@ -152,7 +166,7 @@ endforeach()
 FetchContent_Declare(
     fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt
-    GIT_TAG        e69e5f977d458f2650bb346dadf2ad30c5320281 # 10.2.1
+    GIT_TAG ${FMT_VERSION}
     GIT_SHALLOW TRUE
     GIT_PROGRESS TRUE
     SOURCE_DIR "${THIRD_PARTY_DIR}/fmt"
@@ -185,7 +199,7 @@ configure_file("${SRC_DIR}/version.h.in" "version.h")
 # Charxed library
 set(SRC_LSP_DIR "${CMAKE_SOURCE_DIR}/src/lsp")
 add_library(charxed_lib STATIC)
-add_dependencies(charxed_lib build_termbox2 build_treesitter build_utf8proc)
+add_dependencies(charxed_lib build_termbox2)
 target_sources(
   charxed_lib PUBLIC
   "${SRC_LSP_DIR}/client.h"
@@ -310,8 +324,8 @@ target_link_libraries(
     ${TERMBOX2_LIB}
     Microsoft.GSL::GSL
     nlohmann_json::nlohmann_json
-    ${TREESITTER_LIB}
-    ${UTF8PROC_LIB}
+    tree-sitter
+    utf8proc
     fmt::fmt
 )
 target_include_directories(
@@ -319,8 +333,6 @@ target_include_directories(
   PUBLIC
   "${SRC_DIR}"
   "${TERMBOX2_INCLUDE_DIR}"
-  "${TREESITTER_INCLUDE_DIR}"
-  "${UTF8PROC_INCLUDE_DIR}"
   "${CMAKE_BINARY_DIR}"
 )
 

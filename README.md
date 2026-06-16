@@ -68,4 +68,7 @@ cmake --build . --target package -j$(nproc)
 # Set FETCHCONTENT_FULLY_DISCONNECTED=ON to disable checking
 # if you want to frequently modify CMakeLists.txt after a full fetch.
 cmake -DFETCHCONTENT_FULLY_DISCONNECTED=ON ..
+
+# Cross compiling
+cmake -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/aarch64-linux-gnu.cmake .. && cmake --build . -j$(nproc)
 ```

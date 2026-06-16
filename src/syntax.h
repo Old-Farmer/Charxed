@@ -87,9 +87,9 @@ class SyntaxParser {
                         const Range& range);
 
     std::unique_ptr<TSQueryContext>
-        filetype_to_query_[static_cast<int>(FileType::__kCount)];
+        filetype_to_query_[static_cast<int>(FileType::_kCount)];
     const TSLanguage* filetype_to_language_[static_cast<int>(
-        FileType::__kCount)] = {};  // all nullptr
+        FileType::_kCount)] = {};  // all nullptr
     const std::unordered_map<std::string_view, ColorSchemeType>*
         ts_query_capture_name_to_character_type_;
 
