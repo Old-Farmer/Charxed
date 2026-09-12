@@ -49,7 +49,7 @@ Pos FixCursorPosAfterAdd(Pos pos, Pos add_pos, Pos end_pos,
 Pos FixCursorPosAfterDelete(Pos pos, const Range& range) {
     if (range.PosBeforeMe(pos)) {
         return pos;
-    } else if (range.PosInMe(pos)) {
+    } else if (range.PosInMe(pos) || range.end == pos) {
         return range.begin;
     } else if (range.begin.line == pos.line) {
         Pos new_pos = range.begin;
