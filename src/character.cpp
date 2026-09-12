@@ -586,7 +586,7 @@ TextTree::TextView ThisWord(TextTree::Iterator iter, TextTree::TextView line) {
     std::tie(res.begin, std::ignore, std::ignore) =
         FindPrevTargetType(iter, line.begin, target_t);
     std::tie(res.end, std::ignore, std::ignore) =
-        FindNextTargetType(iter, line.begin, target_t);
+        FindNextTargetType(iter, line.end, target_t);
     return res;
 }
 
