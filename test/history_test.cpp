@@ -2,7 +2,7 @@
 
 #include "catch2/catch_test_macros.hpp"
 
-using namespace mango;
+using namespace charxed;
 
 TEST_CASE("history_test") {
     History<int> history;

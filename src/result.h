@@ -2,50 +2,54 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <string_view>
 
 #include "fmt/core.h"
 
 namespace charxed {
 
+#define CHX_RESULT_TABLE                                                       \
+    X(kOk, "Ok")                                                               \
+    X(kError, "Error")                                                         \
+    X(kFail, "Fail") /*A failure is not an error. A failure means we     can't \
+                        do sth. */                                             \
+    X(kNotExist, "Not Exist")                                                  \
+    X(kInvalidCoding, "Invalid Encoding")                                      \
+    X(kEof, "End of File")                                                     \
+    X(kBufferNoBackupFile, "Buffer no backup file")                            \
+    X(kBufferCannotLoad, "Buffer can't be loaded")                             \
+    X(kBufferReadOnly, "Buffer readOnly")                                      \
+    X(kKeyseqError, "Key sequence not valid")                                  \
+    X(kKeyseqDone, "Key sequence fully matched")                               \
+    X(kKeyseqMatched, "Key sequence partially matched")                        \
+    X(kCommandInvalidArgs, "Command call has invalid args")                    \
+    X(kCommandEmpty, "Command input str empty")                                \
+    X(kNoHistoryAvailable, "No history availabe before/after the cursor")      \
+    X(kOuterCommandExecuteFail, "Outer command fails before or when execvp")   \
+    X(kRetriggerCmp, "Please retrigger the completion")                        \
+    X(kMsgNeedMore, "Need recv more for parsing a complete msg")               \
+    X(kWrapHistory, "Buffer's history wrapped")                                \
+    X(kSelectionStarted, "Selection started")                                  \
+    X(kSearchPatternOnly, "Input only search pattern")                         \
+    X(kSearchPatternWithReplace,                                               \
+      "Input contains search pattern & replace "                               \
+      "str")                                                                   \
+    X(kReplaceStrNotAvailable, "Replace str is not availabe")
+
 enum Result {
-    kOk = 0,
-    kError,
-    kFail,      // A failure is not an error. A failure means we can't do sth.
-    kNotExist,  // sth. not exist
-    kInvalidCoding,
-    kEof,
-    kBufferNoBackupFile,
-    kBufferCannotLoad,
-    kBufferReadOnly,
-    kKeyseqError,
-    kKeyseqDone,
-    kKeyseqMatched,
-    kCommandInvalidArgs,
-    kCommandEmpty,
-    kNoHistoryAvailable,
-    kOuterCommandExecuteFail,  // outer command fail before or when execvp.
-    kRetriggerCmp,
-    kMsgNeedMore,  // Need recv more for parsing a complete msg
-    kWrapHistory,
-    kSelectionStarted,  // Selection started
+#define X(result, str) result,
+    CHX_RESULT_TABLE
+#undef X
 };
 
-constexpr const char* kResultString[] = {"Ok", "Error"};
-
-inline const char* ResultString(Result result) { return kResultString[result]; }
-
-inline void PrintError(std::string_view context, std::string_view result) {
-    fmt::println(stderr, "{}: {}", context, result);
-}
-
-inline void PrintResult(std::string_view context, Result result) {
-    fmt::println(stderr, "{}: {}", context, ResultString(result));
-}
-
-inline void PrintResultExit(std::string_view context, Result result) {
-    PrintResult(context, result);
-    exit(EXIT_FAILURE);
+inline const char* ResultString(Result result) {
+    switch (result) {
+#define X(res, str) \
+    case res:       \
+        return str;
+        CHX_RESULT_TABLE
+    };
+#undef X
+    return ""; // make compiler happy
 }
 
 }  // namespace charxed

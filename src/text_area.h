@@ -198,6 +198,8 @@ class TextArea {
     Result UnindentLines(size_t count, size_t begin_line, size_t end_line);
 
     // Search relevant
+    // keep_current_if_one: see search.h
+    // BufferSearchReplaceContext::NearestSearchPos
     SearchState CursorGoSearchResultState(BufferSearchReplaceContext& context,
                                           bool next, size_t count,
                                           bool keep_current_if_one,

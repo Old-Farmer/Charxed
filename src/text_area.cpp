@@ -1702,23 +1702,18 @@ Result TextArea::IndentLines(size_t count, size_t begin_line, size_t end_line) {
     std::string str =
         tabspace ? std::string(count * GetOpt<int64_t>(kOptTabStop), kSpaceChar)
                  : std::string(count, '\t');
-    Pos pos = cursor_->pos;
     for (size_t i = begin_line; i <= end_line; i++) {
         auto line = buffer_->GetLineView(i);
         if (line.Size() == 0) {
             continue;
         }
-        if (cursor_->pos.line == i) {
-            pos.byte_offset += tabspace
-                                   ? str.size()
-                                   : str.size() * GetOpt<int64_t>(kOptTabStop);
-        }
-        edit_batch.PushBack({{{i, 0}, {i, 0}}, str});
+        edit_batch.PushBack(BufferEdit::Add({i, 0}, str));
     }
     if (edit_batch.Size() == 0) {
         return kFail;
     }
-    Result res = buffer_->BatchEdit(edit_batch, &cursor_->pos, true, pos);
+    Pos pos;
+    Result res = buffer_->BatchEdit(edit_batch, &cursor_->pos, false, pos);
     if (res == kOk) {
         AfterModify(pos);
     }
@@ -1729,7 +1724,6 @@ Result TextArea::UnindentLines(size_t count, size_t begin_line,
                                size_t end_line) {
     b_view_->make_cursor_visible = true;
     BufferEditBatch edit_batch;
-    Pos pos = cursor_->pos;
     auto tabstop = GetOpt<int64_t>(kOptTabStop);
     for (size_t i = begin_line; i <= end_line; i++) {
         auto line = buffer_->GetLineView(i);
@@ -1741,15 +1735,13 @@ Result TextArea::UnindentLines(size_t count, size_t begin_line,
             continue;
         }
         Range range = {{i, 0}, {i, iter.offset() - line.begin.offset()}};
-        edit_batch.PushBack({range, ""});
-        if (i == cursor_->pos.line) {
-            pos.byte_offset -= range.end.byte_offset;
-        }
+        edit_batch.PushBack(BufferEdit::Delete(range));
     }
     if (edit_batch.Size() == 0) {
         return kFail;
     }
-    Result res = buffer_->BatchEdit(edit_batch, &cursor_->pos, true, pos);
+    Pos pos;
+    Result res = buffer_->BatchEdit(edit_batch, &cursor_->pos, false, pos);
     if (res == kOk) {
         AfterModify(pos);
     }

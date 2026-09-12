@@ -6,6 +6,7 @@
 #include "pos.h"
 #include "result.h"
 #include "search.h"
+
 namespace charxed {
 
 // An interface that summarizes all general window functionalities.
@@ -33,20 +34,21 @@ class Window {
     virtual void CursorGoUp(size_t count) = 0;
     virtual void CursorGoDown(size_t count) = 0;
 
-    virtual void CursorGoHalfPageUp(size_t count) = 0;
-    virtual void CursorGoHalfPageDown(size_t count) = 0;
-
-    virtual void CursorGoPageUp(size_t count) = 0;
-    virtual void CursorGoPageDown(size_t count) = 0;
+    virtual void CursorGoPageUp(size_t count, double ratio) = 0;
+    virtual void CursorGoPageDown(size_t count, double ratio) = 0;
 
     virtual void SaveView() = 0;
     virtual void RestoreView() = 0;
 
-    virtual void BuildSearchContext(const std::string& pattern,
-                                    const Range* range) = 0;
+    virtual void BuildSearchReplaceContext(const std::string& pattern,
+                                           const std::string* replace_str,
+                                           const Range* range) = 0;
     virtual const std::string& GetSearchPattern() = 0;
+    virtual const std::string* GetReplaceStr() { return nullptr; };
     virtual SearchState CursorGoSearchResult(bool next, size_t count,
                                              bool keep_current_if_one) = 0;
+    virtual Result ReplaceSearchResultAll() { return kOk; }
+    virtual Result ReplaceSearchResultCurrentOne() { return kOk; }
     // return true if truly move view, else return false
     virtual bool ViewGoSearchResult(bool next, size_t count,
                                     bool keep_current_if_one) = 0;

@@ -26,10 +26,13 @@ File::File(const std::string& path, const char* mode) {
         return;
     }
 
-    if (errno != ENOENT) {
-        throw IOException("File {} can't open: {}", path, strerror(errno));
+    switch (errno) {
+        case ENOENT:
+            throw FileNotExistException("File {} doesn't exist", path);
+        case EACCES:
+            throw FileAccessException("File {} can't be accessed", path);
     }
-    throw FileNotExistException("File {} doesn't exist", path);
+    throw IOException("File {} can't open: {}", path, strerror(errno));
 }
 
 File::~File() { fclose(file_); }

@@ -62,8 +62,10 @@ class Editor {
     void CancellCompletion();
     bool CompletionTriggered();
     void SearchCurrentWindow(const std::string& pattern);
+    void ReplaceCurrentWindow(const std::string& pattern,
+                              std::string_view replace_str);
     void CommandHitEnter();
-    void SearchHitEnter();
+    void SearchReplaceHitEnter();
 
     void CursorGoSearch(bool next, size_t count, bool keep_current_if_one);
 
@@ -87,6 +89,7 @@ class Editor {
     void InitCommands();
     void RegisterEditorEventHandlers();
 
+    // Editor Handle Input Method
     void HandleBracketedPaste(std::string& bracketed_paste_buffer);
     void HandleKey();
     void HandleLeftClick(int s_row, int s_col);
@@ -102,6 +105,17 @@ class Editor {
     // But due to limitation of terminal protocal, we don't know whether it's
     // really a grapheme produced by users once a time. So best effort.
     Character CombineACharacterFromInput(Codepoint init_cp);
+
+    // Parse Search/Replace user input.
+    // Format: <search_pattern>/<replace_str>
+    // / in {search_pattern} should be escaped with \.
+    // \ in {search_pattern} should be escaped with \.
+    // return:
+    // r1 kSearchPatternOnly || kSearchPatternWithReplace
+    // r2 search pattern, escaped str
+    // r3 replace str
+    static std::tuple<Result, std::string, std::string_view>
+    ParseSearchReplaceInput(std::string_view input);
 
     void Draw();
     void PreProcess();
@@ -152,6 +166,7 @@ class Editor {
     Completer* completer_ = nullptr;
     bool show_cmp_menu_ = false;  // if false, hide cmp menu.
 
+    // Should multiple-row peel keep its size?
     bool multirow_peel_keep_ = false;
 
     enum class Operator {
@@ -161,10 +176,10 @@ class Editor {
         kUnindent,
     };
 
-    size_t count_ = 0;
+    size_t count_ = 0;  // keymaps' repeating count
 
     size_t op_pending_stored_count_ = 0;
-    Character c_to_find_;
+    Character c_to_find_;  // <character> of "f<character>"
     bool find_forward_ = true;
 
     Operator pending_operator_;
@@ -175,7 +190,7 @@ class Editor {
     std::unique_ptr<SingleTimer> autocmp_trigger_timer_;
     std::unique_ptr<SingleTimer> search_on_type_timer_;
 
-    bool need_redraw_ = true;
+    bool need_redraw_ = true;  // should the screen redraw this time?
 
     std::optional<Range> selection_range_for_seach_or_cmd_;
 

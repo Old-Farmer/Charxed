@@ -23,8 +23,9 @@ class File {
     // "r" for readonly
     // "w" for writeonly
     // throws IOException,
-    // and also throws FileNotExistException if the mode doesn't mean to create
-    // file.
+    // throws FileNotExistException if the mode doesn't mean to create file,
+    // throws FileAccessException if the file can't be accessed, usually
+    // permission denied.
     File(const std::string& path, const char* mode);
     ~File();
 

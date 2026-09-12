@@ -16,7 +16,7 @@ enum class MouseState {
     X(kNotModified, "")               \
     X(kCannotRead, "[Can't Read]")    \
     X(kHaveNotRead, "[Haven't Read]") \
-    X(kReadOnly, "[RdOnly]")          \
+    X(kReadOnly, "[RO]")          \
     X(kCodingInvalid, "[CodingInvalid]")
 
 enum class BufferState : int {
@@ -46,7 +46,7 @@ enum class Context {
     X(kSelectLine, "SELECT-L")                                           \
     X(kOperatorPending, "OP-PEND")                                       \
     X(kPeelCommand, "COMMAND") /* user is inputting sth */               \
-    X(kPeelSearch, "SEARCH")   /* user is searching */                   \
+    X(kPeelSearch, "SEARCH")   /* user is searching, or replacing */     \
     X(kPeelShow, "SHOW")       /* peel shows some multirow output and we \
                                               are in it.*/
 

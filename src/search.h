@@ -26,21 +26,31 @@ std::vector<Range> BufferSearch(const Buffer* buffer, const Range* range,
                                 const std::string& pattern, bool ignore_case,
                                 bool ensure_grapheme_cluster_boundary);
 
-struct BufferSearchContext {
+// Context which holds searching & replacing info of a buffer(maybe in a specifc
+// range)
+struct BufferSearchReplaceContext {
     std::vector<Range> search_result;
     int64_t current_search = -1;
     std::string search_pattern;
+    std::optional<std::string> replace_str;
     int64_t search_buffer_version = -1;
     int64_t search_buffer_id = -1;
-    Buffer* b;
     std::optional<Range> range;
 
-    BufferSearchContext() = default;
+    BufferSearchReplaceContext() = default;
     // if the pattern is a empty string, context will in empty state
-    BufferSearchContext(const std::string& pattern, const Buffer* buffer,
-                        const Range* range);
+    BufferSearchReplaceContext(const std::string& pattern,
+                               const std::string* replace_str,
+                               const Buffer* buffer, const Range* range);
     void Destroy();
+    // Ensure the buffer is searched, meaning searching will be performed if
+    // necessary.
+    // return whether search result is valid.
     bool EnsureSearched(const Buffer* buffer);
+    // Only check whether the buffer is searched
+    bool IsSearched(const Buffer* buffer);
+    // keep_current_if_one means if count == 1, and Pos is just is the
+    // current_search pos, we keep current_search.
     bool NearestSearchPos(Pos pos, const Buffer* buffer, bool next,
                           size_t count, bool keep_current_if_one);
 };

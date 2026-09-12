@@ -452,6 +452,10 @@ void Editor::HandleKey() {
                     std::string_view(buf, len));
             }
             if (res != kOk) {
+                if (!IsPeel(mode_)) {
+                    NotifyUser(
+                        fmt::format("Can't modify: {}", ResultString(res)));
+                }
                 return;
             }
             EditorEvent ev;
@@ -824,15 +828,31 @@ void Editor::GotoMode(Mode mode) {
 
 void Editor::SearchCurrentWindow(const std::string& pattern) {
     // TODO: Maybe we can eliminate duplicate searching?
+    auto range = OptionalToPtr(selection_range_for_seach_or_cmd_);
     if (!IsPeel(mode_)) {
-        cursor_.focused->BuildSearchContext(
-            pattern, OptionalToPtr(selection_range_for_seach_or_cmd_));
+        cursor_.focused->BuildSearchReplaceContext(pattern, nullptr, range);
         CursorGoSearch(search_foward_, 1, true);
     } else {
         auto w = cursor_.focused;
-        w->BuildSearchContext(pattern,
-                              OptionalToPtr(selection_range_for_seach_or_cmd_));
+        w->BuildSearchReplaceContext(pattern, nullptr, range);
         highlight_search_ = w->ViewGoSearchResult(search_foward_, 1, true);
+    }
+}
+
+void Editor::ReplaceCurrentWindow(const std::string& pattern,
+                                  std::string_view replace_str) {
+    CHX_ASSERT(!IsPeel(mode_));
+
+    auto r = OptionalToPtr(selection_range_for_seach_or_cmd_);
+    std::string replace_str_copy(replace_str.data(), replace_str.size());
+    if (r == nullptr) {  // no range, just search
+        cursor_.focused->BuildSearchReplaceContext(pattern, &replace_str_copy,
+                                                   nullptr);
+        CursorGoSearch(search_foward_, 1, true);
+    } else {
+        cursor_.focused->BuildSearchReplaceContext(pattern, &replace_str_copy,
+                                                   nullptr);
+        cursor_.focused->ReplaceSearchResultAll();
     }
 }
 
@@ -842,7 +862,12 @@ void Editor::CursorGoSearch(bool next, size_t count, bool keep_current_if_one) {
     auto& pattern = w->GetSearchPattern();
     SearchState state =
         w->CursorGoSearchResult(next, count, keep_current_if_one);
-    ss << "Searching \"" << pattern << "\" ";
+    auto replace_str = w->GetReplaceStr();
+    if (!replace_str) {
+        ss << "Searching \"" << pattern << "\" ";
+    } else {
+        ss << "Replacing \"" << pattern << "\" to \"" << *replace_str << "\" ";
+    }
     if (state.total == 0) {
         ss << "[No result]";
     } else {
@@ -936,13 +961,19 @@ void Editor::CommandHitEnter() {
     selection_range_for_seach_or_cmd_.reset();
 }
 
-void Editor::SearchHitEnter() {
+void Editor::SearchReplaceHitEnter() {
     ExitFromMode();
     auto input = peel_->GetUserInput();
     if (!input.empty()) {
         peel_->AppendHistoryItem(MangoPeel::HistoryType::kSearch);
     }
-    SearchCurrentWindow(std::string(input));
+    auto [res, search_pattern, replace_str] =
+        ParseSearchReplaceInput(peel_->GetUserInput());
+    if (res == kSearchPatternOnly) {
+        SearchCurrentWindow(std::move(search_pattern));
+    } else {
+        ReplaceCurrentWindow(std::move(search_pattern), replace_str);
+    }
     selection_range_for_seach_or_cmd_.reset();
 }
 
@@ -954,17 +985,12 @@ void Editor::SaveCurrentBuffer() {
     try {
         Result res = cursor_.t_win->area_.buffer_->Save();
         if (res == kOk) {
-            ;
-        } else if (res == kBufferNoBackupFile) {
-            NotifyUser("Buffer no backup file");
-        } else if (res == kBufferCannotLoad) {
-            NotifyUser("Buffer can't load");
-        } else if (res == kBufferReadOnly) {
-            NotifyUser("Buffer read only");
-        } else {
-            assert("Can't reach here");
+            return;
         }
-    } catch (IOException& e) {
+        std::string err_str =
+            fmt::format("Buffer can't save: {}", ResultString(res));
+        NotifyUser(err_str);
+    } catch (Exception& e) {
         std::string err_str = fmt::format("Buffer can't save: {}", e.what());
         NotifyUser(err_str);
     }
@@ -980,14 +1006,14 @@ void Editor::SaveCurrentBufferAs(const Path& path) {
     }
     try {
         Result res = cur_b->SaveAs(path);
-        if (res == kBufferCannotLoad) {
-            NotifyUser("Buffer can't load");
-        } else if (res == kBufferReadOnly) {
-            NotifyUser("Buffer read only");
+        if (res == kOk) {
+            return;
         }
+        std::string err_str =
+            fmt::format("Buffer can't save: {}", ResultString(res));
+        NotifyUser(err_str);
     } catch (IOException& e) {
         std::string err_str = fmt::format("Buffer can't save: {}", e.what());
-        CHX_LOG_ERROR("{}", err_str);
         NotifyUser(err_str);
     }
 }
@@ -1029,7 +1055,9 @@ void Editor::TrySearchOnType() {
     if (mode_ != Mode::kPeelSearch) {
         return;
     }
-    SearchCurrentWindow(std::string(peel_->GetUserInput()));
+    auto [_1, search_pattern, _2] =
+        ParseSearchReplaceInput(peel_->GetUserInput());
+    SearchCurrentWindow(std::move(search_pattern));
 }
 
 Character Editor::CombineACharacterFromInput(Codepoint init_cp) {
@@ -1055,6 +1083,50 @@ Character Editor::CombineACharacterFromInput(Codepoint init_cp) {
         c.Push(key_info.codepoint);
     }
     return c;
+}
+
+std::tuple<Result, std::string, std::string_view>
+Editor::ParseSearchReplaceInput(std::string_view input) {
+    if (input.empty()) {
+        return {kSearchPatternOnly, {}, {}};
+    }
+
+    // Use codepoint is enough here
+    // Translate search pattern, handle escape
+    std::string search_pattern;
+    size_t sz = input.size();
+    size_t i;
+    for (i = 0; i < sz; i++) {
+        if (input[i] == '/') {
+            break;
+        }
+
+        if (input[i] != '\\') {
+            search_pattern.push_back(input[i]);
+            continue;
+        }
+        if (i == sz - 1) {  // ignore last non-escaped '\'
+            break;
+        }
+        switch (input[i + 1]) {
+            case '\\':
+                search_pattern.push_back('\\');
+                break;
+            case '/':
+                search_pattern.push_back('/');
+                break;
+            default:
+                search_pattern.push_back('\\');
+                search_pattern.push_back(input[i + 1]);
+                break;
+        }
+        i++;
+    }
+    if (i == sz) {
+        return {kSearchPatternOnly, search_pattern, {}};
+    }
+    return {kSearchPatternWithReplace, search_pattern,
+            input.substr(i + 1, sz - (i + 1))};
 }
 
 void Editor::Prompt(const std::string& prefix, const PromptHandler& handler) {

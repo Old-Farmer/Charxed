@@ -48,17 +48,11 @@ class Explorer : public Window {
     void CursorGoDown(size_t count) override { area_.CursorGoDown(count); }
     void CursorGoUp(size_t count) override { area_.CursorGoUp(count); }
 
-    void CursorGoHalfPageUp(size_t count) override {
-        area_.CursorGoUp(count * area_.height_ / 2);
+    void CursorGoPageUp(size_t count, double ratio) override {
+        area_.CursorGoUp(count * area_.height_ * ratio);
     }
-    void CursorGoHalfPageDown(size_t count) override {
-        area_.CursorGoDown(count * area_.height_ / 2);
-    }
-    void CursorGoPageUp(size_t count) override {
-        area_.CursorGoUp(count * area_.height_);
-    }
-    void CursorGoPageDown(size_t count) override {
-        area_.CursorGoDown(count * area_.height_);
+    void CursorGoPageDown(size_t count, double ratio) override {
+        area_.CursorGoDown(count * area_.height_ * ratio);
     }
 
     bool In(size_t s_col, size_t s_row) { return area_.In(s_col, s_row); }
@@ -75,9 +69,12 @@ class Explorer : public Window {
     void SaveView() override { area_.SaveView(); }
     void RestoreView() override { area_.RestoreView(); }
 
-    void BuildSearchContext(const std::string& pattern,
-                            const Range* range) override {
+    void BuildSearchReplaceContext(const std::string& pattern,
+                                   const std::string* replace_str,
+                                   const Range* range) override {
+        (void)replace_str;
         (void)range;
+        CHX_ASSERT(replace_str == nullptr);
         CHX_ASSERT(range == nullptr);
         area_.BuildSearchContext(pattern);
     }

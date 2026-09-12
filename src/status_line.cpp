@@ -28,7 +28,7 @@ void StatusLine::Draw() {
             Buffer* b;
             b = cursor_->t_win->area_.buffer_;
             fmt::format_to(std::back_inserter(left_str_),
-                           "{:<" CHX_MODE_WIDTH "} {}{}",
+                           "{:<" CHX_MODE_WIDTH "} {} {}",
                            kModeString[static_cast<int>(*mode_)], b->Name(),
                            kBufferStateString[static_cast<int>(b->state())]);
             int64_t line, character_in_line;

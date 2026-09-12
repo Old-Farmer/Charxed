@@ -20,7 +20,6 @@
 
 ## Usability
 
-- Replace
 - Options need a range limitaion
 - Jump history should be adjusted when buffer changed.
 - diff algorithm and diff view
@@ -46,6 +45,7 @@
 - Big file support(Possibly implementation: make TextTree a persistent data structure, so background threads can use the old version of TextTree without confliction with the forground thread editing the buffer):
     - treesitter background thread parsing
     - File background thread saving
+- Stream-based regex engin
 
 ## Code Quality
 

@@ -25,7 +25,7 @@ NOTE: Don't support self-defined keymaps now.
 - **Select-L**: Line-wise selection mode
 - **Op-Pend**: Operator pending mode
 - **Command**: Command input mode (`:` prompt)
-- **Search**: Search input mode (`/` or `?` prompt)
+- **Search**: Search and replace input mode (`/` or `?` prompt)
 - **Show**: Peel show mode (multirow output display)
 
 ## How Operator Pending Works
@@ -155,15 +155,53 @@ operator support:
 ## Search & Command
 
 | Key | Description | Mode(s) | Context |
-| --- | --- | --- | --- |
-| `/` | Start forward search | Normal, Select, Select-L | All |
+/3434
 | `?` | Start backward search | Normal, Select, Select-L | All |
 | `n` | Go to next search match | Normal | All |
 | `N` | Go to previous search match | Normal | All |
 | `:` | Enter command mode | Normal, Select, Select-L | All |
 | `<enter>` | Open Peel show mode | Normal | Editor |
 
-## Peel Input (Command & Search)
+## Search & Replace
+
+Search and replace are entered through the `SEARCH` mode prompt. The prompt
+accepts either a search pattern or a search-and-replace expression:
+
+```text
+pattern
+pattern/replacement
+```
+
+The pattern uses POSIX Extended Regular Expression syntax. The first unescaped
+`/` is the separator. To match a literal slash in the pattern, write `\/`.
+Everything after the separator is the replacement text and is inserted
+literally; capture-group substitutions are not supported.
+
+Examples below show the text entered after pressing `/` or `?`:
+
+- `foo` searches for `foo`.
+- `foo/bar` replaces a match of `foo` with `bar`.
+- `path\/to\\\\path` searches for the literal text `path/to\path`: `\\\\` first is parsed as `\\`, then the regex engine parses it as `\`.
+
+When a replace expression is submitted with `<enter>`, the editor keeps the
+replace context active on the current match. Use `<space>r` to replace the
+current match, then move in the selected search direction. `n` and `N` move to
+the next and previous matches without replacing them. The current match and
+total match count are shown in the status message. `<esc>` exits
+search/replace mode.
+
+| Key | Description | Mode(s) | Context |
+| --- | --- | --- | --- |
+| `/` | Start forward search or replace | Normal, Select, Select-L | All |
+| `?` | Start backward search or replace | Normal, Select, Select-L | All |
+| `<enter>` | Submit the search or replace expression | Search | All |
+| `<space>r` | Replace the current match and move next | Normal | All |
+| `<space>R` | Replace the current match and move previously | Normal | All |
+| `n` | Move to the next match | Normal | All |
+| `N` | Move to the previous match | Normal | All |
+| `<esc>` / `<c-[>` | Exit search mode | Search | All |
+
+## Peel Input (Command)
 
 | Key | Description | Mode(s) | Context |
 | --- | --- | --- | --- |

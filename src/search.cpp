@@ -108,13 +108,16 @@ std::vector<Range> BufferSearch(const Buffer* buffer, const Range* range,
     return res;
 }
 
-BufferSearchContext::BufferSearchContext(const std::string& pattern,
-                                         const Buffer* buffer,
-                                         const Range* range) {
+BufferSearchReplaceContext::BufferSearchReplaceContext(
+    const std::string& pattern, const std::string* replace_str,
+    const Buffer* buffer, const Range* range) {
     if (pattern.empty()) {
         return;
     }
     search_pattern = pattern;
+    if (replace_str) {
+        this->replace_str = *replace_str;
+    }
     search_result = BufferSearch(
         buffer, range, search_pattern,
         buffer->opts().global_opts_->GetOpt<bool>(kOptSearchIgnoreCase), true);
@@ -124,14 +127,14 @@ BufferSearchContext::BufferSearchContext(const std::string& pattern,
     }
 }
 
-void BufferSearchContext::Destroy() {
+void BufferSearchReplaceContext::Destroy() {
     search_pattern.clear();
     search_result.clear();
     search_buffer_version = -1;
     search_buffer_id = -1;
 }
 
-bool BufferSearchContext::EnsureSearched(const Buffer* buffer) {
+bool BufferSearchReplaceContext::EnsureSearched(const Buffer* buffer) {
     if (search_buffer_version == -1) {
         return false;
     }
@@ -154,9 +157,20 @@ bool BufferSearchContext::EnsureSearched(const Buffer* buffer) {
     return true;
 }
 
-bool BufferSearchContext::NearestSearchPos(Pos pos, const Buffer* buffer,
-                                           bool next, size_t count,
-                                           bool keep_current_if_one) {
+bool BufferSearchReplaceContext::IsSearched(const Buffer* buffer) {
+    if (search_buffer_version == -1) {
+        return false;
+    }
+    if (buffer->id() != search_buffer_id ||
+        buffer->version() != search_buffer_version) {
+        return false;
+    }
+    return true;
+}
+
+bool BufferSearchReplaceContext::NearestSearchPos(Pos pos, const Buffer* buffer,
+                                                  bool next, size_t count,
+                                                  bool keep_current_if_one) {
     CHX_ASSERT(count != 0);
     bool has_result = EnsureSearched(buffer);
     if (!has_result) {
@@ -200,4 +214,5 @@ bool BufferSearchContext::NearestSearchPos(Pos pos, const Buffer* buffer,
     current_search = insert_i;
     return true;
 }
+
 }  // namespace charxed

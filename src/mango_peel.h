@@ -29,17 +29,11 @@ class MangoPeel {
 
     void CursorGoUp(size_t count);
     void CursorGoDown(size_t count);
-    void CursorGoHalfPageUp(size_t count) {
-        area_.CursorGoUp(count * area_.height_ / 2);
+    void CursorGoPageUp(size_t count, double ratio) {
+        area_.CursorGoUp(count * area_.height_ * ratio);
     }
-    void CursorGoHalfPageDown(size_t count) {
-        area_.CursorGoDown(count * area_.height_ / 2);
-    }
-    void CursorGoPageUp(size_t count) {
-        area_.CursorGoUp(count * area_.height_);
-    }
-    void CursorGoPageDown(size_t count) {
-        area_.CursorGoDown(count * area_.height_);
+    void CursorGoPageDown(size_t count, double ratio) {
+        area_.CursorGoDown(count * area_.height_ * ratio);
     }
     void CursorGoRight(size_t count);
     void CursorGoLeft(size_t count);

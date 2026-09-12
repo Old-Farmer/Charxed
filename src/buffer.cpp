@@ -74,32 +74,27 @@ void Buffer::Load() {
 
         filetype_ = DecideFiletype(path_.FileName());
 
+        CHX_LOG_DEBUG("file path {}", path_.AbsolutePath());
         try {
-            File f(path_.AbsolutePath(), "r");
-            CHX_LOG_DEBUG("file path {}", path_.AbsolutePath());
+            File f(path_.AbsolutePath(), "r+");
             tree_.BulkLoad(f, eol_seq_);
         } catch (FileNotExistException&) {
             // Not exist, we don't create it now. It's better to create
             // it when save it.
             tree_.BulkLoad("");
             return;
-        }
-
-        FileStat file_stat;
-        Result res = GetFileStat(path_.AbsolutePath(), file_stat);
-        if (res == kNotExist) {
-            throw FSException("File not exist even after reading");
+        } catch (FileAccessException&) {
+            // try readonly
+            File f(path_.AbsolutePath(), "r");
+            tree_.BulkLoad(f, eol_seq_);
+            read_only_ = true;
         }
 
 #ifndef NDEBUG
-        if (read_only_ || (file_stat.mode & kFMWrite) == 0) {
-            read_only_ = true;
-        }
         // when debug, leave files under app dir not be read only
 #else
-        if (read_only_ || (file_stat.mode & kFMWrite) == 0 ||
-            path_.AbsolutePath().find(Path::GetAppRoot()) !=
-                std::string::npos) {
+        if (read_only_ || path_.AbsolutePath().find(Path::GetAppRoot()) !=
+                              std::string::npos) {
             read_only_ = true;
         }
 #endif
@@ -120,19 +115,13 @@ void Buffer::Reload(Pos* cursor_pos, Pos& cursor_pos_hint) {
         File f(path_.AbsolutePath(), "r");
         CHX_LOG_DEBUG("reload file path {}", path_.AbsolutePath());
 
-        FileStat file_stat;
-        Result res = GetFileStat(path_.AbsolutePath(), file_stat);
-        if (res == kNotExist) {
-            throw FSException("File not exist even after reading");
-        }
-
-        if ((file_stat.mode & kFMWrite) == 0) {
-            read_only_ = true;
-        }
+        // Maybe the file is not read only now?
+        // TODO: check it
 
         std::string str = f.ReadAll(eol_seq_);
         if (!CheckUtf8Valid(str)) {
-            return;
+            state_ = BufferState::kCodingInvalid;
+            throw CodingException("{}", "utf8 encoding error");
         }
 
         Range range = {{0, 0},
@@ -279,15 +268,16 @@ Result Buffer::SaveAs(const Path& path) {
 }
 
 void Buffer::Edit(const BufferEdit& edit, Pos& cursor_pos_hint) {
-    if (edit.str.empty()) {
-        // delete
-        DeleteInner(edit.range, cursor_pos_hint, false, true);
-    } else if (edit.range.begin == edit.range.end) {
-        // add
-        AddInner(edit.range.begin, edit.str, cursor_pos_hint, true);
-    } else {
-        // replace
-        ReplaceInner(edit.range, edit.str, cursor_pos_hint, false);
+    switch (edit.GetType()) {
+        case BufferEdit::kAdd:
+            AddInner(edit.range.begin, edit.str, cursor_pos_hint, true);
+            break;
+        case BufferEdit::kDelete:
+            DeleteInner(edit.range, cursor_pos_hint, false, true);
+            break;
+        case BufferEdit::kReplace:
+            ReplaceInner(edit.range, edit.str, cursor_pos_hint, false);
+            break;
     }
     if (ts_tree_) {
         ts_tree_edit(ts_tree_, &ts_edit_);
@@ -436,7 +426,8 @@ void Buffer::Record(BufferEditHistoryItem&& item) {
 }
 
 Result Buffer::Add(Pos pos, std::string_view str, const Pos* cursor_pos,
-                   bool use_given_pos_hint, Pos& cursor_pos_hint) {
+                   bool use_given_pos_hint, Pos& cursor_pos_hint,
+                   bool pos_hint_prefer_begin) {
     if (!IsLoad()) {
         return kBufferCannotLoad;
     }
@@ -444,23 +435,25 @@ Result Buffer::Add(Pos pos, std::string_view str, const Pos* cursor_pos,
         return kBufferReadOnly;
     }
     Pos origin_pos_hint;
+    Pos initial_pos = cursor_pos ? *cursor_pos : pos;
     AddInner(pos, str, origin_pos_hint, true);
     if (ts_tree_) {
         ts_tree_edit(ts_tree_, &ts_edit_);
     }
     if (!use_given_pos_hint) {
-        cursor_pos_hint = origin_pos_hint;
+        cursor_pos_hint = FixCursorPosAfterAdd(
+            initial_pos, pos, origin_pos_hint, pos_hint_prefer_begin);
     }
     if (GetOpt<int64_t>(kOptMaxEditHistory) <= 0) {
         return kOk;
     }
 
     BufferEditHistoryItem item;
-    item.origin.PushBack({{pos, pos}, std::string(str)});
+    item.origin.PushBack(BufferEdit::Add(pos, str));
     item.origin_pos_hint = cursor_pos_hint;
 
-    item.reverse.PushBack({{pos, origin_pos_hint}, ""});
-    item.reverse_pos_hint = cursor_pos ? *cursor_pos : pos;
+    item.reverse.PushBack(BufferEdit::Delete({pos, origin_pos_hint}));
+    item.reverse_pos_hint = initial_pos;
     Record(std::move(item));
     return kOk;
 }
@@ -474,31 +467,31 @@ Result Buffer::Delete(const Range& range, const Pos* cursor_pos,
         return kBufferReadOnly;
     }
     Pos origin_pos_hint;
+    Pos initial_pos = cursor_pos ? *cursor_pos : range.end;
     std::string old_str = DeleteInner(range, origin_pos_hint, true, true);
     if (ts_tree_) {
         ts_tree_edit(ts_tree_, &ts_edit_);
     }
     if (!use_given_pos_hint) {
-        cursor_pos_hint = origin_pos_hint;
+        cursor_pos_hint = FixCursorPosAfterDelete(initial_pos, range);
     }
     if (GetOpt<int64_t>(kOptMaxEditHistory) <= 0) {
         return kOk;
     }
 
     BufferEditHistoryItem item;
-    item.origin.PushBack({range, ""});
+    item.origin.PushBack(BufferEdit::Delete(range));
     item.origin_pos_hint = cursor_pos_hint;
 
-    item.reverse.PushBack(
-        {{origin_pos_hint, origin_pos_hint}, std::move(old_str)});
-    item.reverse_pos_hint = cursor_pos ? *cursor_pos : range.end;
+    item.reverse.PushBack(BufferEdit::Add(origin_pos_hint, std::move(old_str)));
+    item.reverse_pos_hint = initial_pos;
     Record(std::move(item));
     return kOk;
 }
 
 Result Buffer::Replace(const Range& range, std::string_view str,
                        const Pos* cursor_pos, bool use_given_pos_hint,
-                       Pos& cursor_pos_hint) {
+                       Pos& cursor_pos_hint, bool pos_hint_prefer_begin) {
     if (!IsLoad()) {
         return kBufferCannotLoad;
     }
@@ -507,30 +500,33 @@ Result Buffer::Replace(const Range& range, std::string_view str,
     }
 
     Pos origin_pos_hint;
+    Pos initial_pos = cursor_pos ? *cursor_pos : range.end;
     std::string old_str = ReplaceInner(range, str, origin_pos_hint, true);
     if (ts_tree_) {
         ts_tree_edit(ts_tree_, &ts_edit_);
     }
     if (!use_given_pos_hint) {
-        cursor_pos_hint = origin_pos_hint;
+        cursor_pos_hint = FixCursorPosAfterReplace(
+            initial_pos, range, origin_pos_hint, pos_hint_prefer_begin);
     }
     if (GetOpt<int64_t>(kOptMaxEditHistory) <= 0) {
         return kOk;
     }
 
     BufferEditHistoryItem item;
-    item.origin.PushBack({range, std::string(str)});
+    item.origin.PushBack(BufferEdit::Replace(range, str));
     item.origin_pos_hint = cursor_pos_hint;
 
-    item.reverse.PushBack({{range.begin, origin_pos_hint}, std::move(old_str)});
-    item.reverse_pos_hint = cursor_pos ? *cursor_pos : range.end;
+    item.reverse.PushBack(BufferEdit::Replace({range.begin, origin_pos_hint},
+                                              std::move(old_str)));
+    item.reverse_pos_hint = initial_pos;
     Record(std::move(item));
     return kOk;
 }
 
 Result Buffer::BatchEdit(const BufferEditBatch& edit_batch,
                          const Pos* cursor_pos, bool use_given_pos_hint,
-                         Pos& cursor_pos_hint) {
+                         Pos& cursor_pos_hint, bool pos_hint_prefer_begin) {
     if (!IsLoad()) {
         return kBufferCannotLoad;
     }
@@ -538,45 +534,62 @@ Result Buffer::BatchEdit(const BufferEditBatch& edit_batch,
         return kBufferReadOnly;
     }
 
-    CHX_ASSERT(edit_batch.Size() != 0);
     int64_t max_edit_history = GetOpt<int64_t>(kOptMaxEditHistory);
 
     Pos origin_pos_hint;
     BufferEditHistoryItem item;
     std::string str;
+    CHX_ASSERT(edit_batch.Size() > 0);
+    Pos initial_pos = cursor_pos ? *cursor_pos : edit_batch.Data()[0].range.end;
+    if (!use_given_pos_hint) {
+        cursor_pos_hint = initial_pos;
+    }
     for (int64_t i = edit_batch.Size() - 1; i >= 0; i--) {
         const auto& edit = edit_batch.Data()[i];
-        if (edit.str.empty()) {
-            // Delete
-            str = DeleteInner(edit.range, origin_pos_hint, true, true);
-            if (max_edit_history > 1) {
-                item.reverse.PushBack(
-                    {{origin_pos_hint, origin_pos_hint}, str});
-            }
-        } else if (edit.range.begin == edit.range.end) {
-            // Add
-            AddInner(edit.range.begin, edit.str, origin_pos_hint, true);
-            if (max_edit_history > 1) {
-                item.reverse.PushBack(
-                    {{edit.range.begin, origin_pos_hint}, ""});
-            }
-        } else {
-            // Replace
-            str = ReplaceInner(edit.range, edit.str, origin_pos_hint, true);
-            if (max_edit_history > 1) {
-                item.reverse.PushBack(
-                    {{edit.range.begin, origin_pos_hint}, str});
-            }
+        switch (edit.GetType()) {
+            case BufferEdit::kAdd:
+                AddInner(edit.range.begin, edit.str, origin_pos_hint, true);
+                if (max_edit_history > 1) {
+                    item.reverse.PushBack(BufferEdit::Delete(
+                        {edit.range.begin, origin_pos_hint}));
+                }
+                if (!use_given_pos_hint) {
+                    cursor_pos_hint = FixCursorPosAfterAdd(
+                        cursor_pos_hint, edit.range.begin, origin_pos_hint,
+                        pos_hint_prefer_begin);
+                }
+                break;
+            case BufferEdit::kDelete:
+                str = DeleteInner(edit.range, origin_pos_hint, true, true);
+                if (max_edit_history > 1) {
+                    item.reverse.PushBack(
+                        BufferEdit::Add(origin_pos_hint, str));
+                }
+                if (!use_given_pos_hint) {
+                    cursor_pos_hint =
+                        FixCursorPosAfterDelete(cursor_pos_hint, edit.range);
+                }
+                break;
+            case BufferEdit::kReplace:
+                str = ReplaceInner(edit.range, edit.str, origin_pos_hint, true);
+                if (max_edit_history > 1) {
+                    item.reverse.PushBack(BufferEdit::Replace(
+                        {edit.range.begin, origin_pos_hint}, str));
+                }
+                if (!use_given_pos_hint) {
+                    cursor_pos_hint = FixCursorPosAfterReplace(
+                        cursor_pos_hint, edit.range, origin_pos_hint,
+                        pos_hint_prefer_begin);
+                }
+                break;
         }
         if (ts_tree_) {
             ts_tree_edit(ts_tree_, &ts_edit_);
         }
     }
     if (max_edit_history > 1) {
-        item.origin_pos_hint =
-            use_given_pos_hint ? cursor_pos_hint : origin_pos_hint;
-        item.reverse_pos_hint =
-            cursor_pos ? *cursor_pos : edit_batch.Data()[0].range.end;
+        item.origin_pos_hint = cursor_pos_hint;
+        item.reverse_pos_hint = initial_pos;
         // TODO: Not reverse it.
         item.origin = edit_batch;
         std::reverse(item.reverse.Data(),

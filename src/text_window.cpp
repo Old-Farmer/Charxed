@@ -135,7 +135,8 @@ Result TextWindow::AddStringAtCursor(std::string_view str, bool raw) {
 Result TextWindow::NewLineAboveCursorline() {
     CHX_ASSERT(!area_.IsSelectionActive());
     if (cursor_->pos.line == 0) {
-        return area_.AddStringAtPos({0, 0}, "\n", &cursor_->pos);
+        Pos pos = {0, 0};
+        return area_.AddStringAtPos(pos, "\n", &pos);
     }
     return TryAutoIndent(
         {cursor_->pos.line - 1,
@@ -165,7 +166,7 @@ Result TextWindow::TryAutoPair(std::string_view str) {
                                                       // used.
     bool start_of_line = cursor_->pos.byte_offset == 0;
     char prev_c;
-    if (start_of_line) {
+    if (!start_of_line) {
         iter.PrevByte();
         prev_c = iter.ThisByte();
     } else {
@@ -227,12 +228,11 @@ Result TextWindow::TryAutoIndent(Pos pos) {
             break;
         }
     }
+    Pos cursor_pos = {pos.line + 1, indent.size()};
 
     // When encounter some syntax blocks, We want one more indentation and sth.
     // else.
     // TODO: better language support
-    Pos cursor_pos;
-    bool maunally_set_cursor_pos = false;
     std::string str = "\n" + indent;
     auto tabspace = GetOpt<bool>(kOptTabSpace);
     // Try to check () {} [].
@@ -257,11 +257,9 @@ Result TextWindow::TryAutoIndent(Pos pos) {
         } else {
             str += "\t";
         }
+        cursor_pos.byte_offset = str.size() - 1;  // 1 is \n
         for (i = pos.byte_offset; i < static_cast<int64_t>(line.size()); i++) {
             if (line[i] == want_right) {
-                cursor_pos.line = pos.line + 1;
-                cursor_pos.byte_offset = str.size() - 1;
-                maunally_set_cursor_pos = true;
                 str += "\n" + indent;
                 break;
             } else if (line[i] != kSpaceChar && line[i] != '\t') {
@@ -271,11 +269,7 @@ Result TextWindow::TryAutoIndent(Pos pos) {
         break;
     }
 
-    if (maunally_set_cursor_pos) {
-        return area_.AddStringAtPos(pos, str, &cursor_pos);
-    } else {
-        return area_.AddStringAtPos(pos, str);
-    }
+    return area_.AddStringAtPos(pos, str, &cursor_pos);
 }
 
 Result TextWindow::GotoFile() {
@@ -394,6 +388,53 @@ SearchState TextWindow::CursorGoSearchResult(bool next, size_t count,
     SetJumpPoint();
     state.SetCursor(cursor_);
     return search_state;
+}
+
+Result TextWindow::ReplaceSearchResultAll() {
+    if (!b_search_context_.EnsureSearched(area_.buffer_)) {
+        return kOk;
+    }
+    BufferEditBatch batch;
+    for (const Range& r : b_search_context_.search_result) {
+        batch.PushBack(BufferEdit::Replace(r, *b_search_context_.replace_str));
+    }
+    Pos pos;
+    Result res =
+        area_.buffer_->BatchEdit(batch, &cursor_->pos, false, pos, true);
+    if (res == kOk) {
+        area_.AfterModify(pos);
+    }
+    return res;
+}
+
+Result TextWindow::ReplaceSearchResultCurrentOne() {
+    auto& c = b_search_context_;
+    if (!c.replace_str.has_value()) {
+        return kReplaceStrNotAvailable;
+    }
+    if (!c.EnsureSearched(area_.buffer_)) {
+        return kOk;
+    }
+    if (c.current_search == -1) {
+        CursorGoSearchResult(true, 1, true);
+    }
+
+    Range r = c.search_result[c.current_search];
+    std::string to_be_replaced =
+        area_.buffer_->GetContent(c.search_result[c.current_search]);
+
+    Result res = area_.buffer_->Replace(r, *c.replace_str, &cursor_->pos, true,
+                                        cursor_->pos);
+    if (res != kOk) {
+        return res;
+    }
+    // nothing change in buffer
+    if (to_be_replaced == *c.replace_str) {
+        c.search_buffer_version = area_.buffer_->version();
+        return res;
+    }
+    area_.AfterModify(cursor_->pos);
+    return res;
 }
 
 void TextWindow::InsertJumpHistory() {

@@ -26,13 +26,52 @@ struct Options;
 
 // This class reprensents a single-range edit operations to the buffer.
 // It can represent 3 OPs:
-// 1. insert: range.begin == range.end && str.empty(), '\n's in str represent
-// new lines.
+// 1. insert/add: range.begin == range.end && str.empty(), '\n's in str
+// represent new lines.
 // 2. delete: str.empty() and range.begin < range.end.
 // 3. replace: !str.empty() and range.begin < range.end.
 struct BufferEdit {
     Range range;
     std::string str;
+
+    // factory methods
+    static BufferEdit Add(Pos pos, const std::string& str) {
+        return {{pos, pos}, str};
+    }
+    static BufferEdit Add(Pos pos, std::string&& str) {
+        return {{pos, pos}, std::move(str)};
+    }
+    static BufferEdit Add(Pos pos, std::string_view str) {
+        return {{pos, pos}, std::string(str)};
+    }
+    static BufferEdit Delete(const Range& range) { return {range, ""}; }
+    static BufferEdit Replace(const Range& range, const std::string& str) {
+        return {range, str};
+    }
+    static BufferEdit Replace(const Range& range, std::string&& str) {
+        return {range, std::move(str)};
+    }
+    static BufferEdit Replace(const Range& range, std::string_view str) {
+        return {range, std::string(str)};
+    }
+
+    enum Type {
+        kAdd,
+        kDelete,
+        kReplace,
+    };
+    Type GetType() const {
+        if (range.begin == range.end) {
+            CHX_ASSERT(!str.empty());
+            return kAdd;
+        } else if (str.empty()) {
+            CHX_ASSERT(range.begin < range.end);
+            return kDelete;
+        } else {
+            CHX_ASSERT(range.begin < range.end);
+            return kReplace;
+        }
+    }
 };
 
 // A batch(>=1) of edit operations applied atomically.
@@ -128,17 +167,20 @@ class Buffer {
     CHX_DEFAULT_MOVE(Buffer);
     ~Buffer();
 
-    // throws IOException, CodingException, FSException
-    // if it is a no file backup buffer, any of above exceptions won't throw.
+    // throws IOException, CodingException, FileExistException,
+    // FileAccessException.
+    // If it is a no file backup buffer, any of above
+    // exceptions won't throw.
     void Load();
 
-    // throws IOException, FileExistException, CodingException, FSException
-    // two args is similar to Add/Delete/Replace
+    // throws IOException, CodingException, FileExistException,
+    // FileAccessException.
+    // Two args is similar to Add/Delete/Replace
     void Reload(Pos* cursor_pos, Pos& cursor_pos_hint);
 
     void Clear();
 
-    // throws IOException
+    // throws IOException,FileExistException, FileAccessException.
     // return
     // kok
     // kBufferNoBackupFile
@@ -150,7 +192,7 @@ class Buffer {
     // path shouldn't be empty.
     // If success, the buffer will use the new path.
     // else, no effect occur.
-    // throws IOException
+    // throws IOException,FileExistException, FileAccessException.
     // return
     // kok
     // kBufferCannotLoad
@@ -235,28 +277,30 @@ class Buffer {
     // is undefined(allow Range is empty).
     // Also, make sure that all edit op will not corrupt buffer coding
     // correctness, otherwise behavior is undefined.
-    // One error,
-    // return kBufferCannotLoad, kBufferReadOnly; On ok, return kOk, and
-    // cursor_pos_hint will be set to the suggest cursor pos if
-    // use_given_pos_hint is false or no such parameter
+    // On error, return kBufferCannotLoad, kBufferReadOnly;
+    // On ok, return kOk, and cursor_pos_hint will be set to the suggest cursor
+    // pos if use_given_pos_hint is false or no such parameter.
     // NOTE:
     // 1. We use string_view here because:
     //      1) we always want to copy the string and don't care about whether it
     //      is a rvalue. 2) Usually we want to insert a char[] to a buffer, use
     //      string_view can eliminate a string ctor.
-    // 2. cursor_pos and cursor_pos_hint should point to the same address if
-    // use_given_pos_hint == true, otherwise behavior is undefined.
+    // 2. cursor_pos and cursor_pos_hint shouldn't point to the same address if
+    // use_given_pos_hint == false, otherwise behavior is undefined.
+    // 3. for pos_hint_prefer_begin, see curosr.h FixCursorPosAfterAdd.
     Result Add(Pos pos, std::string_view str, const Pos* cursor_pos,
-               bool use_given_pos_hint, Pos& cursor_pos_hint);
+               bool use_given_pos_hint, Pos& cursor_pos_hint,
+               bool pos_hint_prefer_begin = false);
     Result Delete(const Range& range, const Pos* cursor_pos,
                   bool use_given_pos_hint, Pos& cursor_pos_hint);
     Result Replace(const Range& range, std::string_view str,
                    const Pos* cursor_pos, bool use_given_pos_hint,
-                   Pos& cursor_pos_hint);
+                   Pos& cursor_pos_hint, bool pos_hint_prefer_begin = false);
 
     // Requirement: batch size != 0
     Result BatchEdit(const BufferEditBatch& edit_batch, const Pos* cursor_pos,
-                     bool use_given_pos_hint, Pos& cursor_pos_hint);
+                     bool use_given_pos_hint, Pos& cursor_pos_hint,
+                     bool pos_hint_prefer_begin = false);
 
     // return kNoHistoryAvailable if no action can be done
     // else return kOk

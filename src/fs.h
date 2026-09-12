@@ -106,6 +106,7 @@ class Path {
 // if path is not a dir, return empty vector.
 std::vector<std::string> ListUnderDirectory(const std::string& path);
 
+// NOTE: don't use GetFileStat to determine whether a user can read/write/exec.
 constexpr uint32_t kFMRead = 1 << 0;
 constexpr uint32_t kFMWrite = 1 << 1;
 constexpr uint32_t kFMExec = 1 << 2;

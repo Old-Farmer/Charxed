@@ -2,10 +2,12 @@
 
 #include <cstddef>
 #include <list>
+#include <memory>
 #include <optional>
 
 #include "result.h"
 #include "utils.h"
+
 namespace charxed {
 
 // A class that can store linear history.

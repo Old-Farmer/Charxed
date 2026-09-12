@@ -26,11 +26,11 @@ struct Range {
     Pos begin;
     Pos end;
 
-    bool PosBeforeMe(const Pos& pos) const { return pos < begin; }
-    bool PosAfterMe(const Pos& pos) const { return !(pos < end); }
+    bool PosBeforeMe(Pos pos) const { return pos < begin; }
+    bool PosAfterMe(Pos pos) const { return !(pos < end); }
 
     // Pos is in Range ?
-    bool PosInMe(const Pos& pos) const {
+    bool PosInMe(Pos pos) const {
         return !(PosAfterMe(pos) || PosBeforeMe(pos));
     }
 

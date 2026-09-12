@@ -14,6 +14,8 @@ class GlobalOpts;
 class Opts;
 class MangoPeel;
 class Window;
+class Buffer;
+class BufferEditBatch;
 
 struct Cursor {
     // row and col in screen
@@ -64,8 +66,21 @@ struct CursorState {
     void DontHoldColWant() { b_view_col_want.reset(); }
 };
 
-// put the pos to a new str, and try to fix it to a valid pos.
+// A Cursor is at pos, then the buffer(or anythins else like buffer) which the
+// cursor located in is totally replaced by str. Try to fix it to a valid pos.
 // NOTE: Just a tmp solution
 Pos FixCursorPos(Pos pos, std::string_view str);
+
+// Try to fix cursor pos after edit.
+// pos is the origin cursor pos.
+// return the new fixed pos.
+// end_pos is the end pos of the str if the str has been inserted;
+// prefer_begin_pos is an option that if cursor pos is at add_pos, cursor pos
+// will be kept at add_pos instead of end_pos.
+Pos FixCursorPosAfterAdd(Pos pos, Pos add_pos, Pos end_pos,
+                         bool prefer_begin_pos);
+Pos FixCursorPosAfterDelete(Pos pos, const Range& range);
+Pos FixCursorPosAfterReplace(Pos pos, const Range& range, Pos end_pos,
+                             bool prefer_begin_pos);
 
 }  // namespace charxed

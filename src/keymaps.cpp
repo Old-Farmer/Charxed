@@ -121,24 +121,26 @@ void Editor::InitKeymaps() {
                     true);
         }},
         {Mode::kOperatorPending});
+    // It's quite reasonable to use magic numbers here to represent all ratios.
     CHX_KEYMAP("<c-f>",
-               {[this] { cursor_.focused->CursorGoPageDown(Count()); }},
+               {[this] { cursor_.focused->CursorGoPageDown(Count(), 1); }},
                {CHX_DEFAULT_MODES});
-    CHX_KEYMAP("<c-f>", {[this] { peel_->CursorGoPageDown(Count()); }},
+    CHX_KEYMAP("<c-f>", {[this] { peel_->CursorGoPageDown(Count(), 1); }},
                {Mode::kPeelShow}, {CHX_ALL_CONTEXTS});
-    CHX_KEYMAP("<c-b>", {[this] { cursor_.focused->CursorGoPageUp(Count()); }},
+    CHX_KEYMAP("<c-b>",
+               {[this] { cursor_.focused->CursorGoPageUp(Count(), 1); }},
                {CHX_DEFAULT_MODES}, {CHX_ALL_CONTEXTS});
-    CHX_KEYMAP("<c-b>", {[this] { peel_->CursorGoPageUp(Count()); }},
+    CHX_KEYMAP("<c-b>", {[this] { peel_->CursorGoPageUp(Count(), 1); }},
                {Mode::kPeelShow}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<c-d>",
-               {[this] { cursor_.focused->CursorGoHalfPageDown(Count()); }},
+               {[this] { cursor_.focused->CursorGoPageDown(Count(), 0.5); }},
                {CHX_DEFAULT_MODES}, {CHX_ALL_CONTEXTS});
-    CHX_KEYMAP("<c-d>", {[this] { peel_->CursorGoHalfPageDown(Count()); }},
+    CHX_KEYMAP("<c-d>", {[this] { peel_->CursorGoPageDown(Count(), 0.5); }},
                {Mode::kPeelShow}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<c-u>",
-               {[this] { cursor_.focused->CursorGoHalfPageUp(Count()); }},
+               {[this] { cursor_.focused->CursorGoPageUp(Count(), 0.5); }},
                {CHX_DEFAULT_MODES}, {CHX_ALL_CONTEXTS});
-    CHX_KEYMAP("<c-u>", {[this] { peel_->CursorGoHalfPageUp(Count()); }},
+    CHX_KEYMAP("<c-u>", {[this] { peel_->CursorGoPageUp(Count(), 0.5); }},
                {Mode::kPeelShow}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<c-o>", {[this] { cursor_.t_win->JumpBackward(); }},
                {Mode::kNormal});
@@ -227,6 +229,27 @@ void Editor::InitKeymaps() {
     CHX_KEYMAP("n",
                {[this] { CursorGoSearch(search_foward_, Count(), false); }},
                {Mode::kNormal}, {CHX_ALL_CONTEXTS});
+    // TODO: maybe we can use Count()?
+    CHX_KEYMAP("<space>r", {[this] {
+                   Result res =
+                       cursor_.focused->ReplaceSearchResultCurrentOne();
+                   if (res != kOk) {
+                       NotifyUser(ResultString(res));
+                       return;
+                   }
+                   CursorGoSearch(search_foward_, 1, false);
+               }},
+               {Mode::kNormal}, {CHX_ALL_CONTEXTS});
+    CHX_KEYMAP("<space>R", {[this] {
+                   Result res =
+                       cursor_.focused->ReplaceSearchResultCurrentOne();
+                   if (res != kOk) {
+                       NotifyUser(ResultString(res));
+                       return;
+                   }
+                   CursorGoSearch(!search_foward_, 1, false);
+               }},
+               {Mode::kNormal}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP(":", {[this] { GotoPeel(Mode::kPeelCommand); }},
                {CHX_DEFAULT_MODES}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<enter>", {[this] { GotoPeel(Mode::kPeelShow); }},
@@ -263,7 +286,7 @@ void Editor::InitKeymaps() {
                }},
                {Mode::kPeelCommand}, {CHX_ALL_CONTEXTS});
     CHX_KEYMAP("<enter>", {[this] {
-                   SearchHitEnter();
+                   SearchReplaceHitEnter();
                    multirow_peel_keep_ = true;
                }},
                {Mode::kPeelSearch}, {CHX_ALL_CONTEXTS});

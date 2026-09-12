@@ -45,17 +45,11 @@ class TextWindow : public Window {
     void CursorGoLeft(size_t count) { area_.CursorGoLeft(count); }
     void CursorGoUp(size_t count) override { area_.CursorGoUp(count); }
     void CursorGoDown(size_t count) override { area_.CursorGoDown(count); }
-    void CursorGoHalfPageUp(size_t count) override {
-        area_.CursorGoUp(count * area_.height_ / 2);
+    void CursorGoPageUp(size_t count, double ratio) override {
+        area_.CursorGoUp(count * area_.height_ * ratio);
     }
-    void CursorGoHalfPageDown(size_t count) override {
-        area_.CursorGoDown(count * area_.height_ / 2);
-    }
-    void CursorGoPageUp(size_t count) override {
-        area_.CursorGoUp(count * area_.height_);
-    }
-    void CursorGoPageDown(size_t count) override {
-        area_.CursorGoDown(count * area_.height_);
+    void CursorGoPageDown(size_t count, double ratio) override {
+        area_.CursorGoDown(count * area_.height_ * ratio);
     }
     void CursorGoHome() { area_.CursorGoHome(); }
     void CursorGoFirstNonBlank() { area_.CursorGoFirstNonBlank(); }
@@ -133,15 +127,20 @@ class TextWindow : public Window {
 
     void OnBufferDelete(const Buffer* buffer);
 
-    // Search relevant
-    void BuildSearchContext(const std::string& pattern,
-                            const Range* range) override {
-        b_search_context_ = BufferSearchContext{pattern, area_.buffer_, range};
+    // Search/Replace relevant
+    void BuildSearchReplaceContext(const std::string& pattern,
+                                   const std::string* replace_str,
+                                   const Range* range) override {
+        b_search_context_ = BufferSearchReplaceContext{pattern, replace_str,
+                                                       area_.buffer_, range};
     }
     void DestorySearchContext() { b_search_context_.Destroy(); }
     const std::string& GetSearchPattern() override {
         return b_search_context_.search_pattern;
     }
+    const std::string* GetReplaceStr() override {
+        return OptionalToPtr(b_search_context_.replace_str);
+    };
     SearchState CursorGoSearchResult(bool next, size_t count,
                                      bool keep_current_if_one) override;
     bool ViewGoSearchResult(bool next, size_t count,
@@ -149,6 +148,8 @@ class TextWindow : public Window {
         return area_.BufferViewGoSearchResult(b_search_context_, next, count,
                                               keep_current_if_one);
     }
+    Result ReplaceSearchResultAll() override;
+    Result ReplaceSearchResultCurrentOne() override;
 
     void InsertJumpHistory();
     bool FarEnoughWithCursor(const CursorState& state);
@@ -215,7 +216,7 @@ class TextWindow : public Window {
 
    public:
     TextArea area_;
-    BufferSearchContext b_search_context_;
+    BufferSearchReplaceContext b_search_context_;
 };
 
 }  // namespace charxed
