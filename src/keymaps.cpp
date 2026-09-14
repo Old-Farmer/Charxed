@@ -434,7 +434,7 @@ void Editor::InitKeymaps() {
                }},
                {Mode::kNormal});
     CHX_KEYMAP("y", {[this] {
-                   mode_ = Mode::kOperatorPending;
+                   GotoMode(Mode::kOperatorPending);
                    pending_operator_ = Operator::kYank;
                }},
                {Mode::kNormal});
@@ -461,7 +461,7 @@ void Editor::InitKeymaps() {
                }},
                {Mode::kNormal});
     CHX_KEYMAP("d", {[this] {
-                   mode_ = Mode::kOperatorPending;
+                   GotoMode(Mode::kOperatorPending);
                    pending_operator_ = Operator::kDelete;
                }},
                {Mode::kNormal});
@@ -471,7 +471,7 @@ void Editor::InitKeymaps() {
                }},
                {CHX_SELECT_MODES});
     CHX_KEYMAP("\\>", {[this] {
-                   mode_ = Mode::kOperatorPending;
+                   GotoMode(Mode::kOperatorPending);
                    pending_operator_ = Operator::kIndent;
                }},
                {Mode::kNormal});
@@ -481,7 +481,7 @@ void Editor::InitKeymaps() {
                }},
                {CHX_SELECT_MODES});
     CHX_KEYMAP("\\<", {[this] {
-                   mode_ = Mode::kOperatorPending;
+                   GotoMode(Mode::kOperatorPending);
                    pending_operator_ = Operator::kUnindent;
                }},
                {Mode::kNormal});
@@ -572,7 +572,7 @@ void Editor::InitKeymaps() {
                        {Mode::kOperatorPending, Mode::kSelect});
             CHX_KEYMAP(a + p, {[this, open] {
                            if (cursor_.t_win->area_.SelectPair(open, false))
-                               mode_ = Mode::kSelect;
+                               GotoMode(Mode::kSelect);
                        }},
                        {Mode::kSelectLine});
             CHX_KEYMAP(i + p, {[this, open] {
@@ -581,7 +581,7 @@ void Editor::InitKeymaps() {
                        {Mode::kOperatorPending, Mode::kSelect});
             CHX_KEYMAP(i + p, {[this, open] {
                            if (cursor_.t_win->area_.SelectPair(open, true))
-                               mode_ = Mode::kSelect;
+                               GotoMode(Mode::kSelect);
                        }},
                        {Mode::kSelectLine});
         }

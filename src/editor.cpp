@@ -789,6 +789,7 @@ void Editor::ExitFromMode() {
             break;
         }
         case Mode::kOperatorPending: {
+            term_.SetCursorStyle(Terminal::CursorStyle::kBlock);
             break;
         }
         case Mode::kPeelCommand:
@@ -816,6 +817,9 @@ void Editor::GotoMode(Mode mode) {
                 ExitFromMode();
             }
             term_.SetCursorStyle(Terminal::CursorStyle::kLine);
+            break;
+        case Mode::kOperatorPending:
+            term_.SetCursorStyle(Terminal::CursorStyle::kUnderline);
             break;
         case Mode::kPeelCommand:
             [[fallthrough]];
