@@ -4,17 +4,21 @@
 #include "cursor.h"
 #include "draw.h"
 #include "filetype.h"
+#include "keyseq_manager.h"
 #include "options.h"
 #include "text_window.h"
 
 namespace charxed {
 
 StatusLine::StatusLine(Cursor* cursor, GlobalOpts* global_opts, Mode* mode,
-                       Context* context)
+                       Context* context, const KeyseqManager* keyseq_manager,
+                       const std::vector<Terminal::KeyInfo>* pending_keys)
     : cursor_(cursor),
       global_opts_(global_opts),
       mode_(mode),
-      context_(context) {}
+      context_(context),
+      keyseq_manager_(keyseq_manager),
+      pending_keys_(pending_keys) {}
 
 void StatusLine::Draw() {
     ThemeType t = kStatusLine;
@@ -41,10 +45,14 @@ void StatusLine::Draw() {
                 character_in_line = cursor_->character_in_line;
             }
 
+            pending_keys_buf_.clear();
+            for (auto keyinfo : *pending_keys_) {
+                pending_keys_buf_.append(keyseq_manager_->Key2Str(keyinfo));
+            }
             fmt::format_to(
-                std::back_inserter(right_str_), "  {},{}  {:>2}%  {}  {}{}  {}",
-                line + 1, character_in_line + 1,
-                100 * (line + 1) / b->LineCnt(),
+                std::back_inserter(right_str_),
+                "{}  {},{}  {:>2}%  {}  {}{}  {}", pending_keys_buf_, line + 1,
+                character_in_line + 1, 100 * (line + 1) / b->LineCnt(),
                 FiletypeUserStrRep(b->filetype()),
                 b->opts().GetOpt<bool>(kOptTabSpace) ? "Sp" : "Tb",
                 b->opts().GetOpt<int64_t>(kOptTabStop), b->eol_seq());

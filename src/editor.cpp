@@ -48,8 +48,9 @@ void Editor::Init(std::unique_ptr<GlobalOpts> global_opts,
     clipboard_ = ClipBoard::CreateClipBoard(true);
 
     // Component
-    status_line_ = std::make_unique<StatusLine>(&cursor_, global_opts_.get(),
-                                                &mode_, &context_);
+    status_line_ = std::make_unique<StatusLine>(
+        &cursor_, global_opts_.get(), &mode_, &context_, &keymap_manager_,
+        &pending_keys_);
     peel_ = std::make_unique<MangoPeel>(&cursor_, global_opts_.get(),
                                         clipboard_.get(), buffer_manager_.get(),
                                         &command_manager_);
@@ -193,6 +194,7 @@ void Editor::Loop() {
 
             multirow_peel_keep_ = false;
 
+            bool handle_key_this_time = false;
             // Handle it and do sth
             switch (term_.WhatEvent()) {
                 case Terminal::EventType::kKey:
@@ -200,6 +202,7 @@ void Editor::Loop() {
                         HandleBracketedPaste(bracketed_paste_buffer);
                     } else {
                         HandleKey();
+                        handle_key_this_time = true;
                     }
                     break;
                 case Terminal::EventType::kMouse:
@@ -223,6 +226,9 @@ void Editor::Loop() {
                     }
                     bracketed_paste_buffer = "";
                     break;
+            }
+            if (!handle_key_this_time) {
+                pending_keys_.clear();
             }
         }
         term_.PolledOutUnset();
@@ -321,6 +327,7 @@ void Editor::HandleBracketedPaste(std::string& bracketed_paste_buffer) {
 
 void Editor::HandleKey() {
     Terminal::KeyInfo key_info = term_.EventKeyInfo();
+    pending_keys_.push_back(key_info);
 
 #ifndef NDEBUG
     if (global_opts_->GetOpt<bool>(kOptLogVerbose)) {
@@ -354,6 +361,8 @@ void Editor::HandleKey() {
             if (mode_ == Mode::kOperatorPending) {
                 // key seq like 2d2l -> d4l
                 op_pending_stored_count_ = count_;
+            } else {
+                pending_keys_.clear();
             }
         } else {
             CHX_ASSERT(context_ == Context::kEditor);
@@ -374,6 +383,7 @@ void Editor::HandleKey() {
                 }
             }
             ExitFromMode();
+            pending_keys_.clear();
         }
         count_ = 0;
     } else if (res == kKeyseqMatched) {
@@ -386,16 +396,20 @@ void Editor::HandleKey() {
     } else if (res == kKeyseqError) {
         if (mode_ == Mode::kOperatorPending) {
             ExitFromMode();
+            pending_keys_.clear();
             return;
         }
 
         if (key_info.IsSpecialKey()) {
             count_ = 0;
+            pending_keys_.clear();
             return;
         }
 
         // Pure codepoints that are not handled by the keymap manager.
         if (InsertLike(mode_)) {
+            pending_keys_.clear();
+
             // We try to collect all pure codepoints in one string and commit it
             // to the buffer.
 
@@ -421,15 +435,14 @@ void Editor::HandleKey() {
                 // Multiple codepoint arrive at a time, we should filter them
                 // with keymaps, then treat them as pure input.
                 feed_key_res = keymap_manager_.FeedKey(key_info, handler);
-                if (feed_key_res == kKeyseqDone) {
+                if (feed_key_res == kKeyseqDone ||
+                    feed_key_res == kKeyseqMatched) {
+                    keymap_manager_.ClearMatched();
+                    term_.PendCurrentEvent();
                     break;
-                } else if (feed_key_res == kKeyseqMatched) {
-                    // Encounter a sequnce, we let multirow peel stay.
-                    if (!IsPeel(mode_) && peel_->area_.height_ > 1) {
-                        multirow_peel_keep_ = true;
-                    }
-                    break;
-                } else if (feed_key_res == kKeyseqError) {
+                }
+
+                if (feed_key_res == kKeyseqError) {
                     if (long_input.size() == 0) {
                         long_input.append(c, len);
                     }
@@ -475,13 +488,11 @@ void Editor::HandleKey() {
                     break;
             }
             editor_event_manager_.EmitEvent(ev, nullptr);
-
-            if (feed_key_res == kKeyseqDone) {
-                handler->f();
-            }
         } else if (key_info.codepoint >= '1' && key_info.codepoint <= '9' &&
                    count_ == 0) {
             count_ = count_ * 10 + key_info.codepoint - '0';
+        } else {
+            pending_keys_.clear();
         }
     } else {
         CHX_ASSERT(false);

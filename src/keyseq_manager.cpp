@@ -29,7 +29,7 @@ struct KeyInfoOrAnyCodepoint {
 };
 
 // only support ascii keystr
-const std::unordered_map<std::string_view, KeyInfoOrAnyCodepoint>
+static const std::unordered_map<std::string_view, KeyInfoOrAnyCodepoint>
     kKeyStrToKeyInfo = {
         // Any code point
         {"<any-cp>", {}},
@@ -97,6 +97,8 @@ const std::unordered_map<std::string_view, KeyInfoOrAnyCodepoint>
         {"<c-pgdn>", {ki::CreateSpecialKey(sk::kPgdn, tm::kCtrl)}},
 };
 
+static std::unordered_map<size_t, std::string_view> keyinfo2str;
+
 Result ParseKeyseq(const std::string& seq,
                    std::vector<KeyInfoOrAnyCodepoint>& keys) {
     int start = -1;
@@ -142,6 +144,20 @@ KeyseqManager::KeyseqManager(Mode& mode, Context& context)
             root = Node(true);
         }
     }
+    auto init_keyinfo2str = [] {
+        std::unordered_map<size_t, std::string_view> tmp;
+        for (auto& [str, key] : kKeyStrToKeyInfo) {
+            tmp[key.key_info.ToNumber()] = str;
+        }
+        // ugly terminal!!!
+        tmp[ki::CreateSpecialKey(sk::kEsc).ToNumber()] = "<esc>";
+        tmp[ki::CreateSpecialKey(sk::kCtrlTilde, tm::kCtrl).ToNumber()] =
+            "<c-space>";
+        tmp[ki::CreateSpecialKey(sk::kCtrlI, tm::kCtrl).ToNumber()] = "<c-i>";
+        tmp[ki::CreateSpecialKey(sk::kCtrl8, tm::kCtrl).ToNumber()] = "<c-8>";
+        return tmp;
+    };
+    keyinfo2str = init_keyinfo2str();
 }
 
 Result KeyseqManager::AddKeyseq(const std::string& seq, const Keyseq& handler,
@@ -275,6 +291,26 @@ Result KeyseqManager::FeedKey(const Terminal::KeyInfo& key, Keyseq*& handler) {
     } else {
         return kKeyseqMatched;
     }
+}
+
+void KeyseqManager::ClearMatched() { cur_ = nullptr; }
+
+std::string KeyseqManager::Key2Str(const Terminal::KeyInfo& key) const {
+    std::string str;
+    char buf[kMaxBytesUtf8Codepoint];
+    if (!key.IsSpecialKey()) {
+        if (key.codepoint == kSpaceChar) {
+            return "<space>";
+        }
+        int len = UnicodeToUtf8(key.codepoint, buf);
+        str.append(buf, len);
+        return str;
+    }
+    auto iter = keyinfo2str.find(key.ToNumber());
+    if (iter == keyinfo2str.end()) {
+        return "";
+    }
+    return std::string(iter->second);
 }
 
 }  // namespace charxed

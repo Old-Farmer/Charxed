@@ -7,7 +7,7 @@
 - Multi-window
 - Bufferline(low priority)
 - Cursor color
-- Show pending keys of keymaps
+- completion doc
 
 ## LSP
 
@@ -20,6 +20,8 @@
 
 ## Usability
 
+- Markdown rendering(web based solution, use sth like <https://github.com/markdown-it/markdown-it>)
+- More commands for buffers: filetype, readonly, etc
 - Options need a range limitaion
 - Jump history should be adjusted when buffer changed.
 - diff algorithm and diff view

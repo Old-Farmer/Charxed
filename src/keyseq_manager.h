@@ -49,6 +49,11 @@ class KeyseqManager {
     // NOTE: Be careful of the handler lifetime
     Result FeedKey(const Terminal::KeyInfo& key, Keyseq*& handler);
 
+    void ClearMatched();
+
+    // return a str rep of a key
+    std::string Key2Str(const Terminal::KeyInfo& key) const;
+
    private:
     struct Node;
     using Nexts = std::unordered_map<size_t, Node*>;
@@ -64,7 +69,6 @@ class KeyseqManager {
         explicit Node(bool _end) : end(_end) {}
     };
 
-   private:
     using KeymapsTrees =
         std::array<Node,
                    static_cast<size_t>(Mode::_kCount)>;  // one tree per mode
