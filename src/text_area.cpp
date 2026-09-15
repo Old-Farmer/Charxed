@@ -553,8 +553,7 @@ TextTree::Iterator TextArea::CalcByteOffsetByBViewCol(
             }
         }
         if (cur_b_view_col + character_width <= content_width) {
-            if (wrap && next == line.end &&
-                cur_b_view_col + character_width == content_width) {
+            if (wrap && cur_b_view_col + character_width == content_width) {
                 break;
             }
             if (cur_b_view_col <= target_b_view_col &&
