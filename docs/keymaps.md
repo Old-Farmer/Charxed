@@ -80,6 +80,7 @@ Examples:
 | `<c-i>` | Jump to next cursor position | Normal | Editor |
 | `]b` | Go to next buffer | Normal | Editor |
 | `[b` | Go to previous buffer | Normal | Editor |
+| `<enter>` | Open Peel show mode | Normal | Editor |
 
 ## Selection
 
@@ -152,16 +153,6 @@ operator support:
 | `<c-p>` | Select prev completion | Insert, Command | All |
 | `<c-p>` | Select prev history | Command, Search | All |
 
-## Search & Command
-
-| Key | Description | Mode(s) | Context |
-/3434
-| `?` | Start backward search | Normal, Select, Select-L | All |
-| `n` | Go to next search match | Normal | All |
-| `N` | Go to previous search match | Normal | All |
-| `:` | Enter command mode | Normal, Select, Select-L | All |
-| `<enter>` | Open Peel show mode | Normal | Editor |
-
 ## Search & Replace
 
 Search and replace are entered through the `SEARCH` mode prompt. The prompt
@@ -199,12 +190,12 @@ search/replace mode.
 | `<space>R` | Replace the current match and move previously | Normal | All |
 | `n` | Move to the next match | Normal | All |
 | `N` | Move to the previous match | Normal | All |
-| `<esc>` / `<c-[>` | Exit search mode | Search | All |
 
 ## Peel Input (Command)
 
 | Key | Description | Mode(s) | Context |
 | --- | --- | --- | --- |
+| `:` | Enter command mode | Normal, Select, Select-L | All |
 | `<left>` | Move cursor left | Command, Search | All |
 | `<right>` | Move cursor right | Command, Search | All |
 | `<c-left>` | Move to previous word | Command, Search | All |
@@ -216,8 +207,7 @@ search/replace mode.
 | `<c-r>` | Paste from clipboard | Command, Search | All |
 | `<c-n>` | Next history item | Command, Search | All |
 | `<c-p>` | Previous history item | Command, Search | All |
-| `<enter>` | Execute command or search | Command, Search | All |
-
+| `<enter>` | Execute command | Command | All |
 
 ## Explorer
 
