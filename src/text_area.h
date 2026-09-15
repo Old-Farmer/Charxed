@@ -180,6 +180,8 @@ class TextArea {
     // include Copy, Paste, Cut, Indent, etc.
 
     void Copy();
+    // set after_cursor to paste contents after cursor,
+    // otherwise contents will be pasted before cursor.
     Result Paste(size_t count, bool after_cursor);
     void Cut();
 

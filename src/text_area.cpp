@@ -1476,13 +1476,12 @@ Result TextArea::Paste(size_t count, bool after_cursor) {
             insert_pos = cursor_->pos;
             if (after_cursor) {
                 auto iter = buffer_->Find(insert_pos);
+                // try to go to the next character pos
                 if (iter != buffer_->End()) {
                     Character c;
                     auto next = NextCharacter(iter, buffer_->End(), c);
-                    if (char ascii_c; c.Ascii(ascii_c) && ascii_c == '\n') {
-                        insert_pos.line++;
-                        insert_pos.byte_offset = 0;
-                    } else {
+                    // don't need to go next if at the end of a line
+                    if (char ascii_c; !c.Ascii(ascii_c) || ascii_c != '\n') {
                         insert_pos.byte_offset += next.offset() - iter.offset();
                     }
                 }
