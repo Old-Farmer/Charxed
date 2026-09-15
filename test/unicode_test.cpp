@@ -11,7 +11,8 @@ TEST_CASE("test string display width") {
                       "👩‍🚀 "
                       "💖 "
                       "z") == 26);
-    CHECK(StringWidth("A á ❤️ ☝︎ ✊🏿 👨‍👩‍👧‍👦 👩‍❤️‍💋‍👩 "
+    CHECK(StringWidth("A á ❤️ ☝︎ ✊🏿 👨‍👩‍👧‍👦 "
+                      "👩‍❤️‍💋‍👩 "
                       "🇨🇳 "
                       "1️⃣ "
                       "🏳️‍🌈 ❤︎‍🔥 🧑‍🍼 ǟ̋") ==
@@ -29,18 +30,22 @@ TEST_CASE("bound class test") {
 }
 
 TEST_CASE("grepheme") {
-    Character c;
-    int byte_len;
-    ThisCharacter("🐦‍🔥", 0, c, byte_len);
-    for (size_t i = 0; i < c.CodePointCount(); i++) {
-        fmt::println("\\U{:08X}", c.Codepoints()[i]);
+    {
+        auto [_, c, byte_len] = ThisCharacter("🐦‍🔥", 0);
+        for (size_t i = 0; i < c.CodePointCount(); i++) {
+            fmt::println("\\U{:08X}", c.Codepoints()[i]);
+        }
     }
-    ThisCharacter("🐦", 0, c, byte_len);
-    for (size_t i = 0; i < c.CodePointCount(); i++) {
-        fmt::println("\\U{:08X}", c.Codepoints()[i]);
+    {
+        auto [_, c, byte_len] = ThisCharacter("🐦", 0);
+        for (size_t i = 0; i < c.CodePointCount(); i++) {
+            fmt::println("\\U{:08X}", c.Codepoints()[i]);
+        }
     }
-    ThisCharacter("🔥", 0, c, byte_len);
-    for (size_t i = 0; i < c.CodePointCount(); i++) {
-        fmt::println("\\U{:08X}", c.Codepoints()[i]);
+    {
+        auto [_, c, byte_len] = ThisCharacter("🔥", 0);
+        for (size_t i = 0; i < c.CodePointCount(); i++) {
+            fmt::println("\\U{:08X}", c.Codepoints()[i]);
+        }
     }
 }

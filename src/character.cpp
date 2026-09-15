@@ -414,10 +414,9 @@ inline int GetCharacterType(const Character& c) {
 inline std::tuple<TextTree::Iterator, TextTree::Iterator, int>
 FindNextTargetType(TextTree::Iterator iter, TextTree::Iterator end,
                    int target) {
-    Character c;
     int type;
     while (iter != end) {
-        auto next = NextCharacter(iter, end, c);
+        auto [next, c] = NextCharacter(iter, end);
         type = GetCharacterType(c);
         if (type & target) {
             return {iter, next, type};
@@ -432,10 +431,9 @@ FindNextTargetType(TextTree::Iterator iter, TextTree::Iterator end,
 inline std::tuple<TextTree::Iterator, TextTree::Iterator, int>
 FindPrevTargetType(TextTree::Iterator iter, TextTree::Iterator begin,
                    int target) {
-    Character c;
     int type;
     while (iter != begin) {
-        auto prev = PrevCharacter(iter, begin, c);
+        auto [prev, c] = PrevCharacter(iter, begin);
         type = GetCharacterType(c);
         if (type & target) {
             return {iter, prev, type};
@@ -458,8 +456,7 @@ TextTree::Iterator NextWordBegin(TextTree::Iterator iter,
         return iter;
     }
 
-    Character c;
-    auto next = NextCharacter(iter, end, c);
+    auto [next, c] = NextCharacter(iter, end);
     int type;
     switch (GetCharacterType(c)) {
         case kCTypeWord:
@@ -497,8 +494,7 @@ TextTree::Iterator NextWordEnd(TextTree::Iterator iter,
         return iter;
     }
 
-    Character c;
-    auto next = NextCharacter(iter, end, c);
+    auto [next, c] = NextCharacter(iter, end);
     int type;
     switch (GetCharacterType(c)) {
         case kCTypeWord:
@@ -537,8 +533,7 @@ TextTree::Iterator PrevWordBegin(TextTree::Iterator iter,
         return iter;
     }
 
-    Character c;
-    auto prev = PrevCharacter(iter, begin, c);
+    auto [prev, c] = PrevCharacter(iter, begin);
     int type;
     switch (GetCharacterType(c)) {
         case kCTypeWord:
@@ -569,8 +564,7 @@ TextTree::TextView ThisWord(TextTree::Iterator iter, TextTree::TextView line) {
         return {iter, iter};
     }
 
-    Character c;
-    NextCharacter(iter, line.end, c);
+    auto [_, c] = NextCharacter(iter, line.end);
     int target_t;
     switch (GetCharacterType(c)) {
         case kCTypeWord:
@@ -595,7 +589,7 @@ std::optional<TextTree::Iterator> PrevSpecificCharacter(
     TextTree::Iterator begin) {
     Character c;
     while (iter != begin) {
-        iter = PrevCharacter(iter, begin, c);
+        std::tie(iter, c) = PrevCharacter(iter, begin);
         if (c == target) {
             return iter;
         }
@@ -606,9 +600,9 @@ std::optional<TextTree::Iterator> PrevSpecificCharacter(
 std::optional<TextTree::Iterator> NextSpecificCharacter(
     TextTree::Iterator iter, const Character& target, TextTree::Iterator end) {
     Character c;
-    if (iter != end) iter = NextCharacter(iter, end, c);
+    if (iter != end) std::tie(iter, c) = NextCharacter(iter, end);
     while (iter != end) {
-        auto next = NextCharacter(iter, end, c);
+        auto [next, c] = NextCharacter(iter, end);
         if (c == target) {
             return iter;
         }
@@ -621,20 +615,20 @@ std::optional<TextTree::Iterator> NextSpecificCharacter(
 // Also consider the current pos.
 std::tuple<TextTree::Iterator, bool> ClosestBracket(
     TextTree::Iterator iter, const TextTree::TextView& range) {
-    Character c;
-    auto iter_after = NextCharacter(iter, range.end, c);
+    auto [iter_after, c] = NextCharacter(iter, range.end);
     char ascii_c;
     if (c.Ascii(ascii_c) && IsBracket(ascii_c)) {
         return {iter, IsPairOpen(ascii_c).first};
     }
     auto iter_before = iter;
     while (iter_before != range.begin && iter_after != range.end) {
-        auto next = NextCharacter(iter_after, range.end, c);
+        auto [next, c] = NextCharacter(iter_after, range.end);
         if (c.Ascii(ascii_c) && IsBracket(ascii_c) &&
             !IsPairOpen(ascii_c).first) {
             return {iter_after, false};
         }
-        auto prev = PrevCharacter(iter_before, range.begin, c);
+        TextTree::Iterator prev;
+        std::tie(prev, c) = PrevCharacter(iter_before, range.begin);
         if (c.Ascii(ascii_c) && IsBracket(ascii_c) &&
             IsPairOpen(ascii_c).first) {
             return {prev, true};
@@ -655,8 +649,7 @@ TextTree::TextView FindBracketPairAround(TextTree::Iterator iter,
     // Check current pos first
     bool open_found = false;
     bool close_found = false;
-    Character c;
-    auto iter_after = NextCharacter(iter, range.end, c);
+    auto [iter_after, c] = NextCharacter(iter, range.end);
     char ascii_c;
     if (c.Ascii(ascii_c)) {
         if (ascii_c == open) {
@@ -673,7 +666,7 @@ TextTree::TextView FindBracketPairAround(TextTree::Iterator iter,
         // the same as close finding code below.
         int64_t unpaired_open_cnt = 0;
         while (iter != range.begin) {
-            iter = PrevCharacter(iter, range.begin, c);
+            std::tie(iter, c) = PrevCharacter(iter, range.begin);
             if (c.Ascii(ascii_c)) {
                 if (ascii_c == open) {
                     unpaired_open_cnt++;
@@ -692,7 +685,7 @@ TextTree::TextView FindBracketPairAround(TextTree::Iterator iter,
         int64_t unpaired_close_cnt = 0;
         iter = iter_after;
         while (iter != range.end) {
-            iter = NextCharacter(iter, range.end, c);
+            std::tie(iter, c) = NextCharacter(iter, range.end);
             char ascii_c;
             if (c.Ascii(ascii_c)) {
                 if (ascii_c == close) {
@@ -726,7 +719,7 @@ TextTree::TextView FindQuotePairAroundInLine(TextTree::Iterator iter,
         }
 
         Character c;
-        next = NextCharacter(cur_iter, line.end, c);
+        std::tie(next, c) = NextCharacter(cur_iter, line.end);
         char ascii_c;
         if (!c.Ascii(ascii_c) || ascii_c != quote) {
             continue;
@@ -734,7 +727,7 @@ TextTree::TextView FindQuotePairAroundInLine(TextTree::Iterator iter,
         bool real_quote = true;
         // if quote " or ' is Followed by a \, it is not a quote.
         if ((quote == '\"' || quote == '\'') && cur_iter != line.begin) {
-            PrevCharacter(cur_iter, line.begin, c);
+            std::tie(std::ignore, c) = PrevCharacter(cur_iter, line.begin);
             if (c.Ascii(ascii_c) && ascii_c == '\\') {
                 real_quote = false;
             }
@@ -758,12 +751,10 @@ TextTree::TextView FindQuotePairAroundInLine(TextTree::Iterator iter,
 }
 
 size_t StringWidth(const std::string& str) {
-    Character character;
     size_t offset = 0;
     size_t width = 0;
     while (offset < str.size()) {
-        int len;
-        ThisCharacter(str, offset, character, len);
+        auto [_, character, len] = ThisCharacter(str, offset);
         int character_width = character.Width();
         if (character_width <= 0) {
             character_width = kReplacementCharWidth;

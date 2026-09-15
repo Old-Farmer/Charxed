@@ -360,7 +360,7 @@ void TextArea::MakeCursorVisibleNotWrap(size_t top_scroll_off,
     auto iter = cur_line.begin;
     cursor_->character_in_line = 0;
     while (iter.offset() - cur_line.begin.offset() < cursor_->pos.byte_offset) {
-        iter = NextCharacter(iter, cur_line.end, character);
+        std::tie(iter, character) = NextCharacter(iter, cur_line.end);
         int character_width = character.Width();
         if (character_width <= 0) {
             char c;
@@ -502,12 +502,10 @@ size_t TextArea::CalcByteOffsetByBViewCol(std::string_view line,
     auto wrap = GetOpt<bool>(kOptWrap);
 
     size_t target_b_view_col = b_view_col_from_byte_offset;
-    Character character;
     size_t cur_b_view_col = 0;
     size_t cur_byte_offset = byte_offset;
     while (cur_byte_offset < line.size()) {
-        int byte_len;
-        ThisCharacter(line, cur_byte_offset, character, byte_len);
+        auto [_, character, byte_len] = ThisCharacter(line, cur_byte_offset);
         int character_width = character.Width();
         if (character_width <= 0) {
             char c;
@@ -542,10 +540,9 @@ TextTree::Iterator TextArea::CalcByteOffsetByBViewCol(
     auto wrap = GetOpt<bool>(kOptWrap);
 
     size_t target_b_view_col = b_view_col_from_byte_offset;
-    Character character;
     size_t cur_b_view_col = 0;
     while (iter != line.end) {
-        auto next = NextCharacter(iter, line.end, character);
+        auto [next, character] = NextCharacter(iter, line.end);
         int character_width = character.Width();
         if (character_width <= 0) {
             char c;
@@ -754,10 +751,9 @@ bool TextArea::CursorGoRightState(size_t count, CursorState& state) {
         return false;
     }
 
-    Character c;
     size_t offset = iter.offset();
     for (size_t i = 0; i < count && iter != end; i++) {
-        iter = NextCharacter(iter, end, c);
+        std::tie(iter, std::ignore) = NextCharacter(iter, end);
     }
     state.pos.byte_offset += iter.offset() - offset;
     return true;
@@ -775,9 +771,8 @@ bool TextArea::CursorGoLeftState(size_t count, CursorState& state) {
 
     auto begin = buffer_->Find({state.pos.line, 0});
     auto iter = buffer_->Find(state.pos);
-    Character c;
     for (size_t i = 0; i < count && iter != begin; i++) {
-        iter = PrevCharacter(iter, begin, c);
+        std::tie(iter, std::ignore) = PrevCharacter(iter, begin);
     }
     state.pos.byte_offset = iter.offset() - begin.offset();
     return true;
@@ -967,10 +962,9 @@ bool TextArea::CursorGoHomeState(CursorState& state) {
 bool TextArea::CursorGoFirstNonBlankState(CursorState& state) {
     CHX_ASSERT(buffer_);
     auto line = buffer_->GetLineView(cursor_->pos.line);
-    Character c;
     auto iter = line.begin;
     while (iter != line.end) {
-        auto next = NextCharacter(iter, line.end, c);
+        auto [next, c] = NextCharacter(iter, line.end);
         char ascii;
         if (c.Ascii(ascii) && (ascii == ' ' || ascii == '\t')) {
             iter = next;
@@ -1367,7 +1361,7 @@ Result TextArea::TabAtCursor() {
     size_t cur_b_view_c = 0;
     auto iter = cur_line.begin;
     while (iter.offset() - cur_line.begin.offset() < cursor_->pos.byte_offset) {
-        iter = NextCharacter(iter, cur_line.end, character);
+        std::tie(iter, character) = NextCharacter(iter, cur_line.end);
         int character_width = character.Width();
         if (character_width <= 0) {
             char c;
@@ -1478,8 +1472,7 @@ Result TextArea::Paste(size_t count, bool after_cursor) {
                 auto iter = buffer_->Find(insert_pos);
                 // try to go to the next character pos
                 if (iter != buffer_->End()) {
-                    Character c;
-                    auto next = NextCharacter(iter, buffer_->End(), c);
+                    auto [next, c] = NextCharacter(iter, buffer_->End());
                     // don't need to go next if at the end of a line
                     if (char ascii_c; !c.Ascii(ascii_c) || ascii_c != '\n') {
                         insert_pos.byte_offset += next.offset() - iter.offset();
@@ -1557,10 +1550,9 @@ Result TextArea::DeleteCharacterBeforeCursor() {
                   buffer_->GetLineView(cursor_->pos.line - 1).Size()},
                  {cursor_->pos.line, 0}};
     } else {
-        Character charater;
         auto line = buffer_->GetLineView(cursor_->pos.line);
         auto iter = buffer_->Find(cursor_->pos);
-        iter = PrevCharacter(iter, line.begin, charater);
+        std::tie(iter, std::ignore) = PrevCharacter(iter, line.begin);
         range = {{cursor_->pos.line, iter.offset() - line.begin.offset()},
                  cursor_->pos};
     }
@@ -1581,8 +1573,7 @@ Result TextArea::DeleteCharacterFromCursor(size_t count) {
     auto end = buffer_->End();
     size_t i = 0;
     for (; i < count && iter != end; i++) {
-        Character c;
-        iter = NextCharacter(iter, end, c);
+        std::tie(iter, std::ignore) = NextCharacter(iter, end);
     }
     if (i == 0) {
         return kFail;

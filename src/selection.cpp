@@ -17,8 +17,7 @@ Range NormalSelection::ToSelectRange(const Buffer* buffer) const {
     if (inclusive_end) {
         auto iter = buffer->Find(res.end);
         if (iter != buffer->End()) {
-            Character c;
-            auto next = NextCharacter(iter, buffer->End(), c);
+            auto [next, c] = NextCharacter(iter, buffer->End());
             if (char ascii_c; c.Ascii(ascii_c) && ascii_c == '\n') {
                 res.end.line++;
                 res.end.byte_offset = 0;

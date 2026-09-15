@@ -125,8 +125,11 @@ Result ThisCharacterInner(std::string_view str, int64_t offset,
                           Character& character, int& byte_len);
 
 // Wrap of ThisCharacterInner, and ascii friendly
-inline Result ThisCharacter(std::string_view str, int64_t offset,
-                            Character& character, int& byte_len) {
+// return Result, this character and byte length of this character
+inline std::tuple<Result, Character, int> ThisCharacter(std::string_view str,
+                                                        int64_t offset) {
+    Character c;
+    int byte_len;
     CHX_ASSERT(static_cast<size_t>(offset) < str.size());
     int64_t cur_offset = offset;
     int64_t end_offset = str.size();
@@ -134,11 +137,12 @@ inline Result ThisCharacter(std::string_view str, int64_t offset,
     if ((cur_offset <= end_offset - 2 && IsAscii(str[cur_offset]) &&
          IsAscii(str[cur_offset + 1])) ||
         (cur_offset == end_offset - 1)) {
-        character.Set(str[cur_offset]);
+        c.Set(str[cur_offset]);
         byte_len = 1;
-        return kOk;
+        return {kOk, c, byte_len};
     }
-    return ThisCharacterInner(str, offset, character, byte_len);
+    Result res = ThisCharacterInner(str, offset, c, byte_len);
+    return {res, c, byte_len};
 }
 
 // iter must be a character beginning pos, otherwise behavior is
@@ -151,20 +155,21 @@ TextTree::Iterator NextCharacterInner(TextTree::Iterator iter,
                                       Character& character);
 
 // A ascii friendly wrapping of NextCharacterInner
-inline TextTree::Iterator NextCharacter(TextTree::Iterator iter,
-                                        TextTree::Iterator end,
-                                        Character& character) {
+inline std::tuple<TextTree::Iterator, Character> NextCharacter(
+    TextTree::Iterator iter, TextTree::Iterator end) {
     CHX_ASSERT(iter != end);
     char ascii_c = iter.ThisByte();
+    Character c;
     if (IsAscii(ascii_c)) {
         iter.NextByte();
         if (iter == end || IsAscii(iter.ThisByte())) {
-            character.Set(ascii_c);
-            return iter;
+            c.Set(ascii_c);
+            return {iter, c};
         }
         iter.PrevByte();
     }
-    return NextCharacterInner(iter, end, character);
+    iter = NextCharacterInner(iter, end, c);
+    return {iter, c};
 }
 
 // Make sure that str[offset] must be a character beginnig byte.
@@ -174,17 +179,21 @@ Result PrevCharacterInner(std::string_view str, int64_t offset,
                           Character& character, int& byte_len);
 
 // Wrap of PrevCharacterInner, and ascii friendly
-inline Result PrevCharacter(std::string_view str, int64_t offset,
-                            Character& character, int& byte_len) {
+// return Result, prev character and byte length of prev character
+inline std::tuple<Result, Character, int> PrevCharacter(std::string_view str,
+                                                        int64_t offset) {
     CHX_ASSERT(offset > 0);
+    Character c;
+    int byte_len;
     // ascii happy path
     if ((offset > 1 && IsAscii(str[offset - 2]) && IsAscii(str[offset + 1])) ||
         offset == 1) {
-        character.Set(str[offset - 1]);
+        c.Set(str[offset - 1]);
         byte_len = 1;
-        return kOk;
+        return {kOk, c, byte_len};
     }
-    return PrevCharacterInner(str, offset, character, byte_len);
+    Result res = PrevCharacterInner(str, offset, c, byte_len);
+    return {res, c, byte_len};
 }
 
 // Make sure that iter must be a character beginnig pos.
@@ -196,27 +205,28 @@ TextTree::Iterator PrevCharacterInner(TextTree::Iterator iter,
                                       Character& character);
 
 // A ascii friendly wrapping of NextCharacterInner
-inline TextTree::Iterator PrevCharacter(TextTree::Iterator iter,
-                                        TextTree::Iterator begin,
-                                        Character& character) {
+inline std::tuple<TextTree::Iterator, Character> PrevCharacter(
+    TextTree::Iterator iter, TextTree::Iterator begin) {
     CHX_ASSERT(iter != begin);
     iter.PrevByte();
     char ascii_c = iter.ThisByte();
+    Character c;
     if (IsAscii(ascii_c)) {
         if (iter == begin) {
-            character.Set(ascii_c);
-            return iter;
+            c.Set(ascii_c);
+            return {iter, c};
         }
         iter.PrevByte();
         if (IsAscii(iter.ThisByte())) {
-            character.Set(ascii_c);
+            c.Set(ascii_c);
             iter.NextByte();
-            return iter;
+            return {iter, c};
         }
         iter.NextByte();
     }
     iter.NextByte();
-    return PrevCharacterInner(iter, begin, character);
+    iter = PrevCharacterInner(iter, begin, c);
+    return {iter, c};
 }
 
 // Check whether between byte_offset - 1 and byte_offset is a valid character

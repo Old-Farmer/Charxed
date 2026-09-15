@@ -68,9 +68,8 @@ Result TextWindow::DeleteAtCursor() {
     } else {
     slow:
         auto cur_line = area_.buffer_->GetLineView(cursor_->pos.line);
-        Character character;
         auto iter = area_.buffer_->Find(cursor_->pos);
-        auto prev = PrevCharacter(iter, cur_line.begin, character);
+        auto [prev, character] = PrevCharacter(iter, cur_line.begin);
 
         char c = -1;
         character.Ascii(c);
@@ -81,7 +80,8 @@ Result TextWindow::DeleteAtCursor() {
                 cursor_->pos};
         } else {
             // may delete pairs
-            NextCharacter(iter, cur_line.end, character);
+            std::tie(std::ignore, character) =
+                NextCharacter(iter, cur_line.end);
             char this_char = -1;
             character.Ascii(this_char);
             bool need_delete_pairs = c != static_cast<char>(-1) &&

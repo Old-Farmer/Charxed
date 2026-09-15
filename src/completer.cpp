@@ -224,9 +224,8 @@ void BufferBasicWordCompleter::Suggest(const Pos& cursor_pos,
     auto iter = buffer_->Find(cursor_pos);
     auto cursor_iter = iter;
     auto begin = buffer_->Find({cursor_pos.line, 0});
-    Character character;
     while (iter != begin) {
-        auto prev = PrevCharacter(iter, begin, character);
+        auto [prev, character] = PrevCharacter(iter, begin);
         char c;
         if (character.Ascii(c) && IsWordSeperator(c)) {
             break;
@@ -257,7 +256,7 @@ void BufferBasicWordCompleter::Suggest(const Pos& cursor_pos,
     auto end = buffer_->End();
     // TODO: maybe we can scan codepoint instead of grapheme on big files?
     while (iter != end) {
-        auto next = NextCharacter(iter, end, character);
+        auto [next, character] = NextCharacter(iter, end);
         if (character.Ascii(c) && IsWordSeperator(c)) {
             if (found_word_character) {
                 TextTree::TextView word = {word_begin, iter};

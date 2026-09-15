@@ -27,9 +27,9 @@ static inline int64_t LocateInPos(const std::vector<Highlight>& highlight,
 std::tuple<size_t, size_t> DrawLine(
     Terminal& term, std::string_view line, const Pos& begin_pos,
     size_t begin_view_col, size_t width, size_t screen_row, size_t screen_col,
-    const std::vector<const std::vector<Highlight>*>* highlights,
-    Theme scheme, const Terminal::AttrPair& fallback_attr,
-    int64_t trailing_white_begin, int tabstop, bool wrap, bool full_line) {
+    const std::vector<const std::vector<Highlight>*>* highlights, Theme scheme,
+    const Terminal::AttrPair& fallback_attr, int64_t trailing_white_begin,
+    int tabstop, bool wrap, bool full_line) {
     std::vector<int64_t> highlights_i;
     if (highlights) {
         highlights_i.resize(highlights->size());
@@ -40,14 +40,12 @@ std::tuple<size_t, size_t> DrawLine(
 
     int64_t begin_render_view_col = -1;
 
-    Character character;
     size_t view_col = 0;
     size_t byte_offset = begin_pos.byte_offset;
     while (byte_offset < line.size()) {
         int character_width;
-        int byte_len;
         bool is_tab = false;
-        ThisCharacter(line, byte_offset, character, byte_len);
+        auto [_, character, byte_len] = ThisCharacter(line, byte_offset);
         character_width = character.Width();
         if (character_width == 0) {
             char c;
@@ -177,9 +175,9 @@ std::tuple<TextTree::Iterator, size_t> DrawLine(
     Terminal& term, size_t line, const TextTree::TextView& line_view,
     TextTree::Iterator iter, size_t begin_view_col, size_t width,
     size_t screen_row, size_t screen_col,
-    const std::vector<const std::vector<Highlight>*>* highlights,
-    Theme scheme, const Terminal::AttrPair& fallback_attr,
-    int64_t trailing_white_begin, int tabstop, bool wrap, bool full_line) {
+    const std::vector<const std::vector<Highlight>*>* highlights, Theme scheme,
+    const Terminal::AttrPair& fallback_attr, int64_t trailing_white_begin,
+    int tabstop, bool wrap, bool full_line) {
     std::vector<int64_t> highlights_i;
     if (highlights) {
         Pos begin_pos = {line, iter.offset() - line_view.begin.offset()};
@@ -191,13 +189,12 @@ std::tuple<TextTree::Iterator, size_t> DrawLine(
 
     int64_t begin_render_view_col = -1;
 
-    Character character;
     size_t view_col = 0;
     while (iter != line_view.end) {
         int character_width;
         bool is_tab = false;
         size_t byte_offset = iter.offset() - line_view.begin.offset();
-        auto next = NextCharacter(iter, line_view.end, character);
+        auto [next, character] = NextCharacter(iter, line_view.end);
         character_width = character.Width();
         if (character_width == 0) {
             char c;
@@ -334,13 +331,11 @@ size_t ArrangeLine(std::string_view line, size_t begin_byte_offset,
         *character_cnt = 0;
     }
 
-    Character character;
     size_t view_col = 0;
     size_t byte_offset = begin_byte_offset;
     while (byte_offset < line.size()) {
         int character_width;
-        int byte_len;
-        ThisCharacter(line, byte_offset, character, byte_len);
+        auto [_, character, byte_len] = ThisCharacter(line, byte_offset);
         character_width = character.Width();
         if (character_width == 0) {
             char c;
@@ -398,11 +393,10 @@ TextTree::Iterator ArrangeLine(const TextTree::TextView& line,
         *character_cnt = 0;
     }
 
-    Character character;
     size_t view_col = 0;
     while (iter != line.end) {
         int character_width;
-        auto next = NextCharacter(iter, line.end, character);
+        auto [next, character] = NextCharacter(iter, line.end);
         character_width = character.Width();
         if (character_width == 0) {
             char c;

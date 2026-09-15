@@ -77,7 +77,6 @@ void CmpMenu::Draw() {
         const std::string& str = entries_[menu_view_line_ + r];
         size_t offset = 0;
         size_t menu_col = 0;
-        Character character;
         // leading space
         if (width_ >= 1) {
             term_->SetCell(col_, r + row_, &kSpaceChar, 1, attr);
@@ -85,8 +84,7 @@ void CmpMenu::Draw() {
         }
         // content
         while (offset < str.size()) {
-            int byte_len;
-            ThisCharacter(str, offset, character, byte_len);
+            auto [_, character, byte_len] = ThisCharacter(str, offset);
             int character_width = character.Width();
             if (character_width <= 0) {
                 character.Clear();

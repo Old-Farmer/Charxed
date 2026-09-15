@@ -107,9 +107,8 @@ TextTree::TextView FindPath(const TextTree::TextView& line,
                             TextTree::Iterator iter) {
     // expand to left and right
     auto right = iter;
-    Character c;
     while (right != line.end) {
-        auto next = NextCharacter(right, line.end, c);
+        auto [next, c] = NextCharacter(right, line.end);
         char asc;
         if (c.Ascii(asc) && kPathStopCharacter.count(asc)) {
             break;
@@ -118,7 +117,7 @@ TextTree::TextView FindPath(const TextTree::TextView& line,
     }
     auto left = iter;
     while (left != line.begin) {
-        auto prev = PrevCharacter(left, line.begin, c);
+        auto [prev, c] = PrevCharacter(left, line.begin);
         char asc;
         if (c.Ascii(asc) && kPathStopCharacter.count(asc)) {
             break;
