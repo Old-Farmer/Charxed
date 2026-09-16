@@ -15,9 +15,8 @@ A modern text editor that combines modal editing with an intuitive, out-of-the-b
 
 Linux only now.
 
-!!! This project is far from mature, so:
+!!! This project is at an early stage, so:
 
-- May not be safe for production.
 - Breaking changes affecting configurations, keymaps, and related components may be introduced frequently.
 
 ## Features
