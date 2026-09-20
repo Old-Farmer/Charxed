@@ -18,7 +18,7 @@
 namespace charxed {
 
 namespace {
-const std::string kHomeSymbol = std::string(1, '~') + kPathSeperator;
+constexpr std::string_view kHomeSymbol = "~/";
 
 constexpr const char* kXDGConfigHomeEnv = "XDG_CONFIG_HOME";
 constexpr const char* kXDGCacheHomeEnv = "XDG_CACHE_HOME";
@@ -40,7 +40,7 @@ Path::Path(const std::string& str) {
         GenRelativePath();
     }
 
-    std::string::size_type pos = absolute_path_.find_last_of(kPathSeperator);
+    std::string::size_type pos = absolute_path_.find_last_of('/');
     CHX_ASSERT(pos != std::string::npos);
     file_name_len_ = absolute_path_.size() - pos - 1;
     last_cwd_version_ = cwd_version_;
@@ -69,7 +69,7 @@ const std::string& Path::AbsolutePath() const noexcept {
 }
 
 std::string_view Path::Dir() const noexcept {
-    std::string::size_type pos = absolute_path_.find_last_of(kPathSeperator);
+    std::string::size_type pos = absolute_path_.find_last_of('/');
     CHX_ASSERT(pos != std::string::npos);
     return std::string_view(absolute_path_).substr(0, pos + 1);
 }
@@ -80,7 +80,7 @@ std::string Path::Normalize(const std::string& path) {
         return {};
     }
 
-    auto sub_paths = StrSplit(path, kPathSeperator);
+    auto sub_paths = StrSplit(path, '/');
     std::vector<std::string_view> sta;
     for (auto sub_path : sub_paths) {
         if (sub_path.empty() || sub_path == ".") {
@@ -93,11 +93,11 @@ std::string Path::Normalize(const std::string& path) {
     }
     std::string normalized_path;
     for (auto& sub_path : sta) {
-        normalized_path += kPathSeperator;
+        normalized_path += '/';
         normalized_path += sub_path;
     }
-    if (path.back() == kPathSeperator) {
-        normalized_path += kPathSeperator;
+    if (path.back() == '/') {
+        normalized_path += '/';
     }
     return normalized_path;
 }
@@ -133,7 +133,7 @@ std::string Path::GetXDGPath(XDGPath p) {
         path += GetHome();
         path += default_p;
         path += kProject;
-        path += kPathSeperator;
+        path += '/';
     } else {
         path = JoinPath(env, kProject, "");
         // env may not be normalized.
@@ -156,8 +156,8 @@ const std::string& Path::GetCwdSys() {
     }
     cwd_ = std::string(buf);
     CHX_ASSERT(cwd_.size() != 0);
-    if (cwd_.back() != kPathSeperator) {
-        cwd_.push_back(kPathSeperator);
+    if (cwd_.back() != '/') {
+        cwd_.push_back('/');
     }
     return cwd_;
 }
@@ -170,12 +170,12 @@ const std::string& Path::GetAppRootSys() {
     }
     buf[len] = '\0';
     app_root_ = std::string(buf);
-    auto pos = app_root_.find_last_of(kPathSeperator, app_root_.size() - 1);
+    auto pos = app_root_.find_last_of('/', app_root_.size() - 1);
     if (pos == std::string::npos) {
         throw FSException("{}",
                           "GetAppRootSys Error: find_last_of can't find a /");
     }
-    pos = app_root_.find_last_of(kPathSeperator, pos - 1);
+    pos = app_root_.find_last_of('/', pos - 1);
     if (pos == std::string::npos) {
         throw FSException(
             "{}", "GetAppRootSys Error: find_last_of can't find another /");
@@ -199,11 +199,11 @@ const std::string& Path::GetHomeSys() {
     if (home_.empty()) {
         throw Exception("{}", "HOME shouldn't be empty");
     }
-    if (home_[0] != kPathSeperator) {
+    if (home_[0] != '/') {
         throw Exception("{}", "HOME should be an absolute path");
     }
-    if (home_.back() != kPathSeperator) {
-        home_.push_back(kPathSeperator);
+    if (home_.back() != '/') {
+        home_.push_back('/');
     }
     home_ = Path::Normalize(home_);
     // Set HOME if HOME doesn't exit. Because some programs detect HOME for
@@ -217,13 +217,13 @@ const std::string& Path::GetHomeSys() {
 }
 
 int64_t Path::LastPathSeperator(std::string_view path) {
-    size_t loc = path.find_last_of(kPathSeperator);
+    size_t loc = path.find_last_of('/');
     return loc == std::string_view::npos ? -1 : loc;
 }
 
 bool Path::IsAbsolutePath(std::string_view path) {
     CHX_ASSERT(!path.empty());
-    return path[0] == kPathSeperator;
+    return path[0] == '/';
 }
 
 bool Path::HaveHomeSymbol(std::string_view path) {
@@ -248,15 +248,14 @@ void Path::GenRelativePath() {
         }
     }
     relative_path_.clear();
-    size_t path_sep_cnt =
-        std::count(cwd_.begin() + i, cwd_.end(), kPathSeperator);
+    size_t path_sep_cnt = std::count(cwd_.begin() + i, cwd_.end(), '/');
     for (size_t j = 0; j < path_sep_cnt; j++) {
-        relative_path_.append(std::string("..") + kPathSeperator);
+        relative_path_.append(std::string("..") + '/');
     }
     relative_path_.append(absolute_path_.begin() + i, absolute_path_.end());
     if (relative_path_.empty()) {
         relative_path_.append(".");
-        relative_path_.append(1, kPathSeperator);
+        relative_path_.append(1, '/');
     }
 }
 
@@ -286,7 +285,7 @@ std::vector<std::string> ListUnderDirectory(const std::string& path) {
 
         if (ent->d_type == DT_DIR) {
             auto child_path = std::string(ent->d_name);
-            child_path.append(1, kPathSeperator);
+            child_path.append(1, '/');
             ret.push_back(std::move(child_path));
         } else if (ent->d_type == DT_REG) {
             auto child_path = std::string(ent->d_name);
@@ -348,10 +347,8 @@ void RemoveDirectory(const std::string& path, bool recursive) {
         entries = ListUnderDirectory(path);
     }
     for (auto& e : entries) {
-        auto new_path = path.back() == kPathSeperator
-                            ? path + e
-                            : path + kPathSeperator + e;
-        if (e.back() == kPathSeperator) {
+        auto new_path = path.back() == '/' ? path + e : path + '/' + e;
+        if (e.back() == '/') {
             RemoveDirectory(new_path, true);
         } else {
             RemoveFile(new_path);

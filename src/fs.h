@@ -9,7 +9,8 @@
 
 namespace charxed {
 
-constexpr char kPathSeperator = '/';
+// NOTE: in this code base, path seperator is always '/'.
+// If necessary, paths from outside like windows api will be transfered first.
 
 enum class XDGPath { kConfig, kData, kState, kCache };
 
@@ -71,7 +72,7 @@ class Path {
     template <typename... Rest>
     static std::string JoinPath(std::string_view first, Rest&&... rest) {
         std::string result(first);
-        ((result += kPathSeperator, result += rest), ...);
+        ((result += '/', result += rest), ...);
         return result;
     }
 

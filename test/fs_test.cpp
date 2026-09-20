@@ -5,10 +5,8 @@
 using namespace charxed;
 
 TEST_CASE("Path Normalize") {
-    if (kPathSeperator == '/') {
-        const std::string p = "/a/b/c/../.././/x/";
-        REQUIRE(Path::Normalize(p) == "/a/x/");
-    }
+    const std::string p = "/a/b/c/../.././/x/";
+    REQUIRE(Path::Normalize(p) == "/a/x/");
 }
 
 TEST_CASE("FS rmdir recursively ") {

@@ -199,8 +199,7 @@ Result PeelCompleter::Accept(size_t index, Cursor* cursor) {
                                       {0, cursor->pos.byte_offset}},
                                      suggestions_[index]);
             }
-            res = suggestions_[index].back() == kPathSeperator ? kRetriggerCmp
-                                                               : kOk;
+            res = suggestions_[index].back() == '/' ? kRetriggerCmp : kOk;
             break;
         }
         case SuggestType::kOther:

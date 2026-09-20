@@ -125,7 +125,7 @@ class Explorer : public Window {
 
         bool IsDir() const {
             CHX_ASSERT(!name.empty());
-            return name.back() == kPathSeperator;
+            return name.back() == '/';
         }
 
         // For search

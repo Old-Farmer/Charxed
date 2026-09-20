@@ -97,7 +97,7 @@ size_t Explorer::ExpandDirEntry(size_t flattern_index) {
     for (auto& name : entries) {
         CHX_ASSERT(!name.empty());
         std::unique_ptr<Entry> e;
-        if (name.back() == kPathSeperator) {
+        if (name.back() == '/') {
             e = std::make_unique<DirEntry>();
         } else {
             e = std::make_unique<Entry>();
