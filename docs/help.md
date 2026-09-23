@@ -16,3 +16,4 @@ This document is more like an index document, helping you find the parts you are
 
 - [CPP-GUIDE](./CPP-GUIDE.md)
 - [Design](./design.md)
+- [Debug](./debug.md)
