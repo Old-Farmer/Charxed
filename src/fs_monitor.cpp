@@ -200,7 +200,7 @@ bool BufferFSMonitor::BufferModified(std::string_view path) {
     }
 
     bool is_showed = *context_ == Context::kEditor && !IsPeel(*mode_) &&
-                     cursor_->t_win->area_.buffer_ == b;
+                     cursor_->t_win->area_.buffer_->id() == b->id();
 
     try {
         if (is_showed) {

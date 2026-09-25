@@ -128,6 +128,36 @@ void Editor::RegisterEditorEventHandlers() {
             }
             text_window_->OnBufferDelete(buffer);
         });
+    editor_event_manager_.AddHandler(
+        EditorEvent::kBeforeBufferSave, [this](void* arg) {
+            auto buffer = reinterpret_cast<Buffer*>(arg);
+            auto insert_final_newline = [buffer, this]() {
+                if (!buffer->GetOpt<bool>(kOptInsertFinalNewline)) {
+                    return;
+                }
+                auto iter = buffer->End();
+                const auto begin = buffer->Begin();
+                if (begin == iter) {  // empty buffer
+                    return;
+                }
+                iter.PrevByte();
+                if (iter.ThisByte() == '\n') {
+                    return;
+                }
+
+                bool is_showed =
+                    context_ == Context::kEditor && !IsPeel(mode_) &&
+                    cursor_.t_win->area_.buffer_->id() == buffer->id();
+                Pos pos;
+                Result res = buffer->Add(
+                    buffer->OffsetToPos(buffer->End().offset()), "\n",
+                    is_showed ? &cursor_.pos : nullptr, false, pos);
+                if (res == kOk && is_showed) {
+                    cursor_.DontHoldColWant(pos);
+                }
+            };
+            insert_final_newline();
+        });
     editor_event_manager_.AddHandler(EditorEvent::kAfterEditCharEdit,
                                      [this](void* arg) {
                                          (void)arg;

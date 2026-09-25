@@ -183,7 +183,6 @@ Result Buffer::Save() {
         return kBufferReadOnly;
     }
 
-    InsertFinalNewline();
     if (event_manager_) {
         event_manager_->EmitEvent(EditorEvent::kBeforeBufferSave, this);
     }
@@ -438,29 +437,6 @@ void Buffer::Record(BufferEditHistoryItem&& item) {
                                static_cast<size_t>(GetOpt<int64_t>(
                                    kOptMaxEditHistory))) == kWrapHistory) {
         havent_wrap_history_ = true;
-    }
-}
-
-// Intentionally not in history.
-// and this buffer changing will not miss up the cursor.
-void Buffer::InsertFinalNewline() {
-    if (!GetOpt<bool>(kOptInsertFinalNewline)) {
-        return;
-    }
-    auto iter = tree_.End();
-    const auto begin = tree_.Begin();
-    if (begin == iter) {  // empty buffer
-        return;
-    }
-    iter.PrevByte();
-    if (iter.ThisByte() == '\n') {
-        return;
-    }
-    Pos pos;
-    AddInner(tree_.OffsetToPos(tree_.End().offset()), "\n", pos,
-             ts_tree_ != nullptr);
-    if (ts_tree_) {
-        ts_tree_edit(ts_tree_, &ts_edit_);
     }
 }
 

@@ -146,6 +146,8 @@ class BufferEditBatch {
 
 // TODO: Windows support
 class Buffer {
+    // DECIDE: pos_hint can be null so undo/redo can just adjust cursor by
+    // content change. useful when changing non-showing buffers.
     struct BufferEditHistoryItem {
         // For redo
         BufferEditBatch origin;
@@ -269,8 +271,6 @@ class Buffer {
     bool TryRecordMerge(const BufferEditHistoryItem& item);
     // Caller should check whefher kMaxEditHistory <= 0
     void Record(BufferEditHistoryItem&& item);
-
-    void InsertFinalNewline();
 
    public:
     // Make sure that Range or Pos is valid, otherwise behavir
