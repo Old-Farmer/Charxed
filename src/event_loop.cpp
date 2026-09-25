@@ -4,10 +4,26 @@
 
 namespace charxed {
 
-EventLoop::EventLoop(GlobalOpts* global_opts) : global_opts_(global_opts) {
+EventLoop::EventLoop(GlobalOpts* global_opts)
+    : loop_thread_id_(std::this_thread::get_id()), global_opts_(global_opts) {
     // TODO: Remove it when global_opts_ is used.
     (void)global_opts_;
+    // register pipe read
+    Pipe(wakeup_fd_);
+    wakeup_fd_[0].SetNonBlocking();
+    EventInfo info = {wakeup_fd_[0].fd, kEventRead, [this](int) {
+                          char buf[8];
+                          ssize_t bytes;
+                          // drain it
+                          do {
+                              bytes = wakeup_fd_[0].Read(buf, 8);
+                          } while (bytes > 0);
+                      }};
+    event_infos_.emplace(info.fd, info);
+    changed_ = true;
 }
+
+EventLoop::~EventLoop() {}
 
 void EventLoop::AddEventHandler(const EventInfo& info) {
     event_infos_.emplace(info.fd, info);
@@ -47,6 +63,7 @@ void EventLoop::Loop() {
             changed_ = false;
         }
 
+        CHX_ASSERT(poll_fds_.size() != 0);
         int rc = poll(poll_fds_.data(), poll_fds_.size(),
                       timer_manager_.NextTimeout());
 
@@ -93,6 +110,14 @@ void EventLoop::Loop() {
             after_all_events_();
         }
     }
+}
+
+void EventLoop::WakeUpLoop() {
+    if (std::this_thread::get_id() == loop_thread_id_) {
+        return;
+    }
+    char buf[1];
+    wakeup_fd_[1].Write(buf, 1);
 }
 
 }  // namespace charxed

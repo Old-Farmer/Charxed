@@ -25,6 +25,8 @@ set(JSON_VERSION "v3.12.0")
 set(CATCH2_VERSION "v3.15.1")
 set(TREESITTER_VERSION "v0.26.9")
 set(FMT_VERSION "12.1.0")
+set(PYTHON_VERSION "3.14.7")
+string(REGEX MATCH "^([0-9]+\\.[0-9]+)" PYTHON_SIMPLE_VERSION "${PYTHON_VERSION}")
 set(TS_GRAMMARS
     c    "v0.24.2"
     cpp  "v0.23.4"
@@ -180,6 +182,80 @@ FetchContent_MakeAvailable(fmt)
 # # ICU
 # find_package(ICU REQUIRED COMPONENTS uc i18n data)
 
+include(ProcessorCount)
+ProcessorCount(NPROC)
+if(NPROC EQUAL 0)
+    set(NPROC 1)
+endif()
+message(STATUS "CPU cores: ${NPROC}")
+
+# Python
+FetchContent_Declare(
+    python
+    URL "https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz"
+    SOURCE_DIR "${THIRD_PARTY_DIR}/python"
+)
+FetchContent_Populate(python)
+set(PYTHON_DIR "${CMAKE_SOURCE_DIR}/python")
+set(PREPARE_PYTHON ON CACHE BOOL "Prepare python dep")
+if (PREPARE_PYTHON)
+    file(MAKE_DIRECTORY "${python_BINARY_DIR}/Modules")
+    file(WRITE "${python_BINARY_DIR}/Modules/Setup.local" [=[
+*disabled*
+
+_curses
+_curses_panel
+_tkinter
+readline
+_sqlite3
+_dbm
+_gdbm
+_bz2
+_lzma
+_uuid
+]=])
+    execute_process(
+        COMMAND
+        ${CMAKE_COMMAND} -E env
+        CC=${CMAKE_C_COMPILER}
+        AR=${CMAKE_AR}
+        RANLIB=${CMAKE_RANLIB}
+        "${python_SOURCE_DIR}/configure"
+        --build=${BUILD_TRIPLE}
+        --host=${TARGET_TRIPLE}
+        --prefix=${PYTHON_DIR}
+        --enable-shared
+        --disable-test-modules
+        WORKING_DIRECTORY "${python_BINARY_DIR}"
+        RESULT_VARIABLE result
+    )
+    if(NOT result EQUAL 0)
+        message(FATAL_ERROR "Python configure failed")
+    endif()
+    execute_process(
+        COMMAND make -j${NPROC}
+        WORKING_DIRECTORY "${python_BINARY_DIR}"
+        RESULT_VARIABLE result
+    )
+    if(NOT result EQUAL 0)
+        message(FATAL_ERROR "Python build failed")
+    endif()
+    execute_process(
+        COMMAND make install
+        WORKING_DIRECTORY "${python_BINARY_DIR}"
+        RESULT_VARIABLE result
+    )
+    if(NOT result EQUAL 0)
+        message(FATAL_ERROR "Python build failed")
+    endif()
+    # can install some external deps with pip here
+
+    cmake_language(
+        DEFER
+        CALL message NOTICE "Set 'PREPARE_PYTHON' to OFF if you want to modify CMakeLists.txt a lot."
+    )
+endif()
+
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 
 # commit hash
@@ -205,10 +281,13 @@ add_library(charxed_lib STATIC)
 add_dependencies(charxed_lib build_termbox2)
 target_sources(
   charxed_lib PUBLIC
+  # lsp
   "${SRC_LSP_DIR}/client.h"
   "${SRC_LSP_DIR}/client.cpp"
   "${SRC_LSP_DIR}/rpc.h"
   "${SRC_LSP_DIR}/rpc.cpp"
+
+  "${SRC_DIR}/api_export.cpp"
   "${SRC_DIR}/buffer_manager.h"
   "${SRC_DIR}/buffer_manager.cpp"
   "${SRC_DIR}/buffer_view.h"
@@ -269,6 +348,8 @@ target_sources(
   "${SRC_DIR}/options.cpp"
   "${SRC_DIR}/pos.h"
   "${SRC_DIR}/result.h"
+  "${SRC_DIR}/script_runtime.h"
+  "${SRC_DIR}/script_runtime.cpp"
   "${SRC_DIR}/search.h"
   "${SRC_DIR}/search.cpp"
   "${SRC_DIR}/selection.h"
@@ -330,6 +411,7 @@ target_link_libraries(
     tree-sitter
     utf8proc
     fmt::fmt
+    "${python_BINARY_DIR}/libpython${PYTHON_SIMPLE_VERSION}.so"
 )
 target_include_directories(
   charxed_lib
@@ -337,6 +419,8 @@ target_include_directories(
   "${SRC_DIR}"
   "${TERMBOX2_INCLUDE_DIR}"
   "${CMAKE_BINARY_DIR}"
+  "${python_SOURCE_DIR}/Include"
+  "${python_BINARY_DIR}"
 )
 
 target_compile_definitions(charxed_lib PUBLIC TB_OPT_ATTR_W=64 TB_OPT_EGC)
@@ -363,6 +447,7 @@ target_sources(
   "${TEST_DIR}/json_test.cpp"
   "${TEST_DIR}/logging_test.cpp"
   "${TEST_DIR}/lsp_test.cpp"
+  "${TEST_DIR}/python_test.cpp"
   "${TEST_DIR}/subprocess_test.cpp"
   "${TEST_DIR}/term_test.cpp"
   "${TEST_DIR}/text_tree_test.cpp"
@@ -372,8 +457,58 @@ target_sources(
 target_link_libraries(test PUBLIC charxed_lib Catch2::Catch2WithMain)
 
 # Package
+set_target_properties(chx PROPERTIES
+  INSTALL_RPATH "$ORIGIN/../python/lib;$ORIGIN/../lib"
+)
+
 install(TARGETS chx RUNTIME DESTINATION bin)
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/resource/" DESTINATION resource)
+
+set(PYTHON_STAGING_DIR "${CMAKE_BINARY_DIR}/python-staging")
+file(COPY
+    "${PYTHON_DIR}"
+    DESTINATION "${PYTHON_STAGING_DIR}"
+)
+
+install(CODE "
+    file(REMOVE_RECURSE
+        \"${PYTHON_STAGING_DIR}/bin\"
+        \"${PYTHON_STAGING_DIR}/include\"
+        \"${PYTHON_STAGING_DIR}/lib/pkgconfig\"
+        \"${PYTHON_STAGING_DIR}/share\"
+        \"${PYTHON_STAGING_DIR}/lib/python${PYTHON_SIMPLE_VERSION}/idlelib\"
+        \"${PYTHON_STAGING_DIR}/lib/python${PYTHON_SIMPLE_VERSION}/ensurepip\"
+        \"${PYTHON_STAGING_DIR}/lib/python${PYTHON_SIMPLE_VERSION}/tkinter\"
+        \"${PYTHON_STAGING_DIR}/lib/python${PYTHON_SIMPLE_VERSION}/pydoc_data\"
+    )
+    file(GLOB config_dirs
+        LIST_STAGING_DIRECTORIES true
+        \"${PYTHON_STAGING_DIR}/lib/python${PYTHON_SIMPLE_VERSION}/config-*\"
+    )
+    foreach(config_dir IN LISTS config_dirs)
+        if(IS_STAGING_DIRECTORY \"\${config_dir}\")
+            file(REMOVE_RECURSE \"\${config_dir}\")
+        endif()
+    endforeach()
+    execute_process(
+        COMMAND find \"${PYTHON_STAGING_DIR}\"
+            -type d
+            -name __pycache__
+            -prune
+            -exec rm -rf {} +
+        RESULT_VARIABLE result
+    )
+    if(NOT result EQUAL 0)
+        message(FATAL_ERROR \"Failed to remove Python cache files\")
+    endif()
+")
+
+install(
+  DIRECTORY "${PYTHON_STAGING_DIR}/"
+  DESTINATION python
+)
+
+file(REMOVE_RECURSE "${PYTHON_STAGING_DIR}")
 
 set(CPACK_PACKAGE_FILE_NAME "Charxed-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
 set(CPACK_GENERATOR "ZIP")

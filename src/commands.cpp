@@ -79,11 +79,34 @@ void Editor::InitCommands() {
              }});
     CHX_CMD({"smile", "", "", {}, [this](const CommandArgs& args) {
                  (void)args;
-                 NotifyUser(kSmile);
+                 Notify(kSmile);
              }});
+    CHX_CMD(
+        {"source",
+         "so",
+         "",
+         {Type::kString},
+         [this](const CommandArgs& args) {
+             if (args[0].has_value()) {
+                 try {
+                     script_runtime_->RunFile(std::get<std::string>(*args[0]));
+                 } catch (Exception& e) {
+                     Notify(
+                         fmt::format("source script file error: {}", e.what()));
+                 }
+                 return;
+             }
+             if (selection_range_for_seach_or_cmd_.has_value()) {
+                 script_runtime_->RunStr(
+                     cursor_.t_win->area_.buffer_->GetContent(
+                         *selection_range_for_seach_or_cmd_));
+             }
+         },
+         1,
+         1});
     CHX_CMD({"about", "", "", {}, [this](const CommandArgs& args) {
                  (void)args;
-                 NotifyUser(kVersionInfo);
+                 Notify(kVersionInfo);
              }});
 
     // FS op
@@ -96,9 +119,9 @@ void Editor::InitCommands() {
                  try {
                      auto p = std::get<std::string>(*args[0]);
                      CreateFile(p);
-                     NotifyUser(fmt::format("File \"{}\" created", p));
+                     Notify(fmt::format("File \"{}\" created", p));
                  } catch (FSException& e) {
-                     NotifyUser(e.what());
+                     Notify(e.what());
                  }
              },
              1});
@@ -109,19 +132,19 @@ void Editor::InitCommands() {
              [this](const CommandArgs& args) {
                  CHX_ENSURE_ARGEXITS(0);
                  auto path = std::get<std::string>(*args[0]);
-                 Prompt(fmt::format("Remove file \"{}\"[y/n]?", path),
-                        [this, path](std::string_view s) {
-                            if (s != "y") {
-                                return;
-                            }
-                            try {
-                                RemoveFile(path);
-                                NotifyUser(
-                                    fmt::format("File \"{}\" removed", path));
-                            } catch (FSException& e) {
-                                NotifyUser(e.what());
-                            }
-                        });
+                 Prompt(
+                     fmt::format("Remove file \"{}\"[y/n]?", path),
+                     [this, path](std::string_view s) {
+                         if (s != "y") {
+                             return;
+                         }
+                         try {
+                             RemoveFile(path);
+                             Notify(fmt::format("File \"{}\" removed", path));
+                         } catch (FSException& e) {
+                             Notify(e.what());
+                         }
+                     });
              },
              1});
     CHX_CMD({"move",
@@ -135,10 +158,10 @@ void Editor::InitCommands() {
                  auto p_new = std::get<std::string>(*args[0]);
                  int ret = rename(p_old.c_str(), p_new.c_str());
                  if (ret == -1) {
-                     NotifyUser(strerror(ret));
+                     Notify(strerror(ret));
                      return;
                  }
-                 NotifyUser(
+                 Notify(
                      fmt::format("File \"{}\" moved to \"{}\"", p_old, p_new));
              },
              2});
@@ -151,9 +174,9 @@ void Editor::InitCommands() {
                  try {
                      auto p = std::get<std::string>(*args[0]);
                      MakeDirectory(p);
-                     NotifyUser(fmt::format("Directory \"{}\" created", p));
+                     Notify(fmt::format("Directory \"{}\" created", p));
                  } catch (FSException& e) {
-                     NotifyUser(e.what());
+                     Notify(e.what());
                  }
              },
              1});
@@ -173,10 +196,10 @@ void Editor::InitCommands() {
                          }
                          try {
                              RemoveDirectory(path, s == "r");
-                             NotifyUser(
+                             Notify(
                                  fmt::format("Directory \"{}\" removed", path));
                          } catch (FSException& e) {
-                             NotifyUser(e.what());
+                             Notify(e.what());
                          }
                      });
              },

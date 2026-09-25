@@ -1,9 +1,11 @@
 #pragma once
 
 #include <functional>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
+#include "os.h"
 #include "poll.h"
 #include "timer_manager.h"
 
@@ -29,7 +31,9 @@ class GlobalOpts;
 // Event loop will handle handler events.
 class EventLoop {
    public:
+    // throw OSException
     EventLoop(GlobalOpts* global_opts);
+    ~EventLoop();
 
     void AddEventHandler(const EventInfo& info);
     void RemoveEventHandler(EventFD fd);
@@ -40,6 +44,11 @@ class EventLoop {
     void Loop();
     void EndLoop() { quit_ = true; }
 
+    // If not in the same thread with loop, this method will wake up the main
+    // loop if it's waiting for events.
+    // thread safe
+    void WakeUpLoop();
+
    private:
     std::vector<pollfd> poll_fds_;
 
@@ -49,6 +58,9 @@ class EventLoop {
 
     std::function<void()> before_poll_;
     std::function<void()> after_all_events_;
+
+    std::thread::id loop_thread_id_;
+    Fd wakeup_fd_[2];
 
     GlobalOpts* global_opts_;
 

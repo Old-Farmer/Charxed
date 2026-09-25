@@ -38,4 +38,7 @@ TextTree::TextView FindPath(const TextTree::TextView& line,
 TextTree::Iterator IndentationEnd(size_t count, const TextTree::TextView& line,
                                   int tabstop);
 
+// work on bytes
+std::string_view Strip(std::string_view str, std::string_view stripped);
+
 }  // namespace charxed

@@ -35,6 +35,7 @@ struct Fd {
         return *this;
     }
     // throw OSException
+    // return -1 if no bytes available, only when fd set to nonblocking mode
     ssize_t Read(void* buf, size_t size) {
         CHX_ASSERT(fd != -1);
         while (true) {
@@ -45,11 +46,15 @@ struct Fd {
             if (errno == EINTR) {
                 continue;
             }
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                return -1;
+            }
             throw OSException(errno, "read error: {}", strerror(errno));
         }
     }
 
     // throw OSException
+    // TODO: fix possible partial write
     void Write(const void* buf, size_t size) {
         CHX_ASSERT(fd != -1);
         while (true) {
@@ -68,6 +73,14 @@ struct Fd {
             close(fd);
             fd = -1;
         }
+    }
+    // throw OSException
+    void SetNonBlocking() {
+        int flags = fcntl(fd, F_GETFL, 0);
+        if (flags == -1) {
+            throw OSException(errno, "fcntl error: {}", strerror(errno));
+        }
+        fcntl(fd, F_SETFL, flags | O_NONBLOCK);
     }
     ~Fd() { Close(); }
 };

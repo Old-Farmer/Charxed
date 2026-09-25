@@ -32,7 +32,6 @@
 
 ## Extensibiliy
 
-- JS engine embbeded
 - Plugin system
 - API Design
     - Buffer API

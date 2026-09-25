@@ -176,6 +176,15 @@ class Terminal {
     }
 
     // throws TermException
+    void Invalidate() {
+        int ret = tb_invalidate();
+        if (ret != TB_OK) {
+            CHX_LOG_ERROR("{}", tb_strerror(ret));
+            throw TermException("{}", tb_strerror(ret));
+        }
+    }
+
+    // throws TermException
     void Present() {
         int ret = tb_present();
         if (ret != TB_OK) {

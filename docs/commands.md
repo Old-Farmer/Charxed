@@ -53,3 +53,7 @@ Commands are instructions you can execute in the Charxed Peel. You can use full 
 - `rmdir <path>`  
     short form: /
     desc: delete a directory.
+
+- `source [path]`  
+    short form: so
+    desc: run a script file, or run code selected.

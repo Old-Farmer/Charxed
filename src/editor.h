@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 
 #include "buffer.h"
 #include "buffer_manager.h"
@@ -15,6 +16,7 @@
 #include "layout_manager.h"
 #include "mango_peel.h"
 #include "mouse.h"
+#include "script_runtime.h"
 #include "state.h"
 #include "status_line.h"
 #include "syntax.h"
@@ -73,7 +75,12 @@ class Editor {
     void SaveCurrentBuffer();
     void SaveCurrentBufferAs(const Path& path);
 
-    void NotifyUser(std::string_view str);
+    // Notify user in peel
+    // thread safe
+    void Notify(std::string_view str);
+    // Very like Notify but don't automatically add '\n', only used by python
+    // sys.stdout/stderr redirection.
+    void NotifyByStream(std::string_view str);
 
     void StartupScreen();
 
@@ -117,8 +124,10 @@ class Editor {
     static std::tuple<Result, std::string, std::string_view>
     ParseSearchReplaceInput(std::string_view input);
 
-    void Draw();
+    void Draw(bool redraw = false);
     void PreProcess();
+
+    void ShowWriteBuf();
 
     // Count is at least 1.
     size_t Count() { return count_ == 0 ? 1 : count_; }
@@ -131,7 +140,7 @@ class Editor {
     // helper methods
     void PrintKey(const Terminal::KeyInfo& key_info);
     Window* LocateWindow(int s_col, int s_row);
-    // Make sure not in peel
+    // Make sure in editor context
     void EnsureInEditorContext();
 
    private:
@@ -151,6 +160,8 @@ class Editor {
     std::unique_ptr<BufferFSMonitor> buffer_monitor_;
 
     std::unique_ptr<ClipBoard> clipboard_;
+
+    ScriptRuntime* script_runtime_;
 
     Mouse mouse_;
     Cursor cursor_;
@@ -195,6 +206,10 @@ class Editor {
     std::optional<Range> selection_range_for_seach_or_cmd_;
 
     std::vector<Terminal::KeyInfo> pending_keys_;
+
+    // A write buf for Notify
+    std::mutex write_buf_lock_;
+    std::string write_buf_;
 
     std::unique_ptr<GlobalOpts> global_opts_;
 

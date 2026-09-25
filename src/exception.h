@@ -65,6 +65,7 @@ class OSException : public Exception {
 CHX_NORMAL_EXCEPTION(TypeMismatchException)
 CHX_NORMAL_EXCEPTION(OptionLoadException)
 CHX_NORMAL_EXCEPTION(ParseMsgException)
-CHX_NORMAL_EXCEPTION(CommandNameExistException)
+CHX_NORMAL_EXCEPTION(CommandAddException)
 CHX_NORMAL_EXCEPTION(DanglingEscapeException)
+CHX_NORMAL_EXCEPTION(ScriptRuntimeException)
 }  // namespace charxed

@@ -28,6 +28,7 @@ Linux only now.
 - Basic word-based auto completion
 - Theme
 - File Watching
+- Python scripting support
 
 See [help](./docs/help.md) for more infomation.
 
@@ -42,13 +43,10 @@ Requirements:
 1. A C++ compiler which supports C++17 (GCC >= 8 / Clang >= 7). I prefer Clang.
 2. CMake >= 3.22
 3. Git
-4. make or ninja
+4. make
 
 ```bash
 mkdir build && cd build
-
-# Use Clang(optional)
-cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ..
 
 # Debug build
 cmake -DCMAKE_BUILD_TYPE=Debug .. && cmake --build . -j$(nproc)
@@ -67,6 +65,11 @@ cmake --build . --target package -j$(nproc)
 # Set FETCHCONTENT_FULLY_DISCONNECTED=ON to disable checking
 # if you want to frequently modify CMakeLists.txt after a full fetch.
 cmake -DFETCHCONTENT_FULLY_DISCONNECTED=ON ..
+
+# Configuring, building Python and installing some deps are time-consuming.
+# Set PREPARE_PYTHON=OFF to disable it
+# if you want to frequently modify CMakeLists.txt after a full preparation.
+cmake -DPREPARE_PYTHON=OFF ..
 
 # Cross compiling
 cmake -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/aarch64-linux-gnu.cmake .. && cmake --build . -j$(nproc)

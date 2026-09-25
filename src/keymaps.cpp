@@ -205,7 +205,7 @@ void Editor::InitKeymaps() {
     // esc
     CHX_KEYMAP("<esc>", {[this] {
                    if (IsPeel(mode_)) {
-                       NotifyUser("");
+                       Notify("");
                        selection_range_for_seach_or_cmd_.reset();
                    }
                    ExitFromMode();
@@ -234,7 +234,7 @@ void Editor::InitKeymaps() {
                    Result res =
                        cursor_.focused->ReplaceSearchResultCurrentOne();
                    if (res != kOk) {
-                       NotifyUser(ResultString(res));
+                       Notify(ResultString(res));
                        return;
                    }
                    CursorGoSearch(search_foward_, 1, false);
@@ -244,7 +244,7 @@ void Editor::InitKeymaps() {
                    Result res =
                        cursor_.focused->ReplaceSearchResultCurrentOne();
                    if (res != kOk) {
-                       NotifyUser(ResultString(res));
+                       Notify(ResultString(res));
                        return;
                    }
                    CursorGoSearch(!search_foward_, 1, false);
@@ -612,12 +612,19 @@ void Editor::InitKeymaps() {
             try {
                 explorer_->EnterCurrentEntry();
             } catch (FSException& e) {
-                NotifyUser(fmt::format("expand dir entry error: {}", e.what()));
+                Notify(fmt::format("expand dir entry error: {}", e.what()));
             }
         }},
         {Mode::kNormal}, {Context::kExplorer});
     CHX_KEYMAP("R", {[this] { explorer_->Refresh(); }}, {Mode::kNormal},
                {Context::kExplorer});
+
+    // Others
+    CHX_KEYMAP("<c-l>", {[this] {
+                   PreProcess();
+                   Draw(true);
+               }},
+               {CHX_ALL_MODES});
 }
 
 }  // namespace charxed

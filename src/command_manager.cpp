@@ -14,8 +14,12 @@ constexpr std::string_view kBoolFalse = "false";
 void CommandManager::AddCommand(const Command& command) {
     if (name_to_commands_.count(command.name) == 1 ||
         name_to_commands_.count(command.short_name)) {
-        throw CommandNameExistException("name: {}, short name: {}",
-                                        command.name, command.short_name);
+        throw CommandAddException(
+            "Command name exists, name: {}, short name: {}", command.name,
+            command.short_name);
+    }
+    if (command.optional_argc > command.argc) {
+        throw CommandAddException("Optional argc larger than argc");
     }
     auto c = std::make_unique<Command>(command);
     name_to_commands_[c->name] = c.get();

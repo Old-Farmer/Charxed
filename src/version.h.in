@@ -2,6 +2,7 @@
 
 #define CHX_VERSION "@GIT_TAG@"
 #define CHX_COMMIT "@GIT_COMMIT@"
+#define CHX_PYTHON_VERSION "@PYTHON_SIMPLE_VERSION@"
 
 constexpr const char* kVersionInfo =
     "Version: " CHX_VERSION "\nCommit: " CHX_COMMIT;

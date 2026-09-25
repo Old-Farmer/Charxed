@@ -95,6 +95,8 @@ PeelCompleter::PeelCompleter(MangoPeel* peel, BufferManager* buffer_manager,
         cmd_name_to_cmp_handler_["rm"] = handler;
         cmd_name_to_cmp_handler_["mkdir"] = handler;
         cmd_name_to_cmp_handler_["rmdir"] = handler;
+        cmd_name_to_cmp_handler_["source"] = handler;
+        cmd_name_to_cmp_handler_["so"] = handler;
     }
     {
         auto handler = [this](int arg_index, std::string_view arg_hint) {

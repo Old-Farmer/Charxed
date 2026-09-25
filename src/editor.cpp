@@ -6,6 +6,7 @@
 #include "fs.h"
 #include "inttypes.h"  // IWYU pragma: keep
 #include "options.h"
+#include "str.h"
 #include "term.h"
 
 // TODO: show sth. to users if modify the readonly buffer.
@@ -62,6 +63,8 @@ void Editor::Init(std::unique_ptr<GlobalOpts> global_opts,
     buffer_monitor_ = std::make_unique<BufferFSMonitor>(
         buffer_manager_.get(), &cursor_, syntax_parser_.get(), &mode_,
         &context_);
+    script_runtime_ = &ScriptRuntime::GetInstance();
+    script_runtime_->Init(global_opts_.get());
 
     // Create all buffers
     for (const char* path : init_opts->begin_files) {
@@ -70,7 +73,7 @@ void Editor::Init(std::unique_ptr<GlobalOpts> global_opts,
         try {
             buffer_monitor_->MonitorBuffer(b);
         } catch (OSException& e) {
-            NotifyUser(fmt::format("Monitor buffer error: {}", e.what()));
+            Notify(fmt::format("Monitor buffer error: {}", e.what()));
         }
     }
 
@@ -105,7 +108,7 @@ void Editor::Init(std::unique_ptr<GlobalOpts> global_opts,
     InitCommands();
 
     if (!global_opts_->IsUserConfigValid()) {
-        NotifyUser(
+        Notify(
             "Error in your config file! Default config loaded. Please "
             "check your config." +
             global_opts_->GetUserConfigErrorReportStrAndReleaseIt());
@@ -248,7 +251,7 @@ void Editor::Loop() {
             if (output_hidden_hint.size() > term_.Width()) {
                 output_hidden_hint.resize(term_.Width());
             }
-            NotifyUser(output_hidden_hint);
+            Notify(output_hidden_hint);
         }
     };
 
@@ -466,8 +469,7 @@ void Editor::HandleKey() {
             }
             if (res != kOk) {
                 if (!IsPeel(mode_)) {
-                    NotifyUser(
-                        fmt::format("Can't modify: {}", ResultString(res)));
+                    Notify(fmt::format("Can't modify: {}", ResultString(res)));
                 }
                 return;
             }
@@ -607,7 +609,7 @@ void Editor::HandleMouse() {
 
 void Editor::HandleResize() { layout_manager_->ArrangeLayout(); }
 
-void Editor::Draw() {
+void Editor::Draw(bool redraw) {
     // TODO: do not redraw not modified part
     // TODO: should we redraw if any events trigger?
 
@@ -640,6 +642,9 @@ void Editor::Draw() {
         term_.SetCursor(cursor_.s_col, cursor_.s_row);
     }
 
+    if (redraw) {
+        term_.Invalidate();
+    }
     term_.Present();
 }
 
@@ -654,9 +659,8 @@ void Editor::PreProcess() {
                 syntax_parser_->SyntaxInit(text_window_->area_.buffer_);
             text_window_->area_.buffer_->ts_tree() = ts_tree;
         } catch (Exception& e) {
-            NotifyUser(fmt::format("buffer {} load error: {}",
-                                   text_window_->area_.buffer_->Name(),
-                                   e.what()));
+            Notify(fmt::format("buffer {} load error: {}",
+                               text_window_->area_.buffer_->Name(), e.what()));
         }
     }
 
@@ -680,6 +684,11 @@ void Editor::PreProcess() {
         default:
             CHX_ASSERT(false);
             CHX_LOG_ERROR("Can't reach here");
+    }
+    // Don't show write buf when curosr in peel.
+    // It's ok because content can be shown next time.
+    if (!IsPeel(mode_)) {
+        ShowWriteBuf();
     }
 }
 
@@ -721,7 +730,7 @@ void Editor::Help(const std::string& doc_name) {
                 }
             }
             if (!found) {
-                NotifyUser(fmt::format("Can't found doc: {}", doc_name));
+                Notify(fmt::format("Can't found doc: {}", doc_name));
                 return;
             }
             b = buffer_manager_->AddBuffer(Buffer(global_opts_.get(), p, true));
@@ -889,7 +898,7 @@ void Editor::CursorGoSearch(bool next, size_t count, bool keep_current_if_one) {
         ss << "[" << state.i << "/" << state.total << "]";
         highlight_search_ = true;
     }
-    NotifyUser(ss.str());
+    Notify(ss.str());
 }
 
 void Editor::TriggerCompletion(bool autocmp) {
@@ -909,7 +918,7 @@ void Editor::TriggerCompletion(bool autocmp) {
             return;
         }
         if (!in_peel) {
-            NotifyUser("No completion source");
+            Notify("No completion source");
         }
         return;
     }
@@ -919,7 +928,7 @@ void Editor::TriggerCompletion(bool autocmp) {
     if (entries.empty()) {
         completer_->Cancel();
         if (!autocmp && !in_peel) {
-            NotifyUser("No completion");
+            Notify("No completion");
         }
         completer_ = nullptr;
         return;
@@ -965,7 +974,7 @@ void Editor::CommandHitEnter() {
                                  : MangoPeel::HistoryType::kSearch);
 
     if (res != kOk) {
-        NotifyUser("Wrong Command");
+        Notify("Wrong Command");
         ExitFromMode();
         return;
     }
@@ -1004,10 +1013,10 @@ void Editor::SaveCurrentBuffer() {
         }
         std::string err_str =
             fmt::format("Buffer can't save: {}", ResultString(res));
-        NotifyUser(err_str);
+        Notify(err_str);
     } catch (Exception& e) {
         std::string err_str = fmt::format("Buffer can't save: {}", e.what());
-        NotifyUser(err_str);
+        Notify(err_str);
     }
 }
 
@@ -1016,7 +1025,7 @@ void Editor::SaveCurrentBufferAs(const Path& path) {
     // We don't allow saving to the path of another buffer in order to avoid
     // some chaos.
     if (buffer_manager_->FindBuffer(path)) {
-        NotifyUser("Same path buffer exists.");
+        Notify("Same path buffer exists.");
         return;
     }
     try {
@@ -1026,16 +1035,26 @@ void Editor::SaveCurrentBufferAs(const Path& path) {
         }
         std::string err_str =
             fmt::format("Buffer can't save: {}", ResultString(res));
-        NotifyUser(err_str);
+        Notify(err_str);
     } catch (IOException& e) {
         std::string err_str = fmt::format("Buffer can't save: {}", e.what());
-        NotifyUser(err_str);
+        Notify(err_str);
     }
 }
 
-void Editor::NotifyUser(std::string_view str) {
-    peel_->ShowContent(str);
-    layout_manager_->ArrangeLayout();
+void Editor::Notify(std::string_view str) {
+    loop_->WakeUpLoop();
+    std::lock_guard lg(write_buf_lock_);
+    if (!write_buf_.empty()) {
+        write_buf_.push_back('\n');
+    }
+    write_buf_.append(str);
+}
+
+void Editor::NotifyByStream(std::string_view str) {
+    loop_->WakeUpLoop();
+    std::lock_guard lg(write_buf_lock_);
+    write_buf_.append(str);
 }
 
 void Editor::StartAutoCompletionTimer() {
@@ -1193,7 +1212,7 @@ void Editor::Edit(const std::string& path) {
     try {
         buffer_monitor_->MonitorBuffer(b);
     } catch (OSException& e) {
-        NotifyUser(fmt::format("Monitor buffer error: {}", e.what()));
+        Notify(fmt::format("Monitor buffer error: {}", e.what()));
     }
     cursor_.t_win->AttachBuffer(b);
 }
@@ -1231,6 +1250,16 @@ void Editor::EnsureInEditorContext() {
             CHX_ASSERT(false);
             break;
     }
+}
+
+void Editor::ShowWriteBuf() {
+    std::lock_guard lg(write_buf_lock_);
+    if (write_buf_.empty()) {
+        return;
+    }
+    peel_->ShowContent(Strip(write_buf_, "\n"));
+    layout_manager_->ArrangeLayout();
+    write_buf_.clear();
 }
 
 }  // namespace charxed

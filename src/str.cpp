@@ -155,4 +155,28 @@ TextTree::Iterator IndentationEnd(size_t count, const TextTree::TextView& line,
     return iter;
 }
 
+std::string_view Strip(std::string_view str, std::string_view stripped) {
+    bool map[256];
+    for (char c : stripped) {
+        map[c - '\0'] = 1;
+    }
+    int64_t begin = 0;
+    int64_t n = str.size();
+    for (; begin < n; begin++) {
+        if (!map[str[begin] - '\0']) {
+            break;
+        }
+    }
+    int64_t end = str.size() - 1; // inclusive end
+    for (; end > begin; end--) {
+        if (!map[str[end] - '\0']) {
+            break;
+        }
+    }
+    if (end < begin) {
+        return {};
+    }
+    return str.substr(begin, end - begin + 1);
+}
+
 }  // namespace charxed

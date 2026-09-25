@@ -216,3 +216,9 @@ search/replace mode.
 | `<space>e` | Open explorer | Normal | Edit |
 | `<enter>` | Expand/Collapse dirs or Open files | Normal | Explorer |
 | `q` | Quit explorer | Normal | Explorer |
+
+## Others
+
+| Key | Description | Mode(s) | Context |
+| --- | --- | --- | --- |
+| `<c-l>` | Redraw | All | All |
