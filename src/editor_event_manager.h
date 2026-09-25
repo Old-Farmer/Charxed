@@ -9,10 +9,11 @@ namespace charxed {
 class Buffer;
 
 enum class EditorEvent {
-    kBufferRemoved,
-    kEditCharEdit,
-    kCommandCharEdit,
-    kSearchCharEdit,
+    kBeforeBufferRemove,
+    kBeforeBufferSave,
+    kAfterEditCharEdit,
+    kAfterCommandCharEdit,
+    kAfterSearchCharEdit,
 
     __kCount,
 };

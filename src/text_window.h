@@ -10,7 +10,8 @@ namespace charxed {
 class TextWindow : public Window {
    public:
     TextWindow(Cursor* cursor, GlobalOpts* global_opts, SyntaxParser* parser,
-               ClipBoard* clipboard, BufferManager* buffer_manager) noexcept;
+               ClipBoard* clipboard, BufferManager* buffer_manager,
+               EditorEventManager* editor_event_manger) noexcept;
     virtual ~TextWindow() = default;
     CHX_DELETE_COPY(TextWindow);
     CHX_DEFAULT_MOVE(TextWindow);
@@ -189,6 +190,7 @@ class TextWindow : public Window {
     Opts opts_ = {nullptr};
     SyntaxParser* parser_;
     BufferManager* buffer_manager_;
+    EditorEventManager* editor_event_manager_;
     std::unordered_map<int64_t, BufferView> buffer_views_;
 
     struct JumpPoint {

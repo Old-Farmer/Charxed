@@ -1,6 +1,7 @@
 {
   "auto_indent": true,
   "auto_pair": true,
+  "insert_final_newline": true,
   "max_edit_history": 100,
   "tab_space": true,
   "tab_stop": 4,

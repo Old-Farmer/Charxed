@@ -5,6 +5,7 @@
 #include <gsl/util>
 
 #include "cursor.h"
+#include "editor_event_manager.h"
 #include "exception.h"
 #include "filetype.h"
 #include "logging.h"
@@ -15,7 +16,9 @@ namespace charxed {
 int64_t Buffer::cur_buffer_id_ = 0;
 std::vector<bool> Buffer::new_file_alloced_ids_ = {};
 
-Buffer::Buffer(GlobalOpts* global_opts, bool new_file) : opts_(global_opts) {
+Buffer::Buffer(GlobalOpts* global_opts, EditorEventManager* event_manager,
+               bool new_file)
+    : opts_(global_opts), event_manager_(event_manager) {
     if (new_file) {
         new_file_info_ = std::make_unique<NewFileInfo>();
         for (size_t i = 0; i < new_file_alloced_ids_.size(); i++) {
@@ -35,11 +38,19 @@ Buffer::Buffer(GlobalOpts* global_opts, bool new_file) : opts_(global_opts) {
     }
 }
 
-Buffer::Buffer(GlobalOpts* global_opts, const std::string& path, bool read_only)
-    : path_(path), read_only_(read_only), opts_(global_opts) {}
+Buffer::Buffer(GlobalOpts* global_opts, const std::string& path,
+               EditorEventManager* event_manager, bool read_only)
+    : path_(path),
+      read_only_(read_only),
+      opts_(global_opts),
+      event_manager_(event_manager) {}
 
-Buffer::Buffer(GlobalOpts* global_opts, const Path& path, bool read_only)
-    : path_(path), read_only_(read_only), opts_(global_opts) {}
+Buffer::Buffer(GlobalOpts* global_opts, const Path& path,
+               EditorEventManager* event_manager, bool read_only)
+    : path_(path),
+      read_only_(read_only),
+      opts_(global_opts),
+      event_manager_(event_manager) {}
 
 Buffer::~Buffer() {
     if (new_file_info_) {
@@ -170,6 +181,11 @@ Result Buffer::Save() {
 
     if (read_only()) {
         return kBufferReadOnly;
+    }
+
+    InsertFinalNewline();
+    if (event_manager_) {
+        event_manager_->EmitEvent(EditorEvent::kBeforeBufferSave, this);
     }
 
     std::string swap_file_path;
@@ -422,6 +438,29 @@ void Buffer::Record(BufferEditHistoryItem&& item) {
                                static_cast<size_t>(GetOpt<int64_t>(
                                    kOptMaxEditHistory))) == kWrapHistory) {
         havent_wrap_history_ = true;
+    }
+}
+
+// Intentionally not in history.
+// and this buffer changing will not miss up the cursor.
+void Buffer::InsertFinalNewline() {
+    if (!GetOpt<bool>(kOptInsertFinalNewline)) {
+        return;
+    }
+    auto iter = tree_.End();
+    const auto begin = tree_.Begin();
+    if (begin == iter) {  // empty buffer
+        return;
+    }
+    iter.PrevByte();
+    if (iter.ThisByte() == '\n') {
+        return;
+    }
+    Pos pos;
+    AddInner(tree_.OffsetToPos(tree_.End().offset()), "\n", pos,
+             ts_tree_ != nullptr);
+    if (ts_tree_) {
+        ts_tree_edit(ts_tree_, &ts_edit_);
     }
 }
 

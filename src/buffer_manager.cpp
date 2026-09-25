@@ -5,8 +5,8 @@
 namespace charxed {
 
 BufferManager::BufferManager(EditorEventManager* editor_event_manager)
-    : list_head_(nullptr, false),
-      list_tail_(nullptr, false),
+    : list_head_(nullptr, nullptr, false),
+      list_tail_(nullptr, nullptr, false),
       editor_event_manager_(editor_event_manager) {
     list_head_.prev_ = nullptr;
     list_tail_.next_ = nullptr;
@@ -25,7 +25,7 @@ Buffer* BufferManager::AddBuffer(Buffer&& buffer) {
 void BufferManager::RemoveBuffer(Buffer* buffer) {
     CHX_ASSERT(buffer);
     int64_t id = buffer->id();
-    editor_event_manager_->EmitEvent(EditorEvent::kBufferRemoved, buffer);
+    editor_event_manager_->EmitEvent(EditorEvent::kBeforeBufferRemove, buffer);
     buffer->RemoveFromList();
     CHX_ASSERT(buffers_.count(id) == 1);
     buffers_.erase(id);

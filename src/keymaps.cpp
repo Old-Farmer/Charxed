@@ -263,8 +263,8 @@ void Editor::InitKeymaps() {
                    if (peel_->DeleteCharacterBeforeCursor() == kOk) {
                        editor_event_manager_.EmitEvent(
                            mode_ == Mode::kPeelCommand
-                               ? EditorEvent::kCommandCharEdit
-                               : EditorEvent::kSearchCharEdit,
+                               ? EditorEvent::kAfterCommandCharEdit
+                               : EditorEvent::kAfterSearchCharEdit,
                            nullptr);
                        layout_manager_->ArrangeLayout();
                    }
@@ -274,8 +274,8 @@ void Editor::InitKeymaps() {
                    peel_->DeleteWordBeforeCursor();
                    editor_event_manager_.EmitEvent(
                        mode_ == Mode::kPeelCommand
-                           ? EditorEvent::kCommandCharEdit
-                           : EditorEvent::kSearchCharEdit,
+                           ? EditorEvent::kAfterCommandCharEdit
+                           : EditorEvent::kAfterSearchCharEdit,
                        nullptr);
                    layout_manager_->ArrangeLayout();
                }},
@@ -383,7 +383,7 @@ void Editor::InitKeymaps() {
     CHX_KEYMAP("<bs>", {[this] {
                    if (cursor_.t_win->DeleteAtCursor() == kOk) {
                        editor_event_manager_.EmitEvent(
-                           EditorEvent::kEditCharEdit, nullptr);
+                           EditorEvent::kAfterEditCharEdit, nullptr);
                    }
                }},
                {Mode::kInsert});

@@ -36,6 +36,11 @@ In `config.json`, Support options:
     default: true,
     desc: Auto pair for brackets, etc.
 
+- insert_final_newline  
+    type: bool,
+    default: true,
+    desc: Ensure non-empty files end with a newline when saved(See [Posix spec of line](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_206)).
+
 - max_edit_history:  
     type: integer,
     default: 100,

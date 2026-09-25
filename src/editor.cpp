@@ -57,7 +57,8 @@ void Editor::Init(std::unique_ptr<GlobalOpts> global_opts,
                                         &command_manager_);
     cmp_menu_ = std::make_unique<CmpMenu>(&cursor_, global_opts_.get());
     explorer_ = std::make_unique<Explorer>(global_opts_.get(), &cursor_,
-                                           &context_, buffer_manager_.get());
+                                           &context_, buffer_manager_.get(),
+                                           &editor_event_manager_);
 
     syntax_parser_ = std::make_unique<SyntaxParser>(global_opts_.get());
     buffer_monitor_ = std::make_unique<BufferFSMonitor>(
@@ -68,8 +69,8 @@ void Editor::Init(std::unique_ptr<GlobalOpts> global_opts,
 
     // Create all buffers
     for (const char* path : init_opts->begin_files) {
-        auto b = buffer_manager_->AddBuffer(
-            Buffer(global_opts_.get(), std::string(path)));
+        auto b = buffer_manager_->AddBuffer(Buffer(
+            global_opts_.get(), std::string(path), &editor_event_manager_));
         try {
             buffer_monitor_->MonitorBuffer(b);
         } catch (OSException& e) {
@@ -83,12 +84,13 @@ void Editor::Init(std::unique_ptr<GlobalOpts> global_opts,
     if (buffer_manager_->Begin() != nullptr) {
         buf = buffer_manager_->Begin();
     } else {
-        buf = buffer_manager_->AddBuffer({global_opts_.get()});
+        buf = buffer_manager_->AddBuffer(
+            {global_opts_.get(), &editor_event_manager_});
     }
     // CHX_LOG_DEBUG("buffer {}", buf->Name());
     text_window_ = std::make_unique<TextWindow>(
         &cursor_, global_opts_.get(), syntax_parser_.get(), clipboard_.get(),
-        buffer_manager_.get());
+        buffer_manager_.get(), &editor_event_manager_);
 
     // Set Cursor in the first window
     cursor_.t_win = text_window_.get();
@@ -119,7 +121,7 @@ void Editor::Init(std::unique_ptr<GlobalOpts> global_opts,
 
 void Editor::RegisterEditorEventHandlers() {
     editor_event_manager_.AddHandler(
-        EditorEvent::kBufferRemoved, [this](void* arg) {
+        EditorEvent::kBeforeBufferRemove, [this](void* arg) {
             auto buffer = reinterpret_cast<Buffer*>(arg);
             if (!buffer->path().Empty()) {
                 buffer_monitor_->UnmonitorBuffer(buffer);
@@ -127,18 +129,18 @@ void Editor::RegisterEditorEventHandlers() {
             text_window_->OnBufferDelete(buffer);
             syntax_parser_->OnBufferDelete(buffer);
         });
-    editor_event_manager_.AddHandler(EditorEvent::kEditCharEdit,
+    editor_event_manager_.AddHandler(EditorEvent::kAfterEditCharEdit,
                                      [this](void* arg) {
                                          (void)arg;
                                          StartAutoCompletionTimer();
                                      });
-    editor_event_manager_.AddHandler(EditorEvent::kCommandCharEdit,
+    editor_event_manager_.AddHandler(EditorEvent::kAfterCommandCharEdit,
                                      [this](void* arg) {
                                          (void)arg;
                                          if (!command_prompt_)
                                              StartAutoCompletionTimer();
                                      });
-    editor_event_manager_.AddHandler(EditorEvent::kSearchCharEdit,
+    editor_event_manager_.AddHandler(EditorEvent::kAfterSearchCharEdit,
                                      [this](void* arg) {
                                          (void)arg;
                                          StartSearchOnTypeTimer();
@@ -476,13 +478,13 @@ void Editor::HandleKey() {
             EditorEvent ev;
             switch (mode_) {
                 case Mode::kInsert:
-                    ev = EditorEvent::kEditCharEdit;
+                    ev = EditorEvent::kAfterEditCharEdit;
                     break;
                 case Mode::kPeelCommand:
-                    ev = EditorEvent::kCommandCharEdit;
+                    ev = EditorEvent::kAfterCommandCharEdit;
                     break;
                 case Mode::kPeelSearch:
-                    ev = EditorEvent::kSearchCharEdit;
+                    ev = EditorEvent::kAfterSearchCharEdit;
                     break;
                 default:
                     ev = EditorEvent::__kCount;
@@ -733,7 +735,8 @@ void Editor::Help(const std::string& doc_name) {
                 Notify(fmt::format("Can't found doc: {}", doc_name));
                 return;
             }
-            b = buffer_manager_->AddBuffer(Buffer(global_opts_.get(), p, true));
+            b = buffer_manager_->AddBuffer(
+                Buffer(global_opts_.get(), p, &editor_event_manager_, true));
         } catch (FSException& e) {
             CHX_LOG_ERROR("AllDocs error: {}", e.what());
             return;
@@ -1208,7 +1211,8 @@ void Editor::Edit(const std::string& path) {
         cursor_.t_win->AttachBuffer(b);
         return;
     }
-    b = buffer_manager_->AddBuffer(Buffer(global_opts_.get(), std::move(p)));
+    b = buffer_manager_->AddBuffer(
+        Buffer(global_opts_.get(), std::move(p), &editor_event_manager_));
     try {
         buffer_monitor_->MonitorBuffer(b);
     } catch (OSException& e) {

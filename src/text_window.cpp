@@ -14,11 +14,13 @@
 namespace charxed {
 TextWindow::TextWindow(Cursor* cursor, GlobalOpts* global_opts,
                        SyntaxParser* parser, ClipBoard* clipboard,
-                       BufferManager* buffer_manager) noexcept
+                       BufferManager* buffer_manager,
+                       EditorEventManager* editor_event_manager) noexcept
     : cursor_(cursor),
       opts_(global_opts),
       parser_(parser),
       buffer_manager_(buffer_manager),
+      editor_event_manager_(editor_event_manager),
       area_(cursor, &opts_, parser, clipboard) {}
 
 void TextWindow::CursorGoLine(size_t line) {
@@ -314,8 +316,8 @@ Result TextWindow::GotoFile() {
         if (res == kNotExist) {
             return kNotExist;
         }
-        Buffer* buffer =
-            buffer_manager_->AddBuffer(Buffer(opts_.global_opts_, real_path));
+        Buffer* buffer = buffer_manager_->AddBuffer(
+            Buffer(opts_.global_opts_, real_path, editor_event_manager_));
         AttachBuffer(buffer);
     } catch (FSException&) {
         return kError;
@@ -367,7 +369,8 @@ void TextWindow::DetachBuffer() {
 void TextWindow::OnBufferDelete(const Buffer* buffer) {
     if (buffer == area_.buffer_) {
         if (buffer->IsFirstBuffer() && buffer->IsLastBuffer()) {
-            AttachBuffer(buffer_manager_->AddBuffer({opts_.global_opts_}));
+            AttachBuffer(buffer_manager_->AddBuffer(
+                {opts_.global_opts_, editor_event_manager_}));
         } else if (buffer->IsFirstBuffer()) {
             NextBuffer();
         } else {

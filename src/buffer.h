@@ -23,6 +23,7 @@ constexpr std::string_view kSwapSuffix = ".charxed_swap";
 
 struct Cursor;
 struct Options;
+class EditorEventManager;
 
 // This class reprensents a single-range edit operations to the buffer.
 // It can represent 3 OPs:
@@ -155,14 +156,18 @@ class Buffer {
     };
 
    public:
+    // event_manager can be null
+
     // if new_file == true, will alloc a new_file_id to this buffer, else just a
     // no file-backup buffer.
-    Buffer(GlobalOpts* options, bool new_file = true);
+    Buffer(GlobalOpts* options, EditorEventManager* event_manager,
+           bool new_file = true);
     // A new file backup buffer
     Buffer(GlobalOpts* options, const std::string& path,
-           bool read_only = false);
+           EditorEventManager* event_manager, bool read_only = false);
     // A new file backup buffer
-    Buffer(GlobalOpts* options, const Path& path, bool read_only = false);
+    Buffer(GlobalOpts* options, const Path& path,
+           EditorEventManager* event_manager, bool read_only = false);
     CHX_DELETE_COPY(Buffer);
     CHX_DEFAULT_MOVE(Buffer);
     ~Buffer();
@@ -264,13 +269,7 @@ class Buffer {
     // Caller should check whefher kMaxEditHistory <= 0
     void Record(BufferEditHistoryItem&& item);
 
-    template <typename T>
-    T GetOpt(OptKey key) {
-        if (opts_.GetScope(key) == OptScope::kGlobal) {
-            return opts_.global_opts_->GetOpt<T>(key);
-        }
-        return opts_.GetOpt<T>(key);
-    }
+    void InsertFinalNewline();
 
    public:
     // Make sure that Range or Pos is valid, otherwise behavir
@@ -343,6 +342,14 @@ class Buffer {
     TSTree*& ts_tree() noexcept { return ts_tree_; }
     const TSTree* ts_tree() const noexcept { return ts_tree_; }
 
+    template <typename T>
+    T GetOpt(OptKey key) {
+        if (opts_.GetScope(key) == OptScope::kGlobal) {
+            return opts_.global_opts_->GetOpt<T>(key);
+        }
+        return opts_.GetOpt<T>(key);
+    }
+
     // Buffer list op
     void AppendToList(Buffer* tail) noexcept;
     void RemoveFromList() noexcept;
@@ -390,6 +397,7 @@ class Buffer {
     bool lsp_attached_ = false;
 
     Opts opts_;
+    EditorEventManager* event_manager_;
 
     int64_t id_ = AllocId();
 

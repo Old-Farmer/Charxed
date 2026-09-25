@@ -63,12 +63,13 @@ enum class LineNumberType {
     kRelative,
 };
 
-#define CHX_BUFFER_OPT_TABLE                          \
-    X(kOptAutoIndent, auto_indent, kBool)             \
-    X(kOptAutoPair, auto_pair, kBool)                 \
-    X(kOptMaxEditHistory, max_edit_history, kInteger) \
-    X(kOptTabSpace, tab_space, kBool)                 \
-    X(kOptTabStop, tab_stop, kInteger)                \
+#define CHX_BUFFER_OPT_TABLE                               \
+    X(kOptAutoIndent, auto_indent, kBool)                  \
+    X(kOptAutoPair, auto_pair, kBool)                      \
+    X(kOptInsertFinalNewline, insert_final_newline, kBool) \
+    X(kOptMaxEditHistory, max_edit_history, kInteger)      \
+    X(kOptTabSpace, tab_space, kBool)                      \
+    X(kOptTabStop, tab_stop, kInteger)                     \
     X(kOptWrap, wrap, kBool)
 
 #define CHX_WINDOW_OPT_TABLE                                 \

@@ -11,7 +11,7 @@ MangoPeel::MangoPeel(Cursor* cursor, GlobalOpts* global_opts,
                      ClipBoard* clipboard, BufferManager* buffer_manager,
                      CommandManager* command_manager)
     : opts_(global_opts),
-      buffer_(global_opts, false),
+      buffer_(global_opts, nullptr, false),
       area_(cursor, &opts_, nullptr, clipboard),
       completer_(this, buffer_manager, command_manager) {
     buffer_.Load();

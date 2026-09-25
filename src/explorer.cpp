@@ -13,10 +13,12 @@ constexpr char kDirCollapsedIndicator = '+';
 };  // namespace
 
 Explorer::Explorer(GlobalOpts* global_opts, Cursor* cursor, Context* context,
-                   BufferManager* buffer_manager)
+                   BufferManager* buffer_manager,
+                   EditorEventManager* editor_event_manager)
     : cursor_(cursor),
       context_(context),
       buffer_manager_(buffer_manager),
+      editor_event_manager_(editor_event_manager),
       global_opts_(global_opts),
       area_(global_opts, cursor, &flattern_entries_, &tree_version_,
             [this](Entry* const& e,
@@ -55,7 +57,8 @@ void Explorer::EnterCurrentEntry() {
 
         Buffer* b = buffer_manager_->FindBuffer(name);
         if (!b) {
-            b = buffer_manager_->AddBuffer(Buffer(global_opts_, name));
+            b = buffer_manager_->AddBuffer(
+                Buffer(global_opts_, name, editor_event_manager_));
         }
         cursor_->t_win->AttachBuffer(b);
     }

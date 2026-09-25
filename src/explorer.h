@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-#include "fs.h"
 #include "list_area.h"
 #include "options.h"
 #include "utils.h"
@@ -18,6 +17,7 @@ struct Cursor;
 enum class Context;
 class BufferManager;
 class LayoutManager;
+class EditorEventManager;
 
 // Explorer is a file tree explorer
 // Explorer' root is now always be Cwd.
@@ -25,7 +25,8 @@ class LayoutManager;
 class Explorer : public Window {
    public:
     Explorer(GlobalOpts* global_opts, Cursor* cursor, Context* context,
-             BufferManager* buffer_manager);
+             BufferManager* buffer_manager,
+             EditorEventManager* editor_event_manager);
     virtual ~Explorer() = default;
     CHX_DELETE_COPY(Explorer);
     CHX_DEFAULT_MOVE(Explorer);
@@ -158,6 +159,7 @@ class Explorer : public Window {
     Context* context_;
     LayoutManager* layout_manager_;
     BufferManager* buffer_manager_;
+    EditorEventManager* editor_event_manager_;
 
     GlobalOpts* global_opts_;
 
