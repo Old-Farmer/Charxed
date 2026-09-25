@@ -13,6 +13,7 @@
 #include "pos.h"
 #include "result.h"
 #include "state.h"
+#include "syntax.h"
 #include "text_tree.h"
 #include "tree_sitter/api.h"
 #include "utils.h"
@@ -341,6 +342,7 @@ class Buffer {
 
     TSTree*& ts_tree() noexcept { return ts_tree_; }
     const TSTree* ts_tree() const noexcept { return ts_tree_; }
+    std::optional<SyntaxContext>& syntax_context() { return syntax_context_; }
 
     template <typename T>
     T GetOpt(OptKey key) {
@@ -390,6 +392,7 @@ class Buffer {
     TSInputEdit ts_edit_;
     TSTree* ts_tree_ = nullptr;
     // bool after_get_edit_modified = false;
+    std::optional<SyntaxContext> syntax_context_;
 
     std::unique_ptr<BufferBasicWordCompleter> basic_word_completer_;
 

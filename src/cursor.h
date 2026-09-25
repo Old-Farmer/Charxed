@@ -44,6 +44,10 @@ struct Cursor {
     // TODO: other info
 
     void DontHoldColWant() { b_view_col_want.reset(); }
+    void DontHoldColWant(Pos pos) {
+        DontHoldColWant();
+        this->pos = pos;
+    }
 
     void SetScreenPos(int screen_col, int screen_row) {
         s_col = screen_col;

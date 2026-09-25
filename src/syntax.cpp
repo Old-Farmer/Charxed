@@ -53,8 +53,7 @@ static void SyntaxParserStaticInit(
         ts_query_capture_name_to_character_type) {
     static std::unordered_map<std::string_view, ThemeType>*
         static_ts_query_capture_name_to_character_type = [] {
-            auto ret =
-                new std::unordered_map<std::string_view, ThemeType>();
+            auto ret = new std::unordered_map<std::string_view, ThemeType>();
             const std::vector<CharacterTypeCaptureNameMappingItem>
                 kCharacterTypeToTSQueryCaptureName = {
                     {kFunction, {"function", "funtion.special"}},
@@ -156,12 +155,12 @@ bool SyntaxParser::QueryPredicate(const TSQueryContext& query_context,
     return true;
 }
 
-void SyntaxParser::GenerateHighlight(const Buffer* buffer, const Range& range) {
+void SyntaxParser::GenerateHighlight(Buffer* buffer, const Range& range) {
     CHX_ASSERT(filetype_to_query_[static_cast<int>(buffer->filetype())]->query);
     TSQueryContext& query_context =
         *filetype_to_query_[static_cast<int>(buffer->filetype())];
-    CHX_ASSERT(buffer_context_.count(buffer->id()) == 1);
-    SyntaxContext& context = buffer_context_[buffer->id()];
+    CHX_ASSERT(buffer->syntax_context().has_value());
+    SyntaxContext& context = *buffer->syntax_context();
 
     TSNode root = ts_tree_root_node(buffer->ts_tree());
     TSPoint query_start, query_end;
@@ -258,7 +257,7 @@ void SyntaxParser::GenerateHighlight(const Buffer* buffer, const Range& range) {
     }
 }
 
-TSTree* SyntaxParser::SyntaxInit(const Buffer* buffer) {
+TSTree* SyntaxParser::SyntaxInit(Buffer* buffer) {
     auto filetype = buffer->filetype();
     const TSQueryContext* query_context = GetQueryContext(filetype);
     if (query_context == nullptr) {
@@ -281,13 +280,13 @@ TSTree* SyntaxParser::SyntaxInit(const Buffer* buffer) {
                       FileTypesInnerStrRep(buffer->filetype()));
         return nullptr;
     }
-    buffer_context_[buffer->id()] = {};
+    buffer->syntax_context() = {{}, {}, buffer->version()};
     return tree;
 }
 
-void SyntaxParser::ParseSyntaxAfterEdit(Buffer* buffer) {
-    auto iter = buffer_context_.find(buffer->id());
-    if (iter == buffer_context_.end()) {
+void SyntaxParser::ParseSyntaxIfChanged(Buffer* buffer) {
+    if (!buffer->syntax_context().has_value() ||
+        buffer->version() == buffer->syntax_context()->buffer_version) {
         return;
     }
     TSInput input = {const_cast<Buffer*>(buffer), MyTSRead, TSInputEncodingUTF8,
@@ -301,24 +300,13 @@ void SyntaxParser::ParseSyntaxAfterEdit(Buffer* buffer) {
     }
 }
 
-void SyntaxParser::OnBufferDelete(const Buffer* buffer) {
-    auto iter = buffer_context_.find(buffer->id());
-    if (iter == buffer_context_.end()) {
-        return;
-    }
-
-    buffer_context_.erase(iter);
-}
-
-const SyntaxContext* SyntaxParser::GetBufferSyntaxContext(const Buffer* buffer,
+const SyntaxContext* SyntaxParser::GetBufferSyntaxContext(Buffer* buffer,
                                                           const Range& range) {
-    auto iter = buffer_context_.find(buffer->id());
-    if (iter == buffer_context_.end()) {
+    if (!buffer->syntax_context().has_value()) {
         return nullptr;
     }
-
     GenerateHighlight(buffer, range);
-    return &iter->second;
+    return &*buffer->syntax_context();
 }
 
 SyntaxParser::TSQueryContext::~TSQueryContext() {

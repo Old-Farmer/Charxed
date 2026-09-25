@@ -18,7 +18,6 @@ TextWindow::TextWindow(Cursor* cursor, GlobalOpts* global_opts,
                        EditorEventManager* editor_event_manager) noexcept
     : cursor_(cursor),
       opts_(global_opts),
-      parser_(parser),
       buffer_manager_(buffer_manager),
       editor_event_manager_(editor_event_manager),
       area_(cursor, &opts_, parser, clipboard) {}
@@ -100,9 +99,7 @@ Result TextWindow::DeleteAtCursor() {
     if (Result res; (res = buffer->Delete(range, nullptr, false, pos)) != kOk) {
         return res;
     }
-    cursor_->pos = pos;
-    cursor_->DontHoldColWant();
-    parser_->ParseSyntaxAfterEdit(buffer);
+    cursor_->DontHoldColWant(pos);
     return kOk;
 }
 

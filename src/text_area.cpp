@@ -1862,14 +1862,8 @@ Range TextArea::CalcWrapRange(size_t content_width) {
             {cur_b_view_line, iter.offset() - line.begin.offset()}};
 }
 
-void TextArea::UpdateSyntax() {
-    if (parser_) parser_->ParseSyntaxAfterEdit(buffer_);
-}
-
 void TextArea::AfterModify(const Pos& cursor_pos) {
-    cursor_->pos = cursor_pos;
-    cursor_->DontHoldColWant();
-    UpdateSyntax();
+    cursor_->DontHoldColWant(cursor_pos);
 }
 
 bool TextArea::SizeValid(size_t sidebar_width) {

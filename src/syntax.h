@@ -30,6 +30,7 @@ struct Highlight {
 struct SyntaxContext {
     std::vector<Highlight> syntax_highlight;
     std::vector<int64_t> syntax_priority;
+    int64_t buffer_version;
 };
 
 class SyntaxParser {
@@ -40,14 +41,13 @@ class SyntaxParser {
     CHX_DELETE_MOVE(SyntaxParser);
 
     // return nullptr means init fail
-    TSTree* SyntaxInit(const Buffer* buffer);
-    void ParseSyntaxAfterEdit(Buffer* buffer);
-    void OnBufferDelete(const Buffer* buffer);
+    TSTree* SyntaxInit(Buffer* buffer);
+    void ParseSyntaxIfChanged(Buffer* buffer);
     // Get buffer Syntax Context: Current is Buffer syntax hl info.
     // Need provide a range, so this function can calculate syntax hl info in
     // the range. This range should be as small as possible. throw
     // TSQueryPredicateDirectiveNotSupportException
-    const SyntaxContext* GetBufferSyntaxContext(const Buffer* buffer,
+    const SyntaxContext* GetBufferSyntaxContext(Buffer* buffer,
                                                 const Range& range);
 
    private:
@@ -80,7 +80,7 @@ class SyntaxParser {
     const TSQueryContext* GetQueryContext(FileType filetype);
 
     // throw TSQueryPredicateDirectiveNotSupportException
-    void GenerateHighlight(const Buffer* buffer, const Range& range);
+    void GenerateHighlight(Buffer* buffer, const Range& range);
     // return true to indicate that predicate ok
     bool QueryPredicate(const TSQueryContext& query_context,
                         const TSQueryCapture* capture, const Buffer* buffer,
@@ -95,7 +95,6 @@ class SyntaxParser {
 
     static constexpr int kTSCaptureNamePropertyLowest = INT_MAX;
 
-    std::unordered_map<int64_t, SyntaxContext> buffer_context_;
     TSParser* parser_ = nullptr;
     TSQueryCursor* query_cursor_;
 

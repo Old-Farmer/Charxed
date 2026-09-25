@@ -127,7 +127,6 @@ void Editor::RegisterEditorEventHandlers() {
                 buffer_monitor_->UnmonitorBuffer(buffer);
             }
             text_window_->OnBufferDelete(buffer);
-            syntax_parser_->OnBufferDelete(buffer);
         });
     editor_event_manager_.AddHandler(EditorEvent::kAfterEditCharEdit,
                                      [this](void* arg) {
@@ -665,6 +664,14 @@ void Editor::PreProcess() {
                                text_window_->area_.buffer_->Name(), e.what()));
         }
     }
+    syntax_parser_->ParseSyntaxIfChanged(text_window_->area_.buffer_);
+
+    // Don't show write buf when curosr in peel.
+    // It's ok because content can be shown next time.
+    if (!IsPeel(mode_)) {
+        ShowWriteBuf();
+    }
+    // No need to parse syntax of peel content.
 
     peel_->area_.MakeSureViewValid();
     switch (context_) {
@@ -686,11 +693,6 @@ void Editor::PreProcess() {
         default:
             CHX_ASSERT(false);
             CHX_LOG_ERROR("Can't reach here");
-    }
-    // Don't show write buf when curosr in peel.
-    // It's ok because content can be shown next time.
-    if (!IsPeel(mode_)) {
-        ShowWriteBuf();
     }
 }
 

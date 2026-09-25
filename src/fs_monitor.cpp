@@ -211,7 +211,6 @@ bool BufferFSMonitor::BufferModified(std::string_view path) {
             Pos cursor_pos_hint;
             b->Reload(nullptr, cursor_pos_hint);
         }
-        syntax_parser_->ParseSyntaxAfterEdit(b);
     } catch (Exception& e) {
         if (is_showed) {
             cursor_->pos = {0, 0};

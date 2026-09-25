@@ -281,8 +281,6 @@ class TextArea {
 
     bool SizeValid(size_t sidebar_width);
 
-    void UpdateSyntax();
-
     template <typename T>
     T GetOpt(OptKey key) {
         if (opts_->GetScope(key) == OptScope::kGlobal) {
@@ -311,9 +309,9 @@ class TextArea {
 
     std::unique_ptr<Selection> selection_;
     ClipBoard* clipboard_;
+    SyntaxParser* parser_;
 
    private:
-    SyntaxParser* parser_;
     Opts* opts_;
     Terminal* term_ = &Terminal::GetInstance();
 };
