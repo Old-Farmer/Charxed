@@ -1,9 +1,9 @@
-build*/
+/build*/
 .cache/
 .zed/
 .vscode/
 compile_commands.json
 
-third-party/
-python/
+/third-party/
+/python
 __pycache__/

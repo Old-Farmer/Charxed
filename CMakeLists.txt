@@ -197,6 +197,7 @@ FetchContent_Declare(
 )
 FetchContent_Populate(python)
 set(PYTHON_DIR "${CMAKE_SOURCE_DIR}/python")
+set(REAL_PYTHON_DIR "${CMAKE_BINARY_DIR}/python")
 set(PREPARE_PYTHON ON CACHE BOOL "Prepare python dep")
 if (PREPARE_PYTHON)
     file(MAKE_DIRECTORY "${python_BINARY_DIR}/Modules")
@@ -255,6 +256,11 @@ _uuid
         CALL message NOTICE "Set 'PREPARE_PYTHON' to OFF if you want to modify CMakeLists.txt a lot."
     )
 endif()
+file(CREATE_LINK
+    "${REAL_PYTHON_DIR}"
+    "${PYTHON_DIR}"
+    SYMBOLIC
+)
 
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 

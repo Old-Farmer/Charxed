@@ -318,12 +318,15 @@ class Buffer {
     // Must always >= 1
     size_t LineCnt() const noexcept { return tree_.LineCnt(); }
     size_t Size() const noexcept { return tree_.Size(); }
-    BufferState& state() { return state_; };
+    zstring_view Name() noexcept {
+        return path_.Empty() ? new_file_info_->name : path_.ThisPath();
+    }
     bool IsLoad() const noexcept {
         return state_ == BufferState::kModified ||
                state_ == BufferState::kNotModified ||
                state_ == BufferState::kReadOnly;
     }
+    BufferState& state() { return state_; };
     bool read_only() const noexcept { return read_only_; }
     bool& read_only() noexcept { return read_only_; }
     int64_t version() const noexcept { return version_; }
@@ -333,11 +336,6 @@ class Buffer {
     Opts& opts() { return opts_; }
     const Opts& opts() const { return opts_; }
     Completer* completer() { return basic_word_completer_.get(); }
-    bool lsp_attached() { return lsp_attached_; }
-
-    zstring_view Name() noexcept {
-        return path_.Empty() ? new_file_info_->name : path_.ThisPath();
-    }
     Path& path() noexcept { return path_; }
 
     TSTree*& ts_tree() noexcept { return ts_tree_; }
@@ -395,9 +393,6 @@ class Buffer {
     std::optional<SyntaxContext> syntax_context_;
 
     std::unique_ptr<BufferBasicWordCompleter> basic_word_completer_;
-
-    // lsp
-    bool lsp_attached_ = false;
 
     Opts opts_;
     EditorEventManager* event_manager_;
